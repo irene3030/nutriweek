@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /Users/irene/dev/nutriweek/src/components/auth)",
+      "Bash(mkdir -p /Users/irene/dev/nutriweek/src/components/week)",
+      "Bash(mkdir -p /Users/irene/dev/nutriweek/src/components/day)",
+      "Bash(mkdir -p /Users/irene/dev/nutriweek/src/components/shopping)",
+      "Bash(mkdir -p /Users/irene/dev/nutriweek/src/components/recipes)",
+      "Bash(npm run:*)"
+    ]
+  }
+}
