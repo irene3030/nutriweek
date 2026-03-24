@@ -8,7 +8,11 @@
       "Bash(mkdir -p /Users/irene/dev/nutriweek/src/components/recipes)",
       "Bash(npm run:*)",
       "Bash(npm audit:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(npm install:*)",
+      "Bash(npm list:*)",
+      "Bash(node -e \"require\\(''canvas''\\)\")",
+      "Bash(node -e \"require\\(''''sharp''''\\)\")"
     ]
   }
 }

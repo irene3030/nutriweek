@@ -10,6 +10,7 @@ import ShoppingList from './components/shopping/ShoppingList';
 import RecipeSearch from './components/recipes/RecipeSearch';
 import UsualMeals from './components/recipes/UsualMeals';
 import { FullPageSpinner } from './components/ui/LoadingSpinner';
+import InstallBanner from './components/ui/InstallBanner';
 import {
   collection,
   onSnapshot,
@@ -200,7 +201,7 @@ function AppContent() {
   return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
         {/* Main content */}
-        <div className="flex-1 pb-16">
+        <div className="flex-1 pb-16" style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))' }}>
           {activeTab === 'week' && (
             <WeekView
               weeks={weeks}
@@ -300,8 +301,10 @@ function AppContent() {
           </>
         )}
 
+        <InstallBanner />
+
         {/* Bottom tab bar */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20">
+        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20 pb-[env(safe-area-inset-bottom)]">
           <div className="max-w-lg mx-auto flex">
             {[
               { id: 'week', label: 'Semana' },
