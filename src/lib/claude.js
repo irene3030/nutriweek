@@ -1,9 +1,15 @@
 const API_URL = '/api/claude';
 
+// Module-level pre-call hook — set from App.jsx to check limits and track usage.
+// Must throw an error to block the call, or resolve to allow it.
+let _preCallHook = null;
+export function setPreCallHook(fn) { _preCallHook = fn; }
+
 async function callClaude(type, payload, apiKey) {
   if (!apiKey) {
     throw new Error('NO_API_KEY');
   }
+  if (_preCallHook) await _preCallHook();
   const response = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -27,8 +33,8 @@ export async function regenerateDay({ dayName, weekContext = [], availableIngred
   return callClaude('regenerate_day', { dayName, weekContext, availableIngredients, fixedMeals }, apiKey);
 }
 
-export async function suggestMeal({ dayName, mealType, weekContext = [], apiKey }) {
-  return callClaude('suggest_meal', { dayName, mealType, weekContext }, apiKey);
+export async function suggestMeal({ dayName, mealType, weekContext = [], ingredients = '', requirements = [], apiKey }) {
+  return callClaude('suggest_meal', { dayName, mealType, weekContext, ingredients, requirements }, apiKey);
 }
 
 export async function quickMeal({ ingredients = '', requirements = [], apiKey }) {

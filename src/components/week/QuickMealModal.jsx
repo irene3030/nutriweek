@@ -40,9 +40,10 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, currentWeek, o
       const res = await quickMeal({ ingredients, requirements, apiKey });
       setResult(res);
     } catch (err) {
-      setError(err.message === 'NO_API_KEY'
-        ? 'Añade tu API key en Perfil para usar esta función.'
-        : err.message || 'Error generando la comida.');
+      setError(
+        err.message === 'NO_API_KEY' ? 'Añade tu API key en Perfil para usar esta función.' :
+        err.message === 'CALL_LIMIT_EXCEEDED' ? 'Has alcanzado el límite mensual de llamadas. Auméntalo en Perfil.' :
+        err.message || 'Error generando la comida.');
     } finally {
       setLoading(false);
     }
@@ -50,7 +51,7 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, currentWeek, o
 
   const handleCopy = () => {
     if (!result) return;
-    navigator.clipboard.writeText(`Bebé: ${result.baby}\nAdulto: ${result.adult}`);
+    navigator.clipboard.writeText(result.baby);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -123,12 +124,7 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, currentWeek, o
         {result && (
           <div className="bg-brand-50 border border-brand-200 rounded-xl p-4 space-y-2">
             <div>
-              <span className="text-xs font-semibold text-brand-700 uppercase tracking-wide">Bebé</span>
-              <p className="text-sm text-gray-800 mt-0.5">{result.baby}</p>
-            </div>
-            <div>
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Adulto</span>
-              <p className="text-sm text-gray-600 mt-0.5">{result.adult}</p>
+              <p className="text-sm text-gray-800">{result.baby}</p>
             </div>
             {result.tags?.length > 0 && (
               <div className="flex flex-wrap gap-1 pt-1">

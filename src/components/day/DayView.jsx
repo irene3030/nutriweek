@@ -41,7 +41,7 @@ export default function DayView({
 
   const dayData = weekDoc?.days?.[dayIndex];
   const dayName = dayData?.day || DAYS[dayIndex];
-  const meals = dayData?.meals || MEAL_TYPES.map((tipo) => ({ tipo, baby: '', adult: '', tags: [], track: null }));
+  const meals = dayData?.meals || MEAL_TYPES.map((tipo) => ({ tipo, baby: '', tags: [], track: null }));
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -84,57 +84,49 @@ export default function DayView({
     onSaveMeal(weekDoc.id, toDayIndex, toMealIndex, data);
   };
 
-  if (!dayData) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">Día no encontrado</p>
-      </div>
-    );
-  }
+  if (!dayData) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+      <div className="bg-white border-b border-gray-100 shrink-0 px-4 py-3 flex items-center gap-3">
+        <button
+          onClick={onBack}
+          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+          aria-label="Cerrar"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div className="flex items-center gap-2 flex-1">
           <button
-            onClick={onBack}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
-            aria-label="Volver"
+            disabled={!canGoPrev}
+            onClick={() => onBack(dayIndex - 1)}
+            className="p-1 rounded text-gray-400 hover:text-gray-600 disabled:opacity-30 transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-
-          <div className="flex items-center gap-2 flex-1">
-            <button
-              disabled={!canGoPrev}
-              onClick={() => onBack(dayIndex - 1)}
-              className="p-1 rounded text-gray-400 hover:text-gray-600 disabled:opacity-30 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <h1 className="text-lg font-bold text-gray-900 flex-1 text-center">
-              {dayName} <span className="text-gray-400 font-normal text-sm">— {weekDoc?.label}</span>
-            </h1>
-            <button
-              disabled={!canGoNext}
-              onClick={() => onBack(dayIndex + 1)}
-              className="p-1 rounded text-gray-400 hover:text-gray-600 disabled:opacity-30 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
+          <h1 className="text-base font-bold text-gray-900 flex-1 text-center">
+            {dayName} <span className="text-gray-400 font-normal text-sm">— {weekDoc?.label}</span>
+          </h1>
+          <button
+            disabled={!canGoNext}
+            onClick={() => onBack(dayIndex + 1)}
+            className="p-1 rounded text-gray-400 hover:text-gray-600 disabled:opacity-30 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
-      </header>
+      </div>
 
       {/* Meal slots */}
-      <main className="max-w-2xl mx-auto px-4 py-4">
+      <main className="flex-1 overflow-y-auto px-4 py-4">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -167,3 +159,4 @@ export default function DayView({
     </div>
   );
 }
+

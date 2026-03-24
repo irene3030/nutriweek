@@ -24,7 +24,6 @@ export default function MealEditor({
   onCancel,
 }) {
   const [baby, setBaby] = useState('');
-  const [adult, setAdult] = useState('');
   const [tags, setTags] = useState([]);
   const [veggieInput, setVeggieInput] = useState('');
   const [showRecipes, setShowRecipes] = useState(false);
@@ -39,7 +38,6 @@ export default function MealEditor({
   useEffect(() => {
     if (meal) {
       setBaby(meal.baby || '');
-      setAdult(meal.adult || '');
       setTags(meal.tags || []);
     }
   }, [meal]);
@@ -75,7 +73,6 @@ export default function MealEditor({
         apiKey,
       });
       if (result.baby) setBaby(result.baby);
-      if (result.adult) setAdult(result.adult);
       if (result.tags) setTags(result.tags);
     } catch (err) {
       setSuggestError(err.message || 'Error al sugerir. Revisa la API.');
@@ -89,7 +86,6 @@ export default function MealEditor({
     await saveRecipe(householdId, {
       name: saveAsRecipeName.trim(),
       baby,
-      adult,
       tags,
     });
     setSavedRecipeMsg(true);
@@ -100,21 +96,20 @@ export default function MealEditor({
 
   const handleUseRecipe = (recipe) => {
     setBaby(recipe.baby || '');
-    setAdult(recipe.adult || '');
     setTags(recipe.tags || []);
     setShowRecipes(false);
   };
 
   const handleSubmit = () => {
-    onSave({ baby, adult, tags });
+    onSave({ baby, tags });
   };
 
   return (
     <div className="space-y-4">
-      {/* Baby field */}
+      {/* Meal field */}
       <div>
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-          👶 Bebé
+          Comida
         </label>
         <textarea
           value={baby}
@@ -122,20 +117,6 @@ export default function MealEditor({
           placeholder="Ej: Salmón al vapor + brócoli en trozos + arroz"
           rows={2}
           className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 resize-none"
-        />
-      </div>
-
-      {/* Adult field */}
-      <div>
-        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-          👨‍👩‍👧 Adulto
-        </label>
-        <textarea
-          value={adult}
-          onChange={(e) => setAdult(e.target.value)}
-          placeholder="Ej: Lo mismo con sal, limón y aceite de oliva"
-          rows={2}
-          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-400 resize-none"
         />
       </div>
 
@@ -289,7 +270,7 @@ export default function MealEditor({
             </select>
             <button
               onClick={() => {
-                onCopy(copyTarget.day, copyTarget.meal, { baby, adult, tags });
+                onCopy(copyTarget.day, copyTarget.meal, { baby, tags });
                 setShowCopy(false);
               }}
               className="text-xs px-3 py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"

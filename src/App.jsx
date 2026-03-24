@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AuthContext, useAuth, useAuthProvider } from './hooks/useAuth';
+import { setPreCallHook } from './lib/claude';
 import { useWeek } from './hooks/useWeek';
 import LoginScreen from './components/auth/LoginScreen';
 import OnboardingScreen from './components/auth/OnboardingScreen';
@@ -52,6 +53,7 @@ function AppContent() {
   const [usualMeals, setUsualMeals] = useState([]);
   const [foodHistory, setFoodHistory] = useState([]);
   const [householdApiKey, setHouseholdApiKey] = useState(null);
+  const [householdDoc, setHouseholdDoc] = useState(null);
   const [recipesTab, setRecipesTab] = useState('recipes'); // 'recipes' | 'usual'
 
   const {
@@ -72,18 +74,39 @@ function AppContent() {
     copyMeal,
   } = useWeek(auth.userDoc?.householdId);
 
-  // Listen to household api key in real-time
+  // Listen to household doc in real-time (apiKey + usage data)
   useEffect(() => {
     if (!auth.userDoc?.householdId) return;
     const unsub = onSnapshot(doc(db, 'households', auth.userDoc.householdId), (snap) => {
       if (snap.exists()) {
-        const key = snap.data().anthropicApiKey || null;
-        console.log('[NutriWeek] householdApiKey loaded:', key ? key.slice(0, 15) + '...' : 'null');
-        setHouseholdApiKey(key);
+        const data = snap.data();
+        setHouseholdApiKey(data.anthropicApiKey || null);
+        setHouseholdDoc(data);
       }
     });
     return unsub;
   }, [auth.userDoc?.householdId]);
+
+  // Register pre-call hook: check monthly limit and increment counter
+  useEffect(() => {
+    const householdId = auth.userDoc?.householdId;
+    if (!householdId || !householdDoc) return;
+
+    setPreCallHook(async () => {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const storedMonth = householdDoc.aiCallMonth;
+      const calls = storedMonth === currentMonth ? (householdDoc.aiCallsThisMonth || 0) : 0;
+      const limit = householdDoc.aiCallLimit || null;
+
+      if (limit && calls >= limit) {
+        throw new Error('CALL_LIMIT_EXCEEDED');
+      }
+      await updateDoc(doc(db, 'households', householdId), {
+        aiCallsThisMonth: calls + 1,
+        aiCallMonth: currentMonth,
+      });
+    });
+  }, [auth.userDoc?.householdId, householdDoc]);
 
   // Load saved recipes
   useEffect(() => {
@@ -172,24 +195,7 @@ function AppContent() {
   // Render onboarding if no household
   if (!auth.userDoc?.householdId) return <OnboardingScreen />;
 
-  // Day view (full screen, no tab bar)
-  if (selectedDayIndex !== null && currentWeek) {
-    return (
-      <DayView
-          weekDoc={currentWeek}
-          dayIndex={selectedDayIndex}
-          householdId={auth.userDoc.householdId}
-          apiKey={householdApiKey}
-          onBack={handleBackFromDay}
-          onSaveMeal={(weekId, dIdx, mIdx, data) => updateMeal(weekId, dIdx, mIdx, data)}
-          onTrackMeal={(weekId, dIdx, mIdx, trackData) => trackMeal(weekId, dIdx, mIdx, trackData)}
-          onCopyMeal={(weekId, srcDayIdx, srcMealIdx, tgtDayIdx, tgtMealIdx) =>
-            copyMeal(weekId, srcDayIdx, srcMealIdx, tgtDayIdx, tgtMealIdx)
-          }
-          onReorderMeals={(weekId, dIdx, newMeals) => updateDayMeals(weekId, dIdx, newMeals)}
-        />
-    );
-  }
+  const drawerOpen = selectedDayIndex !== null && currentWeek;
 
   return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -265,9 +271,34 @@ function AppContent() {
           )}
 
           {activeTab === 'profile' && (
-            <ProfileTab auth={auth} />
+            <ProfileTab auth={auth} householdDoc={householdDoc} />
           )}
         </div>
+
+        {/* Day drawer */}
+        {drawerOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-30 bg-black/20"
+              onClick={() => setSelectedDayIndex(null)}
+            />
+            <div className="drawer-slide-in fixed right-0 top-0 bottom-0 z-40 w-full sm:w-[440px] bg-white shadow-2xl flex flex-col">
+              <DayView
+                weekDoc={currentWeek}
+                dayIndex={selectedDayIndex}
+                householdId={auth.userDoc.householdId}
+                apiKey={householdApiKey}
+                onBack={handleBackFromDay}
+                onSaveMeal={(weekId, dIdx, mIdx, data) => updateMeal(weekId, dIdx, mIdx, data)}
+                onTrackMeal={(weekId, dIdx, mIdx, trackData) => trackMeal(weekId, dIdx, mIdx, trackData)}
+                onCopyMeal={(weekId, srcDayIdx, srcMealIdx, tgtDayIdx, tgtMealIdx) =>
+                  copyMeal(weekId, srcDayIdx, srcMealIdx, tgtDayIdx, tgtMealIdx)
+                }
+                onReorderMeals={(weekId, dIdx, newMeals) => updateDayMeals(weekId, dIdx, newMeals)}
+              />
+            </div>
+          </>
+        )}
 
         {/* Bottom tab bar */}
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20">
@@ -297,50 +328,58 @@ function AppContent() {
   );
 }
 
-function ProfileTab({ auth }) {
-  const [householdData, setHouseholdData] = useState(null);
+function ProfileTab({ auth, householdDoc }) {
   const [members, setMembers] = useState([]);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const [apiKeySaving, setApiKeySaving] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [limitInput, setLimitInput] = useState('');
+  const [limitSaved, setLimitSaved] = useState(false);
 
+  // Sync inputs when householdDoc arrives (real-time)
   useEffect(() => {
-    if (!auth.userDoc?.householdId) return;
-    getDoc(doc(db, 'households', auth.userDoc.householdId)).then(async (snap) => {
-      if (snap.exists()) {
-        const data = snap.data();
-        setHouseholdData(data);
-        setApiKeyInput(data.anthropicApiKey || '');
-        // Load member user docs
-        if (data.members?.length) {
-          const memberDocs = await Promise.all(
-            data.members.map(uid => getDoc(doc(db, 'users', uid)))
-          );
-          setMembers(memberDocs.filter(d => d.exists()).map(d => ({ uid: d.id, ...d.data() })));
-        }
-      }
-    });
-  }, [auth.userDoc?.householdId]);
+    if (!householdDoc) return;
+    setApiKeyInput(householdDoc.anthropicApiKey || '');
+    setLimitInput(householdDoc.aiCallLimit ? String(householdDoc.aiCallLimit) : '');
+  }, [householdDoc?.anthropicApiKey, householdDoc?.aiCallLimit]);
+
+  // Load members
+  useEffect(() => {
+    if (!householdDoc?.members?.length) return;
+    Promise.all(householdDoc.members.map(uid => getDoc(doc(db, 'users', uid))))
+      .then(docs => setMembers(docs.filter(d => d.exists()).map(d => ({ uid: d.id, ...d.data() }))));
+  }, [JSON.stringify(householdDoc?.members)]);
+
+  const householdId = auth.userDoc?.householdId;
 
   const handleSaveApiKey = async () => {
-    if (!auth.userDoc?.householdId) return;
+    if (!householdId) return;
     setApiKeySaving(true);
     try {
-      console.log('[NutriWeek] Saving apiKey to household:', auth.userDoc.householdId);
-      await updateDoc(doc(db, 'households', auth.userDoc.householdId), {
-        anthropicApiKey: apiKeyInput.trim(),
-      });
-      console.log('[NutriWeek] apiKey saved OK');
+      await updateDoc(doc(db, 'households', householdId), { anthropicApiKey: apiKeyInput.trim() });
       setApiKeySaved(true);
       setTimeout(() => setApiKeySaved(false), 2500);
     } catch (err) {
-      console.error('[NutriWeek] Error saving apiKey:', err);
       alert('Error guardando la key: ' + err.message);
     } finally {
       setApiKeySaving(false);
     }
   };
+
+  const handleSaveLimit = async () => {
+    if (!householdId) return;
+    const val = limitInput.trim() === '' ? null : parseInt(limitInput, 10);
+    await updateDoc(doc(db, 'households', householdId), { aiCallLimit: val });
+    setLimitSaved(true);
+    setTimeout(() => setLimitSaved(false), 2000);
+  };
+
+  // Usage this month
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const callsThisMonth = householdDoc?.aiCallMonth === currentMonth
+    ? (householdDoc?.aiCallsThisMonth || 0) : 0;
+  const callLimit = householdDoc?.aiCallLimit || null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -355,11 +394,7 @@ function ProfileTab({ auth }) {
         {/* User info */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4">
           {auth.user?.photoURL ? (
-            <img
-              src={auth.user.photoURL}
-              alt={auth.user.displayName}
-              className="w-14 h-14 rounded-full"
-            />
+            <img src={auth.user.photoURL} alt={auth.user.displayName} className="w-14 h-14 rounded-full" />
           ) : (
             <div className="w-14 h-14 rounded-full bg-brand-100 flex items-center justify-center text-2xl">
               {auth.user?.displayName?.[0] || '?'}
@@ -372,14 +407,14 @@ function ProfileTab({ auth }) {
         </div>
 
         {/* Household info */}
-        {householdData && (
+        {householdDoc && (
           <div className="bg-white rounded-2xl border border-gray-100 p-5">
             <h3 className="font-semibold text-gray-800 mb-3">Tu familia</h3>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Código de invitación</span>
                 <span className="font-bold tracking-widest text-brand-700 bg-brand-50 px-3 py-1 rounded-lg">
-                  {householdData.inviteCode}
+                  {householdDoc.inviteCode}
                 </span>
               </div>
               <div>
@@ -406,48 +441,112 @@ function ProfileTab({ auth }) {
         )}
 
         {/* Anthropic API Key */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
-          <h3 className="font-semibold text-gray-800 mb-1">API key de IA</h3>
-          <p className="text-xs text-gray-400 mb-3">
-            Necesaria para generar menús con Claude. Compartida con todos los miembros de tu familia.
-            Obtén la tuya en <span className="text-brand-600">console.anthropic.com</span>.
-          </p>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <input
-                type={showApiKey ? 'text' : 'password'}
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                placeholder="sk-ant-..."
-                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent pr-10"
-              />
-              <button
-                onClick={() => setShowApiKey((v) => !v)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+        <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+          <div>
+            <h3 className="font-semibold text-gray-800 mb-1">API key de IA (Anthropic)</h3>
+            <p className="text-xs text-gray-500 leading-relaxed">
+              Necesaria para generar menús, regenerar comidas y el batch cooking.
+              Compartida entre todos los miembros de tu familia.
+            </p>
+          </div>
+
+          {/* Cost estimate */}
+          <div className="bg-brand-50 border border-brand-100 rounded-xl p-3 space-y-1">
+            <p className="text-xs font-semibold text-brand-700">💡 ¿Cuánto cuesta?</p>
+            <p className="text-xs text-brand-800 leading-relaxed">
+              La app usa Claude Haiku, el modelo más económico de Anthropic.
+              Generar una semana completa cuesta aproximadamente <strong>$0,01</strong>.
+              Un mes de uso típico (4 semanas + retoques) sale por <strong>menos de $0,10</strong> — menos de 10 céntimos.
+            </p>
+            <p className="text-xs text-brand-700 mt-1">
+              Necesitas al menos <strong>$5 de crédito</strong> para activar el uso.
+              Recarga en{' '}
+              <a
+                href="https://console.anthropic.com/settings/billing"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline font-medium"
               >
-                {showApiKey ? (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                )}
+                console.anthropic.com → Billing
+              </a>
+              .
+            </p>
+          </div>
+
+          {/* Key input */}
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type={showApiKey ? 'text' : 'password'}
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder="sk-ant-..."
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent pr-10"
+                />
+                <button
+                  onClick={() => setShowApiKey((v) => !v)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showApiKey ? (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              <button
+                onClick={handleSaveApiKey}
+                disabled={apiKeySaving || !apiKeyInput.trim()}
+                className="bg-brand-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-50 shrink-0"
+              >
+                {apiKeySaved ? '✓ Guardada' : apiKeySaving ? '...' : 'Guardar'}
               </button>
             </div>
-            <button
-              onClick={handleSaveApiKey}
-              disabled={apiKeySaving || !apiKeyInput.trim()}
-              className="bg-brand-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-50 shrink-0"
-            >
-              {apiKeySaved ? '✓ Guardada' : apiKeySaving ? '...' : 'Guardar'}
-            </button>
+            {apiKeyInput && !apiKeyInput.startsWith('sk-ant-') && (
+              <p className="text-xs text-amber-600">La key debería empezar por sk-ant-</p>
+            )}
           </div>
-          {apiKeyInput && !apiKeyInput.startsWith('sk-ant-') && (
-            <p className="text-xs text-amber-600 mt-1">La key debería empezar por sk-ant-</p>
-          )}
+
+          {/* Usage + limit */}
+          <div className="border-t border-gray-100 pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Llamadas este mes</span>
+              <span className={`text-sm font-semibold ${callLimit && callsThisMonth >= callLimit ? 'text-red-600' : 'text-gray-800'}`}>
+                {callsThisMonth}{callLimit ? ` / ${callLimit}` : ''}
+                {callLimit && callsThisMonth >= callLimit && ' — límite alcanzado'}
+              </span>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1.5">
+                Límite mensual de llamadas <span className="text-gray-400">(deja vacío para sin límite)</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  min="1"
+                  value={limitInput}
+                  onChange={e => setLimitInput(e.target.value)}
+                  placeholder="Ej: 30"
+                  className="w-28 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
+                />
+                <button
+                  onClick={handleSaveLimit}
+                  className="bg-gray-800 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-900 transition-colors"
+                >
+                  {limitSaved ? '✓' : 'Guardar'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Con el límite en 30 llamadas, el coste máximo mensual sería ~$0,30.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* App info */}

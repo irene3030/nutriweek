@@ -62,3 +62,13 @@ button, a, input, textarea, select {
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* Day drawer slide-in animation */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.drawer-slide-in {
+  animation: slide-in-right 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}

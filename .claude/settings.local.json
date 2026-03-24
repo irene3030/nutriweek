@@ -6,7 +6,9 @@
       "Bash(mkdir -p /Users/irene/dev/nutriweek/src/components/day)",
       "Bash(mkdir -p /Users/irene/dev/nutriweek/src/components/shopping)",
       "Bash(mkdir -p /Users/irene/dev/nutriweek/src/components/recipes)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(npm audit:*)",
+      "Bash(ls:*)"
     ]
   }
 }

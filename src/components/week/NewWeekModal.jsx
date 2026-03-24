@@ -114,7 +114,10 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
       setProposedWeek(result);
       setStep('preview');
     } catch (err) {
-      setError(err.message || 'Error generando el menú. Verifica la configuración de la API.');
+      setError(
+        err.message === 'CALL_LIMIT_EXCEEDED' ? 'Has alcanzado el límite mensual de llamadas. Auméntalo en Perfil.' :
+        err.message || 'Error generando el menú. Verifica la configuración de la API.'
+      );
       setStep('form');
     }
   };

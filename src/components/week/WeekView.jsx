@@ -38,12 +38,25 @@ export default function WeekView({
 }) {
   const [showNewWeekModal, setShowNewWeekModal] = useState(false);
   const [showQuickMeal, setShowQuickMeal] = useState(false);
-  const [exportText, setExportText] = useState(null);
+  const [showExport, setShowExport] = useState(false);
+  const [exportSimple, setExportSimple] = useState(true);
   const [exportCopied, setExportCopied] = useState(false);
   const todayName = getTodayDayName();
 
-  const handleExport = () => {
-    if (!currentWeek) return;
+  function shortName(text) {
+    if (!text) return '';
+    if (text.length <= 22) return text;
+    const words = text.trim().split(/\s+/);
+    const connectors = ['con', 'y'];
+    for (const conn of connectors) {
+      const idx = words.indexOf(conn);
+      if (idx > 0 && idx < words.length - 1) return `${words[0]} ${conn} ${words[idx + 1]}`;
+    }
+    return words[0];
+  }
+
+  function buildExportText(simple) {
+    if (!currentWeek) return '';
     const sorted = [...currentWeek.days].sort(
       (a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day)
     );
@@ -53,15 +66,19 @@ export default function WeekView({
       for (const tipo of MEAL_ORDER) {
         const meal = day.meals?.find(m => m.tipo === tipo);
         if (meal?.baby) {
-          text += `${MEAL_EMOJIS[tipo]} ${meal.baby}\n`;
+          const label = simple ? shortName(meal.baby) : meal.baby;
+          text += `${MEAL_EMOJIS[tipo]} ${label}\n`;
         }
       }
     }
-    setExportText(text.trim());
-  };
+    return text.trim();
+  }
+
+  const exportText = buildExportText(exportSimple);
+
+  const handleExport = () => setShowExport(true);
 
   const handleCopyExport = () => {
-    if (!exportText) return;
     navigator.clipboard.writeText(exportText);
     setExportCopied(true);
     setTimeout(() => setExportCopied(false), 2000);
@@ -165,17 +182,30 @@ export default function WeekView({
       />
 
       {/* WhatsApp export modal */}
-      {exportText && (
+      {showExport && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-gray-900">Compartir semana</h2>
-              <button onClick={() => { setExportText(null); setExportCopied(false); }} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+              <button onClick={() => { setShowExport(false); setExportCopied(false); }} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+            </div>
+            {/* Simple / Detallado toggle */}
+            <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5">
+              <span className="text-sm text-gray-700">Menú simple</span>
+              <button
+                onClick={() => setExportSimple(v => !v)}
+                className={`relative w-10 h-5.5 rounded-full transition-colors ${exportSimple ? 'bg-brand-600' : 'bg-gray-300'}`}
+                style={{ height: '22px', width: '40px' }}
+              >
+                <span
+                  className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${exportSimple ? 'translate-x-5' : 'translate-x-0.5'}`}
+                />
+              </button>
             </div>
             <textarea
               readOnly
               value={exportText}
-              className="w-full h-64 border border-gray-200 rounded-xl p-3 text-sm text-gray-700 resize-none focus:outline-none bg-gray-50"
+              className="w-full h-56 border border-gray-200 rounded-xl p-3 text-sm text-gray-700 resize-none focus:outline-none bg-gray-50"
             />
             <button
               onClick={handleCopyExport}

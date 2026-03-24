@@ -35,7 +35,7 @@ export default function DayCard({ dayData, onClick, isToday }) {
   const { dayKPIs } = useKPIs(dayWeekDoc);
   const kpi = dayKPIs[0] || { hasIron: false, hasFish: false, veggies: [] };
 
-  const filledMeals = meals ? meals.filter((m) => m.baby || m.adult) : [];
+  const filledMeals = meals ? meals.filter((m) => m.baby) : [];
   const trackedMeals = meals ? meals.filter((m) => m.track?.done) : [];
 
   return (

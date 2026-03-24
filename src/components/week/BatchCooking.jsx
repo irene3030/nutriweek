@@ -6,37 +6,47 @@ export default function BatchCooking({ weekDoc, apiKey, onUpdate }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const items = weekDoc?.batchCooking || [];
-  const doneCount = items.filter(i => i.done).length;
+  // Detect old format ({id, text, done}[]) vs new format ({id, emoji, title, tasks}[])
+  const raw = weekDoc?.batchCooking || [];
+  const sections = raw.length > 0 && raw[0].tasks !== undefined ? raw : [];
+
+  const allTasks = sections.flatMap(s => s.tasks || []);
+  const doneCount = allTasks.filter(t => t.done).length;
+  const totalCount = allTasks.length;
 
   const handleGenerate = async () => {
     setLoading(true);
     setError(null);
     try {
-      // Build a compact week menu summary for the prompt
       const weekMenu = weekDoc.days.map(day => ({
         day: day.day,
-        meals: day.meals
-          .filter(m => m.baby)
-          .map(m => ({ tipo: m.tipo, baby: m.baby })),
+        meals: day.meals.filter(m => m.baby).map(m => ({ tipo: m.tipo, baby: m.baby })),
       }));
       const result = await generateBatchCooking({ weekMenu, apiKey });
-      const newItems = (result.items || []).map(item => ({ ...item, done: false }));
-      onUpdate(newItems);
+      const newSections = (result.sections || []).map(section => ({
+        ...section,
+        tasks: (section.tasks || []).map(task => ({ ...task, done: false })),
+      }));
+      onUpdate(newSections);
     } catch (err) {
-      setError(err.message === 'NO_API_KEY'
-        ? 'Añade tu API key en Perfil para usar esta función.'
-        : err.message || 'Error generando el batch cooking.');
+      setError(
+        err.message === 'NO_API_KEY' ? 'Añade tu API key en Perfil para usar esta función.' :
+        err.message === 'CALL_LIMIT_EXCEEDED' ? 'Has alcanzado el límite mensual de llamadas. Auméntalo en Perfil.' :
+        err.message || 'Error generando el batch cooking.');
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleItem = (id) => {
-    const updated = items.map(item =>
-      item.id === id ? { ...item, done: !item.done } : item
-    );
-    onUpdate(updated);
+  const toggleTask = (sectionId, taskId) => {
+    onUpdate(sections.map(section =>
+      section.id !== sectionId ? section : {
+        ...section,
+        tasks: section.tasks.map(task =>
+          task.id !== taskId ? task : { ...task, done: !task.done }
+        ),
+      }
+    ));
   };
 
   return (
@@ -50,9 +60,13 @@ export default function BatchCooking({ weekDoc, apiKey, onUpdate }) {
           <div className="flex items-center gap-2">
             <span className="text-base">🍳</span>
             <span className="text-sm font-semibold text-gray-800">Batch cooking</span>
-            {items.length > 0 && (
-              <span className="text-xs text-gray-400 font-normal">
-                {doneCount}/{items.length} listo
+            {totalCount > 0 && (
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                doneCount === totalCount
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-gray-100 text-gray-500'
+              }`}>
+                {doneCount}/{totalCount}
               </span>
             )}
           </div>
@@ -66,15 +80,15 @@ export default function BatchCooking({ weekDoc, apiKey, onUpdate }) {
 
         {/* Content */}
         {open && (
-          <div className="border-t border-gray-100 px-4 py-3 space-y-3">
+          <div className="border-t border-gray-100 px-4 py-4 space-y-4">
             {error && (
               <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
             )}
 
-            {items.length === 0 ? (
-              <div className="text-center py-3 space-y-2">
-                <p className="text-xs text-gray-400">
-                  Genera sugerencias de preparación anticipada basadas en el menú de esta semana.
+            {sections.length === 0 ? (
+              <div className="text-center py-4 space-y-3">
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Genera un plan de preparación anticipada basado en el menú de esta semana.
                 </p>
                 <button
                   onClick={handleGenerate}
@@ -84,35 +98,59 @@ export default function BatchCooking({ weekDoc, apiKey, onUpdate }) {
                 >
                   {loading
                     ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
-                    : '✨ Generar sugerencias'
+                    : '✨ Generar plan'
                   }
                 </button>
               </div>
             ) : (
               <>
-                <ul className="space-y-2">
-                  {items.map(item => (
-                    <li key={item.id} className="flex items-start gap-3">
-                      <button
-                        onClick={() => toggleItem(item.id)}
-                        className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                          item.done
-                            ? 'bg-brand-600 border-brand-600 text-white'
-                            : 'border-gray-300 hover:border-brand-400'
-                        }`}
-                      >
-                        {item.done && (
-                          <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </button>
-                      <span className={`text-sm leading-snug ${item.done ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
-                        {item.text}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="space-y-5">
+                  {sections.map(section => {
+                    const tasks = section.tasks || [];
+                    const sectionDone = tasks.filter(t => t.done).length;
+                    const sectionTotal = tasks.length;
+                    return (
+                      <div key={section.id}>
+                        {/* Section header */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm">{section.emoji}</span>
+                          <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                            {section.title}
+                          </span>
+                          {sectionDone === sectionTotal && sectionTotal > 0 && (
+                            <span className="text-xs text-green-600">✓</span>
+                          )}
+                        </div>
+
+                        {/* Tasks */}
+                        <ul className="space-y-2 pl-1">
+                          {tasks.map(task => (
+                            <li key={task.id} className="flex items-start gap-2.5">
+                              <button
+                                onClick={() => toggleTask(section.id, task.id)}
+                                className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                                  task.done
+                                    ? 'bg-brand-600 border-brand-600 text-white'
+                                    : 'border-gray-300 hover:border-brand-400'
+                                }`}
+                              >
+                                {task.done && (
+                                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </button>
+                              <span className={`text-sm leading-snug ${task.done ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                                {task.text}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })}
+                </div>
+
                 <button
                   onClick={handleGenerate}
                   disabled={loading || !apiKey}
