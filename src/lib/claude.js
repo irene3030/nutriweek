@@ -1,10 +1,13 @@
 const API_URL = '/api/claude';
 
-async function callClaude(type, payload) {
+async function callClaude(type, payload, apiKey) {
+  if (!apiKey) {
+    throw new Error('NO_API_KEY');
+  }
   const response = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type, payload }),
+    body: JSON.stringify({ type, payload, apiKey }),
   });
 
   if (!response.ok) {
@@ -16,35 +19,22 @@ async function callClaude(type, payload) {
   return data.result;
 }
 
-/**
- * Generate a full week menu.
- * @param {string} availableIngredients
- * @param {Array} foodHistory
- * @param {Array} savedRecipes
- * @returns {Promise<{days: Array}>}
- */
-export async function generateWeekMenu({ availableIngredients = '', foodHistory = [], savedRecipes = [] } = {}) {
-  return callClaude('generate_week', { availableIngredients, foodHistory, savedRecipes });
+export async function generateWeekMenu({ availableIngredients = '', fixedMeals = [], recurringMeals = [], mealSlots = null, foodHistory = [], savedRecipes = [], apiKey } = {}) {
+  return callClaude('generate_week', { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes }, apiKey);
 }
 
-/**
- * Regenerate a single day.
- * @param {string} dayName
- * @param {Array} weekContext
- * @param {string} availableIngredients
- * @returns {Promise<{day: string, meals: Array}>}
- */
-export async function regenerateDay({ dayName, weekContext = [], availableIngredients = '' }) {
-  return callClaude('regenerate_day', { dayName, weekContext, availableIngredients });
+export async function regenerateDay({ dayName, weekContext = [], availableIngredients = '', fixedMeals = [], apiKey }) {
+  return callClaude('regenerate_day', { dayName, weekContext, availableIngredients, fixedMeals }, apiKey);
 }
 
-/**
- * Suggest a meal for a specific slot.
- * @param {string} dayName
- * @param {string} mealType
- * @param {Array} weekContext
- * @returns {Promise<{baby: string, adult: string, tags: Array}>}
- */
-export async function suggestMeal({ dayName, mealType, weekContext = [] }) {
-  return callClaude('suggest_meal', { dayName, mealType, weekContext });
+export async function suggestMeal({ dayName, mealType, weekContext = [], apiKey }) {
+  return callClaude('suggest_meal', { dayName, mealType, weekContext }, apiKey);
+}
+
+export async function quickMeal({ ingredients = '', requirements = [], apiKey }) {
+  return callClaude('quick_meal', { ingredients, requirements }, apiKey);
+}
+
+export async function generateBatchCooking({ weekMenu, apiKey }) {
+  return callClaude('batch_cooking', { weekMenu }, apiKey);
 }

@@ -1,11 +1,11 @@
-import { useRef } from 'react';
-import html2canvas from 'html2canvas';
+import { useState } from 'react';
 import WeekHeader from './WeekHeader';
 import WeekKPIs from './WeekKPIs';
 import DayCard from './DayCard';
+import BatchCooking from './BatchCooking';
 import NewWeekModal from './NewWeekModal';
+import QuickMealModal from './QuickMealModal';
 import LoadingSpinner from '../ui/LoadingSpinner';
-import { useState } from 'react';
 
 const DAY_ORDER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
@@ -13,6 +13,9 @@ function getTodayDayName() {
   const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   return days[new Date().getDay()];
 }
+
+const MEAL_EMOJIS = { desayuno: '☀️', snack: '🍎', comida: '🍽️', merienda: '🍪', cena: '🌙' };
+const MEAL_ORDER = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
 
 export default function WeekView({
   weeks,
@@ -26,28 +29,42 @@ export default function WeekView({
   onDeleteWeek,
   onUpdateLabel,
   onDayClick,
+  onAddMealToSlot,
+  onUpdateBatchCooking,
   foodHistory,
   savedRecipes,
+  usualMeals,
+  apiKey,
 }) {
   const [showNewWeekModal, setShowNewWeekModal] = useState(false);
-  const weekGridRef = useRef(null);
+  const [showQuickMeal, setShowQuickMeal] = useState(false);
+  const [exportText, setExportText] = useState(null);
+  const [exportCopied, setExportCopied] = useState(false);
   const todayName = getTodayDayName();
 
-  const handleExport = async () => {
-    if (!weekGridRef.current) return;
-    try {
-      const canvas = await html2canvas(weekGridRef.current, {
-        backgroundColor: '#f9fafb',
-        scale: 2,
-        useCORS: true,
-      });
-      const link = document.createElement('a');
-      link.download = `nutriweek-${currentWeek?.label || 'semana'}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    } catch (err) {
-      console.error('Error exporting:', err);
+  const handleExport = () => {
+    if (!currentWeek) return;
+    const sorted = [...currentWeek.days].sort(
+      (a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day)
+    );
+    let text = `📅 *${currentWeek.label || 'Menú semanal'}*\n`;
+    for (const day of sorted) {
+      text += `\n*${day.day}*\n`;
+      for (const tipo of MEAL_ORDER) {
+        const meal = day.meals?.find(m => m.tipo === tipo);
+        if (meal?.baby) {
+          text += `${MEAL_EMOJIS[tipo]} ${meal.baby}\n`;
+        }
+      }
     }
+    setExportText(text.trim());
+  };
+
+  const handleCopyExport = () => {
+    if (!exportText) return;
+    navigator.clipboard.writeText(exportText);
+    setExportCopied(true);
+    setTimeout(() => setExportCopied(false), 2000);
   };
 
   if (loading) {
@@ -83,10 +100,18 @@ export default function WeekView({
         {currentWeek ? (
           <>
             <WeekKPIs weekDoc={currentWeek} />
+            <div className="px-4 pb-3">
+              <button
+                onClick={() => setShowQuickMeal(true)}
+                className="flex items-center gap-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 shadow-sm px-4 py-2 rounded-xl transition-colors"
+              >
+                ⚡ Generar idea de comida
+              </button>
+            </div>
 
-            <div ref={weekGridRef} className="px-4 pb-6">
+            <div className="px-4 pb-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                {sortedDays.map((dayData, index) => (
+                {sortedDays.map((dayData) => (
                   <DayCard
                     key={dayData.day}
                     dayData={dayData}
@@ -96,6 +121,12 @@ export default function WeekView({
                 ))}
               </div>
             </div>
+
+            <BatchCooking
+              weekDoc={currentWeek}
+              apiKey={apiKey}
+              onUpdate={(items) => onUpdateBatchCooking(currentWeek.id, items)}
+            />
           </>
         ) : (
           <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
@@ -122,7 +153,39 @@ export default function WeekView({
         existingWeekIds={weeks.map((w) => w.id)}
         foodHistory={foodHistory}
         savedRecipes={savedRecipes}
+        usualMeals={usualMeals}
+        apiKey={apiKey}
       />
+      <QuickMealModal
+        isOpen={showQuickMeal}
+        onClose={() => setShowQuickMeal(false)}
+        apiKey={apiKey}
+        currentWeek={currentWeek}
+        onAddToWeek={onAddMealToSlot}
+      />
+
+      {/* WhatsApp export modal */}
+      {exportText && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-gray-900">Compartir semana</h2>
+              <button onClick={() => { setExportText(null); setExportCopied(false); }} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+            </div>
+            <textarea
+              readOnly
+              value={exportText}
+              className="w-full h-64 border border-gray-200 rounded-xl p-3 text-sm text-gray-700 resize-none focus:outline-none bg-gray-50"
+            />
+            <button
+              onClick={handleCopyExport}
+              className="w-full bg-brand-600 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-brand-700 transition-colors"
+            >
+              {exportCopied ? '✓ Copiado' : '📋 Copiar para WhatsApp'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -48,6 +48,7 @@ export default function MealSlot({
   weekId,
   weekContext,
   householdId,
+  apiKey,
   onSave,
   onTrack,
   onCopy,
@@ -184,6 +185,7 @@ export default function MealSlot({
               dayName={dayName}
               weekContext={weekContext}
               householdId={householdId}
+              apiKey={apiKey}
               onSave={handleSave}
               onCopy={handleCopy}
               onCancel={() => setEditing(false)}

@@ -11,9 +11,8 @@ const TAG_CONFIG = {
 function getTagConfig(tag) {
   if (TAG_CONFIG[tag]) return TAG_CONFIG[tag];
   if (tag.startsWith('veggie:')) {
-    const name = tag.split(':')[1];
     return {
-      label: `🥦 ${name}`,
+      label: '🥦 Verdura',
       color: 'bg-lime-100 text-lime-700 border-lime-200',
     };
   }

@@ -7,6 +7,7 @@ import WeekView from './components/week/WeekView';
 import DayView from './components/day/DayView';
 import ShoppingList from './components/shopping/ShoppingList';
 import RecipeSearch from './components/recipes/RecipeSearch';
+import UsualMeals from './components/recipes/UsualMeals';
 import { FullPageSpinner } from './components/ui/LoadingSpinner';
 import {
   collection,
@@ -15,6 +16,7 @@ import {
   orderBy,
   doc,
   getDoc,
+  updateDoc,
 } from 'firebase/firestore';
 import { db } from './lib/firebase';
 
@@ -47,7 +49,10 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState('week');
   const [selectedDayIndex, setSelectedDayIndex] = useState(null);
   const [savedRecipes, setSavedRecipes] = useState([]);
+  const [usualMeals, setUsualMeals] = useState([]);
   const [foodHistory, setFoodHistory] = useState([]);
+  const [householdApiKey, setHouseholdApiKey] = useState(null);
+  const [recipesTab, setRecipesTab] = useState('recipes'); // 'recipes' | 'usual'
 
   const {
     weeks,
@@ -62,9 +67,23 @@ function AppContent() {
     updateMeal,
     updateDayMeals,
     updateWeekLabel,
+    updateBatchCooking,
     trackMeal,
     copyMeal,
   } = useWeek(auth.userDoc?.householdId);
+
+  // Listen to household api key in real-time
+  useEffect(() => {
+    if (!auth.userDoc?.householdId) return;
+    const unsub = onSnapshot(doc(db, 'households', auth.userDoc.householdId), (snap) => {
+      if (snap.exists()) {
+        const key = snap.data().anthropicApiKey || null;
+        console.log('[NutriWeek] householdApiKey loaded:', key ? key.slice(0, 15) + '...' : 'null');
+        setHouseholdApiKey(key);
+      }
+    });
+    return unsub;
+  }, [auth.userDoc?.householdId]);
 
   // Load saved recipes
   useEffect(() => {
@@ -73,6 +92,17 @@ function AppContent() {
     const q = query(recipesRef, orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(q, (snap) => {
       setSavedRecipes(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, [auth.userDoc?.householdId]);
+
+  // Load usual meals
+  useEffect(() => {
+    if (!auth.userDoc?.householdId) return;
+    const ref = collection(db, 'households', auth.userDoc.householdId, 'usualMeals');
+    const q = query(ref, orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      setUsualMeals(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
     return unsub;
   }, [auth.userDoc?.householdId]);
@@ -123,6 +153,16 @@ function AppContent() {
     await createWeek(mondayDate, label, daysData);
   };
 
+  const handleAddMealToSlot = (dayName, tipo, mealData) => {
+    if (!currentWeek) return;
+    const dayIdx = currentWeek.days.findIndex(d => d.day === dayName);
+    if (dayIdx === -1) return;
+    const day = currentWeek.days[dayIdx];
+    const mealIdx = day.meals?.findIndex(m => m.tipo === tipo);
+    if (mealIdx === undefined || mealIdx === -1) return;
+    updateMeal(currentWeek.id, dayIdx, mealIdx, mealData);
+  };
+
   // Render loading state
   if (auth.loading) return <FullPageSpinner label="Iniciando NutriWeek..." />;
 
@@ -139,6 +179,7 @@ function AppContent() {
           weekDoc={currentWeek}
           dayIndex={selectedDayIndex}
           householdId={auth.userDoc.householdId}
+          apiKey={householdApiKey}
           onBack={handleBackFromDay}
           onSaveMeal={(weekId, dIdx, mIdx, data) => updateMeal(weekId, dIdx, mIdx, data)}
           onTrackMeal={(weekId, dIdx, mIdx, trackData) => trackMeal(weekId, dIdx, mIdx, trackData)}
@@ -167,8 +208,12 @@ function AppContent() {
               onDeleteWeek={deleteWeek}
               onUpdateLabel={updateWeekLabel}
               onDayClick={handleDayClick}
+              onAddMealToSlot={handleAddMealToSlot}
+              onUpdateBatchCooking={updateBatchCooking}
               foodHistory={foodHistory}
               savedRecipes={savedRecipes}
+              usualMeals={usualMeals}
+              apiKey={householdApiKey}
             />
           )}
 
@@ -190,16 +235,31 @@ function AppContent() {
           {activeTab === 'recipes' && (
             <div className="min-h-screen bg-gray-50">
               <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-                <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-2">
-                  <span className="text-xl">📖</span>
-                  <h1 className="text-lg font-bold text-gray-900">Mis recetas</h1>
+                <div className="max-w-2xl mx-auto px-4 py-3">
+                  <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+                    {[
+                      { id: 'usual', label: '⭐ Habituales' },
+                      { id: 'recipes', label: '📖 Recetas' },
+                    ].map(t => (
+                      <button
+                        key={t.id}
+                        onClick={() => setRecipesTab(t.id)}
+                        className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                          recipesTab === t.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </header>
               <div className="max-w-2xl mx-auto px-4 py-4">
-                <RecipeSearch
-                  householdId={auth.userDoc?.householdId}
-                  onSelect={null}
-                />
+                {recipesTab === 'usual' ? (
+                  <UsualMeals householdId={auth.userDoc?.householdId} />
+                ) : (
+                  <RecipeSearch householdId={auth.userDoc?.householdId} onSelect={null} />
+                )}
               </div>
             </div>
           )}
@@ -239,13 +299,48 @@ function AppContent() {
 
 function ProfileTab({ auth }) {
   const [householdData, setHouseholdData] = useState(null);
+  const [members, setMembers] = useState([]);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [apiKeySaved, setApiKeySaved] = useState(false);
+  const [apiKeySaving, setApiKeySaving] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
 
   useEffect(() => {
     if (!auth.userDoc?.householdId) return;
-    getDoc(doc(db, 'households', auth.userDoc.householdId)).then((snap) => {
-      if (snap.exists()) setHouseholdData(snap.data());
+    getDoc(doc(db, 'households', auth.userDoc.householdId)).then(async (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setHouseholdData(data);
+        setApiKeyInput(data.anthropicApiKey || '');
+        // Load member user docs
+        if (data.members?.length) {
+          const memberDocs = await Promise.all(
+            data.members.map(uid => getDoc(doc(db, 'users', uid)))
+          );
+          setMembers(memberDocs.filter(d => d.exists()).map(d => ({ uid: d.id, ...d.data() })));
+        }
+      }
     });
   }, [auth.userDoc?.householdId]);
+
+  const handleSaveApiKey = async () => {
+    if (!auth.userDoc?.householdId) return;
+    setApiKeySaving(true);
+    try {
+      console.log('[NutriWeek] Saving apiKey to household:', auth.userDoc.householdId);
+      await updateDoc(doc(db, 'households', auth.userDoc.householdId), {
+        anthropicApiKey: apiKeyInput.trim(),
+      });
+      console.log('[NutriWeek] apiKey saved OK');
+      setApiKeySaved(true);
+      setTimeout(() => setApiKeySaved(false), 2500);
+    } catch (err) {
+      console.error('[NutriWeek] Error saving apiKey:', err);
+      alert('Error guardando la key: ' + err.message);
+    } finally {
+      setApiKeySaving(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -287,13 +382,73 @@ function ProfileTab({ auth }) {
                   {householdData.inviteCode}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Miembros</span>
-                <span className="text-sm text-gray-700">{householdData.members?.length || 1}</span>
+              <div>
+                <span className="text-sm text-gray-500 block mb-2">Miembros ({members.length})</span>
+                <div className="space-y-2">
+                  {members.map(m => (
+                    <div key={m.uid} className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-sm font-semibold text-brand-700 shrink-0">
+                        {m.displayName?.[0] || '?'}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">{m.displayName || 'Sin nombre'}</p>
+                        <p className="text-xs text-gray-400 truncate">{m.email}</p>
+                      </div>
+                      {m.uid === auth.user?.uid && (
+                        <span className="text-xs text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full shrink-0">Tú</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         )}
+
+        {/* Anthropic API Key */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <h3 className="font-semibold text-gray-800 mb-1">API key de IA</h3>
+          <p className="text-xs text-gray-400 mb-3">
+            Necesaria para generar menús con Claude. Compartida con todos los miembros de tu familia.
+            Obtén la tuya en <span className="text-brand-600">console.anthropic.com</span>.
+          </p>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <input
+                type={showApiKey ? 'text' : 'password'}
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                placeholder="sk-ant-..."
+                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent pr-10"
+              />
+              <button
+                onClick={() => setShowApiKey((v) => !v)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showApiKey ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            <button
+              onClick={handleSaveApiKey}
+              disabled={apiKeySaving || !apiKeyInput.trim()}
+              className="bg-brand-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-50 shrink-0"
+            >
+              {apiKeySaved ? '✓ Guardada' : apiKeySaving ? '...' : 'Guardar'}
+            </button>
+          </div>
+          {apiKeyInput && !apiKeyInput.startsWith('sk-ant-') && (
+            <p className="text-xs text-amber-600 mt-1">La key debería empezar por sk-ant-</p>
+          )}
+        </div>
 
         {/* App info */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5">

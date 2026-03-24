@@ -8,6 +8,23 @@ const MEAL_LABELS = {
   cena: '🌙',
 };
 
+function shortName(text) {
+  if (!text) return '';
+  if (text.length <= 22) return text;
+  const words = text.trim().split(/\s+/);
+  const first = words[0];
+  // Find first connector ("con" or "y") and take the word right after it
+  const connectors = ['con', 'y'];
+  for (const conn of connectors) {
+    const idx = words.indexOf(conn);
+    if (idx > 0 && idx < words.length - 1) {
+      return `${first} ${conn} ${words[idx + 1]}`;
+    }
+  }
+  // No connector found: first word only
+  return first;
+}
+
 export default function DayCard({ dayData, onClick, isToday }) {
   if (!dayData) return null;
 
@@ -51,7 +68,7 @@ export default function DayCard({ dayData, onClick, isToday }) {
             <span className="text-xs w-4">{MEAL_LABELS[meal.tipo] || '•'}</span>
             <div className="flex-1 min-w-0">
               {meal.baby ? (
-                <p className="text-xs text-gray-700 truncate">{meal.baby}</p>
+                <p className="text-xs text-gray-700 truncate">{shortName(meal.baby)}</p>
               ) : (
                 <div className="h-2.5 bg-gray-100 rounded w-3/4" />
               )}

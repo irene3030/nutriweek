@@ -18,6 +18,7 @@ export default function MealEditor({
   dayName,
   weekContext,
   householdId,
+  apiKey,
   onSave,
   onCopy,
   onCancel,
@@ -71,6 +72,7 @@ export default function MealEditor({
         dayName,
         mealType: meal?.tipo,
         weekContext,
+        apiKey,
       });
       if (result.baby) setBaby(result.baby);
       if (result.adult) setAdult(result.adult);

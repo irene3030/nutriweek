@@ -18,7 +18,7 @@ export default function WeekKPIs({ weekDoc }) {
       {/* KPI Pills */}
       <div className="flex flex-wrap gap-2">
         <KPIPill
-          icon="🔴"
+          icon="🩸"
           label="Hierro"
           value={`${kpis.ironDays}/7`}
           target="≥5 días"
@@ -42,20 +42,6 @@ export default function WeekKPIs({ weekDoc }) {
           statusColors={statusColors}
         />
       </div>
-
-      {/* Consecutive protein alerts */}
-      {kpis.consecutiveAlerts.length > 0 && (
-        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-          <span className="text-amber-500 mt-0.5">⚠️</span>
-          <div className="text-xs text-amber-700">
-            {kpis.consecutiveAlerts.map((a) => (
-              <span key={a.protein}>
-                Proteína <strong>{a.protein}</strong> repetida {a.count} días seguidos desde {a.startDay}.{' '}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Veggie list */}
       {kpis.veggieList.length > 0 && (

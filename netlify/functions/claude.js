@@ -1,9 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
 const SYSTEM_PROMPT = `Eres un asistente de nutrición infantil especializado en BLW (Baby-Led Weaning).
 Genera un menú semanal completo (7 días × 5 franjas: desayuno, snack, comida, merienda, cena)
 para un bebé de ~12 meses y su familia.
@@ -55,15 +51,56 @@ export const handler = async (event) => {
 
   try {
     const body = JSON.parse(event.body);
-    const { type, payload } = body;
+    const { type, payload, apiKey } = body;
+
+    const resolvedKey = apiKey || process.env.ANTHROPIC_API_KEY;
+    if (!resolvedKey) {
+      return {
+        statusCode: 400,
+        headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'No hay API key configurada. Añádela en la sección Perfil.' }),
+      };
+    }
+
+    const client = new Anthropic({ apiKey: resolvedKey });
 
     let userMessage = '';
 
     if (type === 'generate_week') {
-      const { availableIngredients, foodHistory, savedRecipes } = payload;
-      userMessage = `Genera un menú completo para 7 días.
+      const { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes } = payload;
 
-Ingredientes disponibles en casa: ${availableIngredients || 'ninguno especificado'}
+      const ingredientsSection = availableIngredients
+        ? `\nIngredientes disponibles en nevera/despensa (priorízalos cuanto antes en la semana, cada uno para una comida distinta, pero completa la semana con otros alimentos también): ${availableIngredients}`
+        : '';
+
+      const fixedSection = fixedMeals && fixedMeals.length > 0
+        ? `\nComidas fijadas en día y franja concretos (respétalas EXACTAMENTE):\n${fixedMeals.filter(m => m.day).map(m => `- ${m.day} ${m.tipo}: "${m.text}"`).join('\n')}`
+        : '';
+
+      const recurringSection = recurringMeals && recurringMeals.length > 0
+        ? `\nComidas que deben aparecer esta semana (colócalas en el día y franja que mejor encaje nutricionalmente): ${recurringMeals.join(', ')}`
+        : '';
+
+      const slotsSection = mealSlots ? (() => {
+        const disabled = Object.entries(mealSlots).filter(([, v]) => !v.enabled).map(([k]) => k);
+        const same = Object.entries(mealSlots).filter(([, v]) => v.enabled && v.sameEveryDay).map(([k]) => k);
+        let s = '';
+        if (disabled.length) s += `\nFranjas que NO debes generar (déjalas vacías: baby:"", adult:"", tags:[]): ${disabled.join(', ')}`;
+        if (same.length) {
+          // Check if any sameEveryDay slot also has a fixed meal — use that text for all days
+          const sameDetails = same.map(tipo => {
+            const fixed = fixedMeals && fixedMeals.find(m => m.tipo === tipo && m.day);
+            return fixed
+              ? `${tipo} (usa EXACTAMENTE "${fixed.text}" para los 7 días)`
+              : `${tipo} (genera una sola comida adecuada y repítela los 7 días)`;
+          });
+          s += `\nFranjas donde debes poner la MISMA comida todos los días: ${sameDetails.join('; ')}`;
+        }
+        return s;
+      })() : '';
+
+      userMessage = `Genera un menú completo para 7 días.
+${ingredientsSection}${recurringSection}${fixedSection}${slotsSection}
 
 Historial de alimentos últimas semanas: ${foodHistory ? JSON.stringify(foodHistory) : 'sin historial'}
 
@@ -91,8 +128,16 @@ Devuelve un JSON con esta estructura exacta:
   ]
 }`;
     } else if (type === 'regenerate_day') {
-      const { dayName, weekContext, availableIngredients } = payload;
-      userMessage = `Regenera únicamente el día ${dayName} manteniendo coherencia nutricional con el resto de la semana.
+      const { dayName, weekContext, availableIngredients, fixedMeals } = payload;
+
+      const dayFixed = fixedMeals && fixedMeals.length > 0
+        ? fixedMeals.filter(m => m.day === dayName)
+        : [];
+      const fixedNote = dayFixed.length > 0
+        ? `\nComidas fijas para este día (respétalas, no las cambies):\n${dayFixed.map(m => `- ${m.tipo}: "${m.text}"`).join('\n')}`
+        : '';
+
+      userMessage = `Regenera únicamente el día ${dayName} manteniendo coherencia nutricional con el resto de la semana.${fixedNote}
 
 Contexto semanal actual:
 ${JSON.stringify(weekContext, null, 2)}
@@ -123,6 +168,35 @@ Devuelve SOLO el JSON de esa comida:
   "adult": "adaptación para adulto",
   "tags": ["tag1", "tag2"]
 }`;
+    } else if (type === 'quick_meal') {
+      const { ingredients, requirements } = payload;
+      const reqList = requirements && requirements.length > 0 ? requirements.join(', ') : null;
+      userMessage = `Sugiere una comida completa para un bebé de ~12 meses (BLW).
+${ingredients ? `\nIngredientes disponibles: ${ingredients}` : ''}
+${reqList ? `\nRequisitos nutricionales: ${reqList}` : ''}
+
+Devuelve SOLO este JSON:
+{
+  "baby": "descripción breve de la comida para el bebé",
+  "adult": "adaptación para adulto",
+  "tags": ["tag1", "tag2"]
+}`;
+    } else if (type === 'batch_cooking') {
+      const { weekMenu } = payload;
+      userMessage = `Analiza este menú semanal para bebé BLW (~12 meses) y familia, y sugiere 5-8 preparaciones de batch cooking que faciliten la semana.
+
+Menú:
+${JSON.stringify(weekMenu, null, 2)}
+
+Prioriza:
+- Bases que se repiten (caldos, salsas de tomate, legumbres cocidas)
+- Cereales o pasta que se pueden cocer en cantidad para varios días
+- Verduras que pueden lavarse, cortarse o asarse con antelación
+- Proteínas que pueden prepararse para 2-3 días a la vez
+- Preparaciones que sirven tanto para bebé como para adulto
+
+Devuelve SOLO este JSON:
+{"items": [{"id": "1", "text": "..."}, {"id": "2", "text": "..."}, ...]}`;
     } else {
       return {
         statusCode: 400,
