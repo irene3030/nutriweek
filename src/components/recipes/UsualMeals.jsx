@@ -4,6 +4,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { ALL_TAGS } from '../ui/TagChip';
+import { detectTags } from '../../lib/claude';
 
 const TAG_LABELS = {
   iron: '🩸 Hierro', fish: '🐟 Pescado', legume: '🟢 Legumbre',
@@ -11,11 +12,18 @@ const TAG_LABELS = {
   cereal: '🌾 Cereal', veggie: '🥦 Verdura',
 };
 
-export default function UsualMeals({ householdId, onAddToWeek }) {
+function tagLabel(tag) {
+  if (tag.startsWith('veggie:')) return `🥦 ${tag.slice(7)}`;
+  return TAG_LABELS[tag] || tag;
+}
+
+export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWeek }) {
   const [meals, setMeals] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', baby: '', adult: '', tags: [] });
   const [saving, setSaving] = useState(false);
+  const [detecting, setDetecting] = useState(false);
+  const [detectError, setDetectError] = useState(null);
 
   useEffect(() => {
     if (!householdId) return;
@@ -39,6 +47,7 @@ export default function UsualMeals({ householdId, onAddToWeek }) {
         createdAt: new Date().toISOString(),
       });
       setForm({ name: '', baby: '', adult: '', tags: [] });
+      setDetectError(null);
       setShowForm(false);
     } finally {
       setSaving(false);
@@ -55,6 +64,27 @@ export default function UsualMeals({ householdId, onAddToWeek }) {
       tags: prev.tags.includes(tag) ? prev.tags.filter(t => t !== tag) : [...prev.tags, tag],
     }));
   };
+
+  const handleDetectTags = async () => {
+    const text = [form.name, form.baby, form.adult].filter(Boolean).join('. ');
+    if (!text.trim()) return;
+    setDetecting(true);
+    setDetectError(null);
+    try {
+      const result = await detectTags({ text, apiKey });
+      setForm(prev => ({ ...prev, tags: result.tags || [] }));
+    } catch (err) {
+      setDetectError(
+        err.message === 'NO_API_KEY' ? 'Necesitas una API key o código F&F en Perfil.' :
+        err.message === 'FREE_QUOTA_EXCEEDED' ? 'Has agotado las llamadas gratuitas.' :
+        'Error detectando tags.'
+      );
+    } finally {
+      setDetecting(false);
+    }
+  };
+
+  const canDetect = !!(form.name.trim() || form.baby.trim());
 
   return (
     <div className="space-y-3">
@@ -75,7 +105,7 @@ export default function UsualMeals({ householdId, onAddToWeek }) {
                 <div className="flex flex-wrap gap-1 mt-1.5">
                   {meal.tags.map(t => (
                     <span key={t} className="text-xs bg-brand-50 text-brand-700 border border-brand-100 rounded-full px-2 py-0.5">
-                      {TAG_LABELS[t] || t}
+                      {tagLabel(t)}
                     </span>
                   ))}
                 </div>
@@ -124,8 +154,27 @@ export default function UsualMeals({ householdId, onAddToWeek }) {
             placeholder="Versión adulto (opcional)"
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
+
+          {/* Tags */}
           <div>
-            <p className="text-xs text-gray-500 mb-1.5">Tags nutricionales</p>
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-xs text-gray-500">Tags nutricionales</p>
+              <button
+                type="button"
+                onClick={handleDetectTags}
+                disabled={!canDetect || detecting}
+                title={!canDetect ? 'Escribe el nombre primero' : undefined}
+                className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {detecting
+                  ? <><div className="w-3 h-3 border border-brand-300 border-t-brand-600 rounded-full animate-spin" /> Detectando...</>
+                  : '✨ Auto-detectar'
+                }
+              </button>
+            </div>
+            {detectError && (
+              <p className="text-xs text-red-500 mb-1.5">{detectError}</p>
+            )}
             <div className="flex flex-wrap gap-1.5">
               {[...ALL_TAGS, 'veggie'].map(tag => (
                 <button
@@ -141,11 +190,23 @@ export default function UsualMeals({ householdId, onAddToWeek }) {
                   {TAG_LABELS[tag] || tag}
                 </button>
               ))}
+              {/* Show auto-detected veggie:x tags */}
+              {form.tags.filter(t => t.startsWith('veggie:')).map(tag => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => toggleTag(tag)}
+                  className="text-xs px-2.5 py-1 rounded-full border bg-brand-600 text-white border-brand-600 transition-colors"
+                >
+                  {tagLabel(tag)} ✕
+                </button>
+              ))}
             </div>
           </div>
+
           <div className="flex gap-2">
             <button
-              onClick={() => setShowForm(false)}
+              onClick={() => { setShowForm(false); setDetectError(null); }}
               className="flex-1 border border-gray-300 text-gray-600 rounded-lg py-2 text-sm hover:bg-gray-50 transition-colors"
             >
               Cancelar

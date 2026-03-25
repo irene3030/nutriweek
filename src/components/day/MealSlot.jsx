@@ -5,6 +5,7 @@ import TagChip from '../ui/TagChip';
 import MealEditor from './MealEditor';
 import TrackModal from './TrackModal';
 import { suggestMeal } from '../../lib/claude';
+import { track } from '../../lib/analytics';
 
 const REGEN_REQUIREMENTS = [
   { id: 'hierro', label: '🩸 Hierro' },
@@ -59,6 +60,7 @@ export default function MealSlot({
   weekContext,
   householdId,
   apiKey,
+  hasAiAccess,
   onSave,
   onTrack,
   onCopy,
@@ -109,6 +111,7 @@ export default function MealSlot({
         apiKey,
       });
       onSave(dayIndex, mealIndex, { baby: result.baby, tags: result.tags || [] });
+      track('meal_suggested', { day: dayName, meal_type: meal?.tipo, tags: result.tags || [] });
       setShowRegen(false);
       setRegenIngredients('');
       setRegenRequirements([]);
@@ -130,6 +133,7 @@ export default function MealSlot({
 
   const handleTrackSave = (trackData) => {
     onTrack(dayIndex, mealIndex, trackData);
+    if (trackData.done) track('meal_tracked', { day: dayName, meal_type: meal?.tipo });
   };
 
   const handleCopy = (targetDay, targetMealType, data) => {
@@ -183,10 +187,11 @@ export default function MealSlot({
             {/* Regenerate button */}
             {hasContent && (
               <button
-                onClick={() => { setShowRegen(v => !v); setEditing(false); }}
-                className={`p-1 rounded-lg transition-colors ${showRegen ? 'bg-brand-100 text-brand-600' : 'hover:bg-gray-100 text-gray-400 hover:text-gray-600'}`}
+                onClick={() => { if (hasAiAccess) { setShowRegen(v => !v); setEditing(false); } }}
+                disabled={!hasAiAccess}
+                className={`p-1 rounded-lg transition-colors ${showRegen ? 'bg-brand-100 text-brand-600' : 'hover:bg-gray-100 text-gray-400 hover:text-gray-600'} disabled:opacity-40 disabled:cursor-not-allowed`}
                 aria-label="Regenerar con IA"
-                title="Regenerar comida"
+                title={hasAiAccess ? 'Regenerar comida' : 'Necesitas una API key o un código Friends & Family en Perfil'}
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />

@@ -22,6 +22,9 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Backlog local
+BACKLOG.md
+
 # Logs
 npm-debug.log*
 yarn-debug.log*

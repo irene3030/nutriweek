@@ -31,6 +31,7 @@ export default function DayView({
   dayIndex,
   householdId,
   apiKey,
+  hasAiAccess,
   onBack,
   onSaveMeal,
   onTrackMeal,
@@ -147,6 +148,7 @@ export default function DayView({
                   weekContext={weekContext}
                   householdId={householdId}
                   apiKey={apiKey}
+                  hasAiAccess={hasAiAccess}
                   onSave={(dIdx, mIdx, data) => onSaveMeal(weekDoc.id, dIdx, mIdx, data)}
                   onTrack={(dIdx, mIdx, trackData) => onTrackMeal(weekDoc.id, dIdx, mIdx, trackData)}
                   onCopy={handleCopy}

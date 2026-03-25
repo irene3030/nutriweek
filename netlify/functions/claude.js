@@ -10,6 +10,13 @@ Reglas BLW estrictas:
 - Texturas blandas, trozos grandes para agarrar (no triturado, no bola)
 - Sin frutos secos enteros
 
+Reglas por franja horaria (MUY IMPORTANTE — respétalas siempre):
+- desayuno: frutas, cereales (avena, tostada, tortita, porridge), lácteos (yogur, queso fresco), huevo. NO verduras, NO proteína cárnica.
+- snack (media mañana): fruta, pequeño trozo de pan o cereal, lácteo. Ración pequeña. NO platos elaborados, NO verduras cocinadas.
+- comida: plato completo — proteína (carne, pescado, legumbre o huevo) + verdura + base (cereal o legumbre). Es la comida principal del día.
+- merienda: fruta, yogur, lácteo, pan con algo suave. Ración pequeña. NO proteína cárnica, NO platos de verdura elaborados.
+- cena: plato ligero pero completo — verdura + proteína suave o huevo. Más ligero que la comida pero no un snack.
+
 Reglas nutricionales semanales:
 - Hierro en al menos 5 de 7 días (carne roja, legumbre, pescado azul)
 - Pescado graso (salmón, caballa, sardina, atún) al menos 3 veces
@@ -94,10 +101,85 @@ export const handler = async (event) => {
 
     let userMessage = '';
 
-    if (type === 'generate_week') {
-      const { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes } = payload;
+    if (type === 'suggest_ingredients') {
+      const { foodHistory, availableIngredients, mealSlots } = payload;
+      const safeAvailable = sanitize(availableIngredients, 300);
+
+      // Calculate how many distinct meals will actually be cooked
+      let distinctMealCount = 35; // default: 5 slots × 7 days
+      let enabledSlotNames = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
+      if (mealSlots && typeof mealSlots === 'object') {
+        const entries = Object.entries(mealSlots);
+        const enabled = entries.filter(([, v]) => v && v.enabled);
+        const sameEveryDay = enabled.filter(([, v]) => v.sameEveryDay);
+        const varying = enabled.filter(([, v]) => !v.sameEveryDay);
+        distinctMealCount = sameEveryDay.length + varying.length * 7;
+        enabledSlotNames = enabled.map(([k]) => k);
+      }
+
+      // Scale ingredient count to actual meal count
+      let minIng, maxIng;
+      if (distinctMealCount <= 2)       { minIng = 2; maxIng = 4; }
+      else if (distinctMealCount <= 7)  { minIng = 4; maxIng = 7; }
+      else if (distinctMealCount <= 14) { minIng = 6; maxIng = 10; }
+      else if (distinctMealCount <= 21) { minIng = 9; maxIng = 13; }
+      else                              { minIng = 12; maxIng = 18; }
+
+      // Adapt nutritional rules to actual slots
+      const hasMainMeals = enabledSlotNames.some(s => s === 'comida' || s === 'cena');
+      const hasBreakfastOrSnacks = enabledSlotNames.some(s => ['desayuno', 'snack', 'merienda'].includes(s));
+
+      const nutritionRules = [];
+      if (hasMainMeals) {
+        nutritionRules.push('- Hierro en al menos 5 comidas (carne roja, legumbre, pescado azul)');
+        nutritionRules.push('- Pescado graso al menos 3 veces');
+        nutritionRules.push('- Mínimo 5 verduras distintas');
+        nutritionRules.push('- Proteínas variadas, sin repetir más de 2 días seguidos');
+      }
+      if (hasBreakfastOrSnacks && !hasMainMeals) {
+        nutritionRules.push('- Fruta, cereales y lácteos apropiados para desayuno/snack/merienda');
+        nutritionRules.push('- Huevo y lácteo como fuentes de proteína');
+      }
+
+      const slotsInfo = `Franjas activas: ${enabledSlotNames.join(', ')} (${distinctMealCount} comidas distintas en total).`;
+
+      userMessage = `Sugiere una lista de ingredientes para planificar una semana de menús BLW para bebé ~12 meses y familia.
+
+${slotsInfo}
+${nutritionRules.length > 0 ? `\nLa lista debe cubrir:\n${nutritionRules.join('\n')}` : ''}
+${safeAvailable ? `\nIngredientes disponibles en casa (inclúyelos si son adecuados): ${safeAvailable}` : ''}
+Historial reciente (evita repetir demasiado): ${foodHistory ? JSON.stringify(foodHistory).slice(0, 500) : 'sin historial'}
+
+Devuelve entre ${minIng} y ${maxIng} ingredientes, ajustado a las comidas reales. SOLO este JSON:
+{
+  "ingredients": [
+    { "id": "1", "name": "Salmón", "category": "pescado", "reason": "Pescado graso, omega-3 e hierro" },
+    { "id": "2", "name": "Lentejas", "category": "legumbre", "reason": "Hierro vegetal y proteína" }
+  ]
+}
+Categorías válidas: proteína, pescado, legumbre, verdura, fruta, cereal, lácteo, huevo`;
+
+    } else if (type === 'suggest_ingredient_alternative') {
+      const { ingredient, category, existingInCategory } = payload;
+      const safeName = sanitize(ingredient, 100);
+      const safeCategory = sanitize(category, 30);
+      const safeExisting = Array.isArray(existingInCategory)
+        ? existingInCategory.map(i => sanitize(i, 100)).filter(Boolean)
+        : [];
+      const excludeNote = safeExisting.length > 0
+        ? `\nNO uses ninguno de estos, ya están en la lista: ${safeExisting.join(', ')}.`
+        : '';
+      userMessage = `Sugiere UN ingrediente alternativo para sustituir "${safeName}" en un menú BLW para bebé ~12 meses.
+El alternativo debe ser de la misma categoría nutricional (${safeCategory}), fácil de encontrar y apto para BLW.${excludeNote}
+Devuelve SOLO este JSON: { "alternative": "nombre del ingrediente" }`;
+
+    } else if (type === 'generate_week') {
+      const { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients } = payload;
 
       const safeIngredients = sanitize(availableIngredients, 300);
+      const safeRequired = Array.isArray(requiredIngredients)
+        ? requiredIngredients.map(i => sanitize(i, 100)).filter(Boolean)
+        : [];
       const safeFixedMeals = Array.isArray(fixedMeals)
         ? fixedMeals.map(m => ({
             day: sanitize(m.day, 10),
@@ -109,9 +191,11 @@ export const handler = async (event) => {
         ? recurringMeals.map(r => sanitize(r, 200))
         : [];
 
-      const ingredientsSection = safeIngredients
-        ? `\nIngredientes disponibles en nevera/despensa (priorízalos cuanto antes en la semana, cada uno para una comida distinta, pero completa la semana con otros alimentos también): ${safeIngredients}`
-        : '';
+      const ingredientsSection = safeRequired.length > 0
+        ? `\nIngredientes OBLIGATORIOS que debes usar en el menú, distribuyéndolos a lo largo de la semana (uno por comida principal): ${safeRequired.join(', ')}`
+        : safeIngredients
+          ? `\nIngredientes disponibles en nevera/despensa (priorízalos cuanto antes en la semana, cada uno para una comida distinta, pero completa la semana con otros alimentos también): ${safeIngredients}`
+          : '';
 
       const fixedSection = safeFixedMeals.length > 0
         ? `\nComidas fijadas en día y franja concretos (respétalas EXACTAMENTE):\n${safeFixedMeals.filter(m => m.day).map(m => `- ${m.day} ${m.tipo}: "${m.text}"`).join('\n')}`
@@ -230,6 +314,80 @@ Devuelve SOLO este JSON:
   "baby": "descripción breve de la comida",
   "tags": ["tag1", "tag2"]
 }`;
+    } else if (type === 'fix_kpi') {
+      const { kpiType, weekContext, kpiState, activeTipos } = payload;
+      const safeKpiType = sanitize(kpiType, 20);
+      const safeActiveTipos = Array.isArray(activeTipos)
+        ? activeTipos.map(t => sanitize(t, 20)).filter(Boolean)
+        : ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
+      const safeWeekContext = Array.isArray(weekContext)
+        ? weekContext.map(day => ({
+            day: sanitize(day.day, 10),
+            meals: Array.isArray(day.meals)
+              ? day.meals
+                  .filter(m => safeActiveTipos.includes(sanitize(m.tipo, 20)))
+                  .map(m => ({
+                    tipo: sanitize(m.tipo, 20),
+                    baby: sanitize(m.baby, 200),
+                    tags: Array.isArray(m.tags) ? m.tags.map(t => sanitize(t, 30)) : [],
+                  }))
+              : [],
+          }))
+        : [];
+
+      const activeSlotsList = safeActiveTipos.join(', ');
+
+      const ironTarget = kpiState.target ?? 5;
+      const fishTarget = kpiState.target ?? 3;
+      const veggieTarget = kpiState.target ?? 5;
+
+      let kpiDescription = '';
+      if (safeKpiType === 'iron') {
+        const needed = Math.max(0, ironTarget - (kpiState.current || 0));
+        kpiDescription = `Hierro: actualmente ${kpiState.current} días con hierro, necesita al menos ${ironTarget}. Modifica ${needed} comida(s) para añadir hierro (carne roja, legumbre o pescado azul).`;
+      } else if (safeKpiType === 'fish') {
+        const needed = Math.max(0, fishTarget - (kpiState.current || 0));
+        kpiDescription = `Pescado graso: actualmente ${kpiState.current} días con pescado graso, necesita al menos ${fishTarget}. Modifica ${needed} comida(s) para añadir salmón, caballa, sardina o atún.`;
+      } else if (safeKpiType === 'veggie') {
+        const needed = Math.max(0, veggieTarget - (kpiState.current || 0));
+        const existing = Array.isArray(kpiState.existing) ? kpiState.existing.map(v => sanitize(v, 30)).join(', ') : '';
+        kpiDescription = `Verduras distintas: actualmente ${kpiState.current} (${existing || 'ninguna'}), necesita al menos ${veggieTarget}. Añade ${needed} verdura(s) nueva(s) que no estén ya en el menú.`;
+      }
+
+      userMessage = `Corrige el siguiente problema nutricional en el menú semanal haciendo el mínimo de cambios posibles.
+
+IMPORTANTE: Este menú solo tiene activas estas franjas: ${activeSlotsList}. SOLO puedes proponer cambios en esas franjas. No propongas cambios en franjas que no aparecen en el menú.
+
+Problema: ${kpiDescription}
+
+Menú actual (solo franjas activas):
+${JSON.stringify(safeWeekContext, null, 2)}
+
+Devuelve SOLO los slots que necesitas modificar. Para cada uno, devuelve la nueva comida completa respetando las reglas BLW.
+{"fixes": [
+  {"day": "Mar", "tipo": "${safeActiveTipos[0] || 'comida'}", "baby": "descripción de la comida", "tags": ["iron", "veggie:zanahoria"]}
+]}`;
+
+    } else if (type === 'detect_tags') {
+      const { text } = payload;
+      const safeText = sanitize(text, 300);
+      userMessage = `Analiza el nombre y descripción de esta comida para bebé BLW (~12 meses) e identifica sus tags nutricionales.
+
+Comida: "${safeText}"
+
+Tags posibles:
+- iron → contiene carne roja, legumbre o pescado azul (fuentes de hierro)
+- fish → contiene pescado (cualquier tipo)
+- legume → contiene legumbre (lentejas, garbanzos, judías, guisantes...)
+- egg → contiene huevo
+- dairy → contiene lácteo (yogur, queso, leche...)
+- fruit → contiene fruta
+- cereal → contiene cereal (arroz, pasta, pan, avena, quinoa...)
+- veggie:nombre → contiene una verdura concreta (ej: veggie:brócoli, veggie:zanahoria). Usa una por cada verdura identificada.
+
+Devuelve SOLO este JSON: {"tags": ["tag1", "tag2"]}
+Si no identificas ningún tag con certeza, devuelve {"tags": []}`;
+
     } else if (type === 'batch_cooking') {
       const { weekMenu } = payload;
       // Sanitize weekMenu: only keep expected fields, strip arbitrary strings
@@ -249,9 +407,12 @@ Devuelve SOLO este JSON:
 Menú:
 ${JSON.stringify(safeWeekMenu, null, 2)}
 
-Organiza las tareas en secciones temáticas (ej: Legumbres, Verduras, Proteínas, Cereales y bases, Fruta). Cada sección agrupa tareas del mismo tipo.
-IMPORTANTE: dentro de cada sección, cada tarea debe ser UNA SOLA preparación concreta (un ingrediente, una elaboración). Si hay dos legumbres distintas, son dos tareas separadas. No agrupes varias cosas en una misma tarea.
-Cada tarea debe indicar cantidad aproximada y para qué días/comidas sirve.
+Organiza las tareas en secciones temáticas (ej: Legumbres, Verduras, Proteínas, Cereales y bases). Cada sección agrupa tareas del mismo tipo.
+IMPORTANTE:
+- Dentro de cada sección, cada tarea debe ser UNA SOLA preparación concreta. Si hay dos ingredientes distintos, son dos tareas separadas. No agrupes varias cosas en una misma tarea.
+- Solo incluye preparaciones que requieren cocción u otra técnica activa (cocer, hornear, saltear, preparar masa, etc.). NO incluyas alimentos que se consumen directamente sin preparar (yogur, fruta fresca entera, queso, pan de molde, leche, etc.).
+- En el campo "days" indica el array de días de la semana (Lun, Mar, Mié, Jue, Vie, Sáb, Dom) en que se usará esa preparación.
+- En el campo "text" NO menciones los días; solo la tarea y cantidad aproximada.
 
 Devuelve SOLO este JSON:
 {"sections": [
@@ -260,8 +421,8 @@ Devuelve SOLO este JSON:
     "emoji": "🟢",
     "title": "Legumbres",
     "tasks": [
-      {"id": "t1", "text": "Cocer lentejas (200g) — para comida del lunes y jueves"},
-      {"id": "t2", "text": "Cocer garbanzos (150g) — para cena del miércoles"}
+      {"id": "t1", "text": "Cocer lentejas (200g)", "days": ["Lun", "Jue"]},
+      {"id": "t2", "text": "Cocer garbanzos (150g)", "days": ["Mié"]}
     ]
   },
   ...

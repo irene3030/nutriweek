@@ -1,10 +1,29 @@
 import { useState } from 'react';
 import { generateBatchCooking } from '../../lib/claude';
+import { track } from '../../lib/analytics';
 
-export default function BatchCooking({ weekDoc, apiKey, onUpdate }) {
+const DAY_ORDER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+const DAY_COLORS = {
+  Lun: 'bg-blue-100 text-blue-700',
+  Mar: 'bg-purple-100 text-purple-700',
+  Mié: 'bg-green-100 text-green-700',
+  Jue: 'bg-orange-100 text-orange-700',
+  Vie: 'bg-pink-100 text-pink-700',
+  Sáb: 'bg-amber-100 text-amber-700',
+  Dom: 'bg-red-100 text-red-700',
+};
+
+function firstDay(days) {
+  if (!Array.isArray(days) || days.length === 0) return 999;
+  return Math.min(...days.map(d => DAY_ORDER.indexOf(d)).filter(i => i !== -1));
+}
+
+export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [sortMode, setSortMode] = useState('groups'); // 'groups' | 'chrono'
 
   // Detect old format ({id, text, done}[]) vs new format ({id, emoji, title, tasks}[])
   const raw = weekDoc?.batchCooking || [];
@@ -28,6 +47,7 @@ export default function BatchCooking({ weekDoc, apiKey, onUpdate }) {
         tasks: (section.tasks || []).map(task => ({ ...task, done: false })),
       }));
       onUpdate(newSections);
+      track('batch_cooking_generated', { sections: newSections.length, tasks: newSections.flatMap(s => s.tasks).length });
     } catch (err) {
       setError(
         err.message === 'NO_API_KEY' ? 'Añade tu API key en Perfil para usar esta función.' :
@@ -49,6 +69,16 @@ export default function BatchCooking({ weekDoc, apiKey, onUpdate }) {
       }
     ));
   };
+
+  // Build the list to render based on sort mode
+  const renderItems = sortMode === 'chrono'
+    ? allTasks
+        .map(task => {
+          const section = sections.find(s => s.tasks?.some(t => t.id === task.id));
+          return { ...task, sectionEmoji: section?.emoji, sectionTitle: section?.title };
+        })
+        .sort((a, b) => firstDay(a.days) - firstDay(b.days))
+    : null; // null means render by sections
 
   return (
     <div className="px-4 pb-4">
@@ -93,8 +123,8 @@ export default function BatchCooking({ weekDoc, apiKey, onUpdate }) {
                 </p>
                 <button
                   onClick={handleGenerate}
-                  disabled={loading || !apiKey}
-                  title={!apiKey ? 'Añade tu API key en Perfil' : undefined}
+                  disabled={loading || !hasAiAccess}
+                  title={!hasAiAccess ? 'Necesitas una API key o un código Friends & Family en Perfil' : undefined}
                   className="flex items-center gap-2 mx-auto bg-brand-600 text-white text-xs font-medium px-4 py-2 rounded-xl hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading
@@ -105,56 +135,79 @@ export default function BatchCooking({ weekDoc, apiKey, onUpdate }) {
               </div>
             ) : (
               <>
-                <div className="space-y-5">
-                  {sections.map(section => {
-                    const tasks = section.tasks || [];
-                    const sectionDone = tasks.filter(t => t.done).length;
-                    const sectionTotal = tasks.length;
-                    return (
-                      <div key={section.id}>
-                        {/* Section header */}
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-sm">{section.emoji}</span>
-                          <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-                            {section.title}
-                          </span>
-                          {sectionDone === sectionTotal && sectionTotal > 0 && (
-                            <span className="text-xs text-green-600">✓</span>
-                          )}
-                        </div>
-
-                        {/* Tasks */}
-                        <ul className="space-y-2 pl-1">
-                          {tasks.map(task => (
-                            <li key={task.id} className="flex items-start gap-2.5">
-                              <button
-                                onClick={() => toggleTask(section.id, task.id)}
-                                className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                                  task.done
-                                    ? 'bg-brand-600 border-brand-600 text-white'
-                                    : 'border-gray-300 hover:border-brand-400'
-                                }`}
-                              >
-                                {task.done && (
-                                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                )}
-                              </button>
-                              <span className={`text-sm leading-snug ${task.done ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
-                                {task.text}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    );
-                  })}
+                {/* Sort toggle */}
+                <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5 w-fit">
+                  <button
+                    onClick={() => setSortMode('groups')}
+                    className={`text-xs px-3 py-1 rounded-md transition-colors ${
+                      sortMode === 'groups'
+                        ? 'bg-white text-gray-800 shadow-sm font-medium'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Por grupos
+                  </button>
+                  <button
+                    onClick={() => setSortMode('chrono')}
+                    className={`text-xs px-3 py-1 rounded-md transition-colors ${
+                      sortMode === 'chrono'
+                        ? 'bg-white text-gray-800 shadow-sm font-medium'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Cronológico
+                  </button>
                 </div>
+
+                {sortMode === 'groups' ? (
+                  <div className="space-y-5">
+                    {sections.map(section => {
+                      const tasks = section.tasks || [];
+                      const sectionDone = tasks.filter(t => t.done).length;
+                      const sectionTotal = tasks.length;
+                      return (
+                        <div key={section.id}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-sm">{section.emoji}</span>
+                            <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                              {section.title}
+                            </span>
+                            {sectionDone === sectionTotal && sectionTotal > 0 && (
+                              <span className="text-xs text-green-600">✓</span>
+                            )}
+                          </div>
+                          <ul className="space-y-2 pl-1">
+                            {tasks.map(task => (
+                              <TaskRow
+                                key={task.id}
+                                task={task}
+                                sectionId={section.id}
+                                onToggle={toggleTask}
+                              />
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <ul className="space-y-2">
+                    {renderItems.map(task => (
+                      <TaskRow
+                        key={task.id}
+                        task={task}
+                        sectionId={sections.find(s => s.tasks?.some(t => t.id === task.id))?.id}
+                        onToggle={toggleTask}
+                        showSection
+                      />
+                    ))}
+                  </ul>
+                )}
 
                 <button
                   onClick={handleGenerate}
-                  disabled={loading || !apiKey}
+                  disabled={loading || !hasAiAccess}
+                  title={!hasAiAccess ? 'Necesitas una API key o un código Friends & Family en Perfil' : undefined}
                   className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-brand-600 transition-colors disabled:opacity-40"
                 >
                   {loading
@@ -168,5 +221,46 @@ export default function BatchCooking({ weekDoc, apiKey, onUpdate }) {
         )}
       </div>
     </div>
+  );
+}
+
+function TaskRow({ task, sectionId, onToggle, showSection }) {
+  return (
+    <li className="flex items-start gap-2.5">
+      <button
+        onClick={() => onToggle(sectionId, task.id)}
+        className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+          task.done
+            ? 'bg-brand-600 border-brand-600 text-white'
+            : 'border-gray-300 hover:border-brand-400'
+        }`}
+      >
+        {task.done && (
+          <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </button>
+      <div className="flex-1 min-w-0 flex items-start gap-2 flex-wrap">
+        <span className={`text-sm leading-snug ${task.done ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+          {showSection && task.sectionEmoji && (
+            <span className="mr-1">{task.sectionEmoji}</span>
+          )}
+          {task.text}
+        </span>
+        {Array.isArray(task.days) && task.days.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-0.5">
+            {task.days.map(day => (
+              <span
+                key={day}
+                className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${DAY_COLORS[day] || 'bg-gray-100 text-gray-600'}`}
+              >
+                {day}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </li>
   );
 }

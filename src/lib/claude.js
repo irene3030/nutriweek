@@ -29,8 +29,16 @@ async function callClaude(type, payload, apiKey) {
   return data.result;
 }
 
-export async function generateWeekMenu({ availableIngredients = '', fixedMeals = [], recurringMeals = [], mealSlots = null, foodHistory = [], savedRecipes = [], apiKey } = {}) {
-  return callClaude('generate_week', { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes }, apiKey);
+export async function generateWeekMenu({ availableIngredients = '', fixedMeals = [], recurringMeals = [], mealSlots = null, foodHistory = [], savedRecipes = [], requiredIngredients = null, apiKey } = {}) {
+  return callClaude('generate_week', { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients }, apiKey);
+}
+
+export async function suggestIngredients({ foodHistory = [], availableIngredients = '', mealSlots = null, apiKey } = {}) {
+  return callClaude('suggest_ingredients', { foodHistory, availableIngredients, mealSlots }, apiKey);
+}
+
+export async function suggestIngredientAlternative({ ingredient, category, existingInCategory = [], apiKey } = {}) {
+  return callClaude('suggest_ingredient_alternative', { ingredient, category, existingInCategory }, apiKey);
 }
 
 export async function regenerateDay({ dayName, weekContext = [], availableIngredients = '', fixedMeals = [], apiKey }) {
@@ -47,6 +55,14 @@ export async function quickMeal({ ingredients = '', requirements = [], apiKey })
 
 export async function generateBatchCooking({ weekMenu, apiKey }) {
   return callClaude('batch_cooking', { weekMenu }, apiKey);
+}
+
+export async function fixKPI({ kpiType, weekContext, kpiState, activeTipos, apiKey }) {
+  return callClaude('fix_kpi', { kpiType, weekContext, kpiState, activeTipos }, apiKey);
+}
+
+export async function detectTags({ text, apiKey }) {
+  return callClaude('detect_tags', { text }, apiKey);
 }
 
 export async function validateFFCode(code) {

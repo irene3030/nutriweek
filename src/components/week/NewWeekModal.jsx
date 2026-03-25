@@ -1,7 +1,20 @@
 import { useState } from 'react';
 import Modal from '../ui/Modal';
 import LoadingSpinner from '../ui/LoadingSpinner';
-import { generateWeekMenu, regenerateDay } from '../../lib/claude';
+import MenuLoadingAnimation from '../ui/MenuLoadingAnimation';
+import { generateWeekMenu, regenerateDay, suggestIngredients, suggestIngredientAlternative } from '../../lib/claude';
+import { track } from '../../lib/analytics';
+
+const CATEGORY_META = {
+  proteína: { label: 'Proteínas', emoji: '🥩' },
+  pescado:  { label: 'Pescado',   emoji: '🐟' },
+  legumbre: { label: 'Legumbres', emoji: '🫘' },
+  verdura:  { label: 'Verduras',  emoji: '🥦' },
+  fruta:    { label: 'Frutas',    emoji: '🍓' },
+  cereal:   { label: 'Cereales',  emoji: '🌾' },
+  lácteo:   { label: 'Lácteos',   emoji: '🥛' },
+  huevo:    { label: 'Huevos',    emoji: '🥚' },
+};
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const MEAL_TYPES = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
@@ -39,6 +52,51 @@ const DEFAULT_SLOTS = {
   cena:      { enabled: true, sameEveryDay: false },
 };
 
+/** Enforce mealSlots constraints on a generated week result */
+function enforceSlots(result, mealSlots) {
+  if (!mealSlots || !result?.days) return result;
+
+  const emptyMeal = { baby: '', adult: '', tags: [] };
+
+  // First pass: blank out disabled slots
+  const days = result.days.map(day => ({
+    ...day,
+    meals: (day.meals || []).map(meal => {
+      const slot = mealSlots[meal.tipo];
+      if (!slot?.enabled) return { ...meal, ...emptyMeal };
+      return meal;
+    }),
+  }));
+
+  // Second pass: for sameEveryDay slots, copy first non-empty occurrence to all days
+  const sameSlots = Object.entries(mealSlots)
+    .filter(([, v]) => v.enabled && v.sameEveryDay)
+    .map(([k]) => k);
+
+  if (sameSlots.length > 0) {
+    const canonical = {};
+    for (const tipo of sameSlots) {
+      for (const day of days) {
+        const meal = day.meals?.find(m => m.tipo === tipo);
+        if (meal?.baby) { canonical[tipo] = meal; break; }
+      }
+    }
+    return {
+      ...result,
+      days: days.map(day => ({
+        ...day,
+        meals: day.meals.map(meal =>
+          sameSlots.includes(meal.tipo) && canonical[meal.tipo]
+            ? { ...meal, baby: canonical[meal.tipo].baby, adult: canonical[meal.tipo].adult, tags: canonical[meal.tipo].tags }
+            : meal
+        ),
+      })),
+    };
+  }
+
+  return { ...result, days };
+}
+
 export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds = [], foodHistory, savedRecipes, usualMeals = [], apiKey, hasAiAccess }) {
   const [step, setStep] = useState('form');
   const [ingredients, setIngredients] = useState('');
@@ -53,6 +111,11 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
   const [recurringMeals, setRecurringMeals] = useState([]); // string[]
   const [recurringInput, setRecurringInput] = useState('');
   const [mealSlots, setMealSlots] = useState(DEFAULT_SLOTS);
+
+  // Ingredient review state
+  const [ingredientsList, setIngredientsList] = useState([]); // [{id, name, category, reason, removed, customName, editing, altLoading}]
+  const [ingredientsLoading, setIngredientsLoading] = useState(false);
+  const [ingredientsError, setIngredientsError] = useState(null);
 
   const weekLabel = mondayToLabel(mondayDate);
   const isDuplicate = existingWeekIds.includes(mondayDate);
@@ -90,15 +153,14 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
     setMealSlots(prev => ({ ...prev, [tipo]: { ...prev[tipo], sameEveryDay: !prev[tipo].sameEveryDay } }));
   };
 
-  const handleGenerate = async () => {
-    if (isDuplicate) {
-      setError('Ya existe un menú para esa semana.');
-      return;
-    }
-    if (!hasAiAccess) {
-      setError('Añade tu API key de Anthropic en Perfil para usar la generación con IA.');
-      return;
-    }
+  const handleGenerateClick = () => {
+    if (isDuplicate) { setError('Ya existe un menú para esa semana.'); return; }
+    if (!hasAiAccess) { setError('Añade tu API key de Anthropic en Perfil para usar la generación con IA.'); return; }
+    setError(null);
+    setStep('choice');
+  };
+
+  const handleGenerateDirect = async (requiredIngredients = null) => {
     setStep('loading');
     setError(null);
     try {
@@ -109,10 +171,16 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
         mealSlots,
         foodHistory,
         savedRecipes,
+        requiredIngredients,
         apiKey,
       });
-      setProposedWeek(result);
+      setProposedWeek(enforceSlots(result, mealSlots));
       setStep('preview');
+      track('menu_generated', {
+        method: requiredIngredients ? 'ingredient_review' : 'direct',
+        has_fixed_meals: fixedMeals.length > 0,
+        has_recurring_meals: recurringMeals.length > 0,
+      });
     } catch (err) {
       setError(
         err.message === 'CALL_LIMIT_EXCEEDED' ? 'Has alcanzado el límite mensual de llamadas. Auméntalo en Perfil.' :
@@ -121,6 +189,63 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
       );
       setStep('form');
     }
+  };
+
+  const handleReviewIngredients = async () => {
+    setStep('review_ingredients');
+    setIngredientsLoading(true);
+    setIngredientsError(null);
+    try {
+      const result = await suggestIngredients({ foodHistory, availableIngredients: ingredients, mealSlots, apiKey });
+      setIngredientsList((result.ingredients || []).map(i => ({
+        ...i,
+        removed: false,
+        customName: null,
+        editing: false,
+        altLoading: false,
+      })));
+    } catch (err) {
+      setIngredientsError(err.message || 'Error generando la lista de ingredientes.');
+    } finally {
+      setIngredientsLoading(false);
+    }
+  };
+
+  const toggleIngredientRemoved = (id) => {
+    setIngredientsList(prev => prev.map(i => i.id === id ? { ...i, removed: !i.removed, editing: false } : i));
+  };
+
+  const setIngredientEditing = (id, val) => {
+    setIngredientsList(prev => prev.map(i => i.id === id ? { ...i, editing: val } : i));
+  };
+
+  const setIngredientCustomName = (id, name) => {
+    setIngredientsList(prev => prev.map(i => i.id === id ? { ...i, customName: name } : i));
+  };
+
+  const handleGetAlternative = async (id) => {
+    const item = ingredientsList.find(i => i.id === id);
+    if (!item) return;
+    const existingInCategory = ingredientsList
+      .filter(i => i.id !== id && i.category === item.category)
+      .map(i => i.customName || i.name);
+    setIngredientsList(prev => prev.map(i => i.id === id ? { ...i, altLoading: true } : i));
+    try {
+      const result = await suggestIngredientAlternative({
+        ingredient: item.customName || item.name,
+        category: item.category,
+        existingInCategory,
+        apiKey,
+      });
+      setIngredientsList(prev => prev.map(i => i.id === id ? { ...i, customName: result.alternative, editing: false, altLoading: false } : i));
+    } catch {
+      setIngredientsList(prev => prev.map(i => i.id === id ? { ...i, altLoading: false } : i));
+    }
+  };
+
+  const handleGenerateFromIngredients = () => {
+    const approved = ingredientsList.filter(i => !i.removed).map(i => i.customName || i.name);
+    handleGenerateDirect(approved);
   };
 
   const handleRegenerateDay = async (dayName) => {
@@ -137,6 +262,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
         ...prev,
         days: prev.days.map((d) => (d.day === dayName ? result : d)),
       }));
+      track('day_regenerated', { day: dayName });
     } catch (err) {
       setError(err.message || 'Error regenerando el día');
     } finally {
@@ -163,7 +289,18 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await onSave(mondayDate, weekLabel, proposedWeek.days);
+      // Sanitize: ensure no undefined fields (Firestore rejects them)
+      const cleanDays = (proposedWeek.days || []).map(day => ({
+        day: day.day,
+        meals: (day.meals || []).map(meal => ({
+          tipo: meal.tipo,
+          baby: meal.baby ?? '',
+          adult: meal.adult ?? '',
+          tags: meal.tags ?? [],
+          track: meal.track ?? null,
+        })),
+      }));
+      await onSave(mondayDate, weekLabel, cleanDays);
       handleClose();
     } catch (err) {
       setError(err.message);
@@ -191,7 +328,12 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title={step === 'preview' ? 'Revisar menú propuesto' : 'Nueva semana'}
+      title={
+        step === 'preview' ? 'Revisar menú propuesto' :
+        step === 'review_ingredients' ? 'Revisar ingredientes' :
+        step === 'choice' ? 'Generar menú' :
+        'Nueva semana'
+      }
       maxWidth="max-w-3xl"
     >
       {step === 'form' && (
@@ -423,7 +565,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
               Cancelar
             </button>
             <button
-              onClick={handleGenerate}
+              onClick={handleGenerateClick}
               disabled={isDuplicate || !hasAiAccess}
               title={!hasAiAccess ? 'Necesitas una API key o un código Friends & Family para usar la IA' : undefined}
               className="flex-1 bg-brand-600 text-white rounded-xl py-3 font-medium hover:bg-brand-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -451,10 +593,187 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
         </div>
       )}
 
+      {/* Choice dialog */}
+      {step === 'choice' && (
+        <div className="py-6 space-y-4">
+          <div className="text-center space-y-1">
+            <p className="text-base font-semibold text-gray-800">¿Cómo quieres generar el menú?</p>
+            <p className="text-sm text-gray-500">Puedes revisar los ingredientes antes o generar directamente.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button
+              onClick={() => handleGenerateDirect()}
+              className="flex flex-col items-center gap-2 p-5 border-2 border-gray-200 rounded-2xl hover:border-brand-400 hover:bg-brand-50 transition-colors text-left"
+            >
+              <span className="text-3xl">⚡</span>
+              <div>
+                <p className="font-semibold text-gray-800 text-sm">Generar directamente</p>
+                <p className="text-xs text-gray-500 mt-0.5">Claude elige los ingredientes y crea el menú completo.</p>
+              </div>
+            </button>
+            <button
+              onClick={handleReviewIngredients}
+              className="flex flex-col items-center gap-2 p-5 border-2 border-gray-200 rounded-2xl hover:border-brand-400 hover:bg-brand-50 transition-colors text-left"
+            >
+              <span className="text-3xl">🛒</span>
+              <div>
+                <p className="font-semibold text-gray-800 text-sm">Revisar ingredientes primero</p>
+                <p className="text-xs text-gray-500 mt-0.5">Ve y edita la lista antes de generar. Elimina o sustituye lo que no tengas.</p>
+              </div>
+            </button>
+          </div>
+          <button onClick={() => setStep('form')} className="w-full text-sm text-gray-400 hover:text-gray-600 transition-colors pt-1">
+            ← Volver
+          </button>
+        </div>
+      )}
+
+      {/* Ingredient review step */}
+      {step === 'review_ingredients' && (
+        <div className="space-y-4">
+          {ingredientsLoading && (
+            <div className="py-12 text-center">
+              <LoadingSpinner size="lg" label="" />
+              <p className="text-gray-700 font-medium mt-4">Generando lista de ingredientes...</p>
+            </div>
+          )}
+
+          {ingredientsError && !ingredientsLoading && (
+            <div className="py-8 text-center space-y-3">
+              <p className="text-sm text-red-600">{ingredientsError}</p>
+              <button onClick={handleReviewIngredients} className="text-sm text-brand-600 hover:text-brand-800 font-medium">
+                Reintentar
+              </button>
+            </div>
+          )}
+
+          {!ingredientsLoading && !ingredientsError && ingredientsList.length > 0 && (
+            <>
+              <div>
+                <p className="text-sm font-semibold text-gray-800">Ingredientes sugeridos</p>
+                <p className="text-xs text-gray-500 mt-0.5">Elimina los que no quieras o sustitúyelos. Claude generará el menú con lo que apruebes.</p>
+              </div>
+
+              <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
+                {Object.entries(CATEGORY_META).map(([cat, meta]) => {
+                  const items = ingredientsList.filter(i => i.category === cat);
+                  if (!items.length) return null;
+                  return (
+                    <div key={cat}>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                        {meta.emoji} {meta.label}
+                      </p>
+                      <div className="space-y-1.5">
+                        {items.map(item => (
+                          <div
+                            key={item.id}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-colors ${
+                              item.removed ? 'border-gray-100 bg-gray-50 opacity-50' : 'border-gray-200 bg-white'
+                            }`}
+                          >
+                            {/* Remove/restore toggle */}
+                            <button
+                              onClick={() => toggleIngredientRemoved(item.id)}
+                              title={item.removed ? 'Restaurar' : 'Eliminar'}
+                              className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                                item.removed
+                                  ? 'bg-gray-200 text-gray-500 hover:bg-brand-100 hover:text-brand-600'
+                                  : 'bg-red-100 text-red-500 hover:bg-red-200'
+                              }`}
+                            >
+                              {item.removed ? '↩' : '×'}
+                            </button>
+
+                            {/* Name — inline edit or label */}
+                            {item.editing ? (
+                              <input
+                                autoFocus
+                                value={item.customName ?? item.name}
+                                onChange={e => setIngredientCustomName(item.id, e.target.value)}
+                                onBlur={() => setIngredientEditing(item.id, false)}
+                                onKeyDown={e => e.key === 'Enter' && setIngredientEditing(item.id, false)}
+                                className="flex-1 text-sm border-b border-brand-400 outline-none bg-transparent py-0.5"
+                              />
+                            ) : (
+                              <span
+                                className={`flex-1 text-sm ${item.removed ? 'line-through text-gray-400' : 'text-gray-800'}`}
+                                title={item.reason}
+                              >
+                                {item.customName || item.name}
+                                {item.customName && item.customName !== item.name && (
+                                  <span className="text-xs text-gray-400 ml-1">(era: {item.name})</span>
+                                )}
+                              </span>
+                            )}
+
+                            {!item.removed && (
+                              <>
+                                {/* Edit button */}
+                                <button
+                                  onClick={() => setIngredientEditing(item.id, !item.editing)}
+                                  title="Editar nombre"
+                                  className="shrink-0 text-gray-300 hover:text-brand-500 transition-colors"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                  </svg>
+                                </button>
+
+                                {/* AI alternative button */}
+                                <button
+                                  onClick={() => handleGetAlternative(item.id)}
+                                  disabled={item.altLoading}
+                                  title="Sugerir alternativa con IA"
+                                  className="shrink-0 text-gray-300 hover:text-brand-500 transition-colors disabled:opacity-40"
+                                >
+                                  {item.altLoading
+                                    ? <div className="w-3.5 h-3.5 border border-gray-300 border-t-brand-500 rounded-full animate-spin" />
+                                    : (
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                      </svg>
+                                    )
+                                  }
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="border-t border-gray-100 pt-3 space-y-2">
+                <p className="text-xs text-gray-400">
+                  {ingredientsList.filter(i => !i.removed).length} ingredientes seleccionados de {ingredientsList.length}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setStep('choice')}
+                    className="flex-1 border border-gray-300 text-gray-700 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    ← Volver
+                  </button>
+                  <button
+                    onClick={handleGenerateFromIngredients}
+                    disabled={ingredientsList.filter(i => !i.removed).length === 0}
+                    className="flex-1 bg-brand-600 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-50"
+                  >
+                    ✨ Generar menú
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {step === 'loading' && (
-        <div className="py-16 text-center">
-          <LoadingSpinner size="lg" label="" />
-          <p className="text-gray-700 font-medium mt-4">Generando tu menú semanal...</p>
+        <div className="py-8 text-center">
+          <MenuLoadingAnimation />
+          <p className="text-gray-700 font-semibold -mt-2">Generando tu menú semanal...</p>
           <p className="text-gray-400 text-sm mt-1">Claude está creando un plan nutritivo completo</p>
         </div>
       )}
