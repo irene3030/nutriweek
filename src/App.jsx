@@ -232,6 +232,10 @@ function AppContent() {
               savedRecipes={savedRecipes}
               usualMeals={usualMeals}
               apiKey={householdApiKey}
+              hasAiAccess={
+                !!householdApiKey ||
+                (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)
+              }
             />
           )}
 

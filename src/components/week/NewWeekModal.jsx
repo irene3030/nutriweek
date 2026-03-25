@@ -39,7 +39,7 @@ const DEFAULT_SLOTS = {
   cena:      { enabled: true, sameEveryDay: false },
 };
 
-export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds = [], foodHistory, savedRecipes, usualMeals = [], apiKey }) {
+export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds = [], foodHistory, savedRecipes, usualMeals = [], apiKey, hasAiAccess }) {
   const [step, setStep] = useState('form');
   const [ingredients, setIngredients] = useState('');
   const [mondayDate, setMondayDate] = useState(getThisMonday());
@@ -95,7 +95,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
       setError('Ya existe un menú para esa semana.');
       return;
     }
-    if (!apiKey) {
+    if (!hasAiAccess) {
       setError('Añade tu API key de Anthropic en Perfil para usar la generación con IA.');
       return;
     }
@@ -424,13 +424,18 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
             </button>
             <button
               onClick={handleGenerate}
-              disabled={isDuplicate || !apiKey}
-              title={!apiKey ? 'Añade tu API key en Perfil' : undefined}
+              disabled={isDuplicate || !hasAiAccess}
+              title={!hasAiAccess ? 'Necesitas una API key o un código Friends & Family para usar la IA' : undefined}
               className="flex-1 bg-brand-600 text-white rounded-xl py-3 font-medium hover:bg-brand-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span>✨</span>
               Generar con IA
             </button>
+            {!hasAiAccess && (
+              <p className="text-xs text-center text-gray-400 mt-1">
+                Añade una API key o activa un código Friends &amp; Family en Perfil
+              </p>
+            )}
           </div>
 
           <button

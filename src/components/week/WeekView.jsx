@@ -35,6 +35,7 @@ export default function WeekView({
   savedRecipes,
   usualMeals,
   apiKey,
+  hasAiAccess,
 }) {
   const [showNewWeekModal, setShowNewWeekModal] = useState(false);
   const [showQuickMeal, setShowQuickMeal] = useState(false);
@@ -172,6 +173,7 @@ export default function WeekView({
         savedRecipes={savedRecipes}
         usualMeals={usualMeals}
         apiKey={apiKey}
+        hasAiAccess={hasAiAccess}
       />
       <QuickMealModal
         isOpen={showQuickMeal}
