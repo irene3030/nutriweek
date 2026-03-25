@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AuthContext, useAuth, useAuthProvider } from './hooks/useAuth';
-import { setPreCallHook } from './lib/claude';
+import { setPreCallHook, validateFFCode } from './lib/claude';
 import { useWeek } from './hooks/useWeek';
 import LoginScreen from './components/auth/LoginScreen';
 import OnboardingScreen from './components/auth/OnboardingScreen';
@@ -19,6 +19,7 @@ import {
   doc,
   getDoc,
   updateDoc,
+  runTransaction,
 } from 'firebase/firestore';
 import { db } from './lib/firebase';
 
@@ -93,19 +94,29 @@ function AppContent() {
     const householdId = auth.userDoc?.householdId;
     if (!householdId || !householdDoc) return;
 
-    setPreCallHook(async () => {
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      const storedMonth = householdDoc.aiCallMonth;
-      const calls = storedMonth === currentMonth ? (householdDoc.aiCallsThisMonth || 0) : 0;
-      const limit = householdDoc.aiCallLimit || null;
+    setPreCallHook(async ({ apiKey }) => {
+      const householdRef = doc(db, 'households', householdId);
 
-      if (limit && calls >= limit) {
-        throw new Error('CALL_LIMIT_EXCEEDED');
+      if (apiKey) {
+        // Personal API key — track monthly usage
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        const storedMonth = householdDoc.aiCallMonth;
+        const calls = storedMonth === currentMonth ? (householdDoc.aiCallsThisMonth || 0) : 0;
+        const limit = householdDoc.aiCallLimit || null;
+        if (limit && calls >= limit) throw new Error('CALL_LIMIT_EXCEEDED');
+        await updateDoc(householdRef, { aiCallsThisMonth: calls + 1, aiCallMonth: currentMonth });
+        return;
       }
-      await updateDoc(doc(db, 'households', householdId), {
-        aiCallsThisMonth: calls + 1,
-        aiCallMonth: currentMonth,
-      });
+
+      // No personal key — check Friends & Family free quota
+      if (householdDoc.ffActivated) {
+        const used = householdDoc.freeCallsUsed || 0;
+        if (used >= 30) throw new Error('FREE_QUOTA_EXCEEDED');
+        await updateDoc(householdRef, { freeCallsUsed: used + 1 });
+        return;
+      }
+
+      throw new Error('NO_API_KEY');
     });
   }, [auth.userDoc?.householdId, householdDoc]);
 
@@ -339,6 +350,9 @@ function ProfileTab({ auth, householdDoc }) {
   const [showApiKey, setShowApiKey] = useState(false);
   const [limitInput, setLimitInput] = useState('');
   const [limitSaved, setLimitSaved] = useState(false);
+  const [ffCodeInput, setFfCodeInput] = useState('');
+  const [ffLoading, setFfLoading] = useState(false);
+  const [ffError, setFfError] = useState('');
 
   // Sync inputs when householdDoc arrives (real-time)
   useEffect(() => {
@@ -376,6 +390,33 @@ function ProfileTab({ auth, householdDoc }) {
     await updateDoc(doc(db, 'households', householdId), { aiCallLimit: val });
     setLimitSaved(true);
     setTimeout(() => setLimitSaved(false), 2000);
+  };
+
+  const handleActivateFF = async () => {
+    if (!householdId || !ffCodeInput.trim()) return;
+    setFfLoading(true);
+    setFfError('');
+    try {
+      const result = await validateFFCode(ffCodeInput.trim());
+      if (!result.valid) {
+        setFfError('Código no válido. Comprueba que lo has escrito bien.');
+        return;
+      }
+      // Atomically increment the global activation counter (max 10 households)
+      const metaRef = doc(db, 'meta', 'ffActivation');
+      await runTransaction(db, async (tx) => {
+        const metaSnap = await tx.get(metaRef);
+        const count = metaSnap.exists() ? (metaSnap.data().count || 0) : 0;
+        if (count >= 10) throw new Error('Ya no quedan plazas disponibles con este código.');
+        tx.set(metaRef, { count: count + 1 }, { merge: true });
+        tx.update(doc(db, 'households', householdId), { ffActivated: true, freeCallsUsed: 0 });
+      });
+      setFfCodeInput('');
+    } catch (err) {
+      setFfError(err.message || 'Error activando el código.');
+    } finally {
+      setFfLoading(false);
+    }
   };
 
   // Usage this month
@@ -551,6 +592,53 @@ function ProfileTab({ auth, householdDoc }) {
             </div>
           </div>
         </div>
+
+        {/* Friends & Family free quota */}
+        {householdDoc && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
+            <div>
+              <h3 className="font-semibold text-gray-800 mb-1">🎁 Código Friends & Family</h3>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Si tienes un código de invitación, actívalo para obtener 30 llamadas gratuitas sin necesidad de API key propia.
+              </p>
+            </div>
+
+            {householdDoc.ffActivated ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between bg-brand-50 rounded-xl px-4 py-3">
+                  <span className="text-sm text-brand-800 font-medium">✓ Código activado</span>
+                  <span className={`text-sm font-semibold ${(householdDoc.freeCallsUsed || 0) >= 30 ? 'text-red-600' : 'text-brand-700'}`}>
+                    {householdDoc.freeCallsUsed || 0} / 30 llamadas usadas
+                  </span>
+                </div>
+                {(householdDoc.freeCallsUsed || 0) >= 30 && (
+                  <p className="text-xs text-amber-600">Has agotado las llamadas gratuitas. Añade tu API key para continuar.</p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={ffCodeInput}
+                    onChange={e => setFfCodeInput(e.target.value.toUpperCase())}
+                    placeholder="Código de invitación"
+                    maxLength={30}
+                    className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent uppercase tracking-widest"
+                  />
+                  <button
+                    onClick={handleActivateFF}
+                    disabled={ffLoading || !ffCodeInput.trim()}
+                    className="bg-brand-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-50 shrink-0"
+                  >
+                    {ffLoading ? '...' : 'Activar'}
+                  </button>
+                </div>
+                {ffError && <p className="text-xs text-red-600">{ffError}</p>}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* App info */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5">

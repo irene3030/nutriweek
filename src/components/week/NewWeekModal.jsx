@@ -116,6 +116,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
     } catch (err) {
       setError(
         err.message === 'CALL_LIMIT_EXCEEDED' ? 'Has alcanzado el límite mensual de llamadas. Auméntalo en Perfil.' :
+        err.message === 'FREE_QUOTA_EXCEEDED' ? 'Has agotado las 30 llamadas gratuitas. Añade tu API key en Perfil.' :
         err.message || 'Error generando el menú. Verifica la configuración de la API.'
       );
       setStep('form');

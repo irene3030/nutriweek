@@ -32,6 +32,7 @@ export default function BatchCooking({ weekDoc, apiKey, onUpdate }) {
       setError(
         err.message === 'NO_API_KEY' ? 'Añade tu API key en Perfil para usar esta función.' :
         err.message === 'CALL_LIMIT_EXCEEDED' ? 'Has alcanzado el límite mensual de llamadas. Auméntalo en Perfil.' :
+        err.message === 'FREE_QUOTA_EXCEEDED' ? 'Has agotado las 30 llamadas gratuitas. Añade tu API key en Perfil.' :
         err.message || 'Error generando el batch cooking.');
     } finally {
       setLoading(false);

@@ -63,6 +63,24 @@ export const handler = async (event) => {
     const body = JSON.parse(event.body);
     const { type, payload, apiKey } = body;
 
+    // validate_ff_code does not need an Anthropic API key — handle it first
+    if (type === 'validate_ff_code') {
+      const ffCode = process.env.FRIENDS_FAMILY_CODE;
+      if (!ffCode) {
+        return {
+          statusCode: 503,
+          headers: { ...cors, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'No hay códigos de invitación configurados.' }),
+        };
+      }
+      const valid = sanitize(payload?.code, 30).toUpperCase() === ffCode.trim().toUpperCase();
+      return {
+        statusCode: 200,
+        headers: { ...cors, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ result: { valid } }),
+      };
+    }
+
     const resolvedKey = apiKey || process.env.ANTHROPIC_API_KEY;
     if (!resolvedKey) {
       return {

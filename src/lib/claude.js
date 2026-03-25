@@ -6,14 +6,18 @@ let _preCallHook = null;
 export function setPreCallHook(fn) { _preCallHook = fn; }
 
 async function callClaude(type, payload, apiKey) {
-  if (!apiKey) {
+  if (_preCallHook) {
+    // Hook is responsible for: validating access (personal key OR free quota),
+    // tracking usage, and throwing NO_API_KEY / CALL_LIMIT_EXCEEDED / FREE_QUOTA_EXCEEDED.
+    await _preCallHook({ apiKey });
+  } else if (!apiKey) {
     throw new Error('NO_API_KEY');
   }
-  if (_preCallHook) await _preCallHook();
   const response = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type, payload, apiKey }),
+    // Only send apiKey when present; server falls back to its own key for free quota calls
+    body: JSON.stringify({ type, payload, ...(apiKey ? { apiKey } : {}) }),
   });
 
   if (!response.ok) {
@@ -43,4 +47,18 @@ export async function quickMeal({ ingredients = '', requirements = [], apiKey })
 
 export async function generateBatchCooking({ weekMenu, apiKey }) {
   return callClaude('batch_cooking', { weekMenu }, apiKey);
+}
+
+export async function validateFFCode(code) {
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'validate_ff_code', payload: { code } }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${response.status}`);
+  }
+  const data = await response.json();
+  return data.result;
 }

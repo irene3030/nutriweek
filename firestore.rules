@@ -7,6 +7,16 @@ service cloud.firestore {
       allow write: if request.auth.uid == uid;
     }
 
+    // FF activation counter — any auth user can read; can only increment up to 10
+    match /meta/ffActivation {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.count == 1;
+      allow update: if request.auth != null
+        && request.resource.data.count == resource.data.count + 1
+        && request.resource.data.count <= 10;
+    }
+
     match /households/{householdId} {
       // Any authenticated user can read households (needed to query by inviteCode)
       allow read: if request.auth != null;
