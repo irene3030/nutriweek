@@ -651,6 +651,56 @@ function ProfileTab({ auth, householdDoc }) {
           </div>
         </div>
 
+        {/* Dev-only testing panel */}
+        {import.meta.env.DEV && import.meta.env.VITE_SHOW_DEV_PANEL === 'true' && householdDoc && (
+          <div className="border-2 border-dashed border-amber-300 rounded-2xl p-4 space-y-3 bg-amber-50">
+            <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">🛠 Panel de testing (solo dev)</p>
+            <p className="text-xs text-amber-600">Simula el estado de un usuario nuevo sin API key ni código F&F activado.</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={async () => {
+                  if (!confirm('¿Simular usuario nuevo? Borrará tu API key y resetará el estado F&F.')) return;
+                  await updateDoc(doc(db, 'households', householdId), {
+                    anthropicApiKey: '',
+                    ffActivated: false,
+                    freeCallsUsed: 0,
+                  });
+                }}
+                className="text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 transition-colors font-medium"
+              >
+                Resetear a usuario nuevo
+              </button>
+              <button
+                onClick={async () => {
+                  if (!confirm('¿Simular F&F activado con 28/30 llamadas usadas?')) return;
+                  await updateDoc(doc(db, 'households', householdId), {
+                    anthropicApiKey: '',
+                    ffActivated: true,
+                    freeCallsUsed: 28,
+                  });
+                }}
+                className="text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 transition-colors font-medium"
+              >
+                Simular F&F casi agotado (28/30)
+              </button>
+              <button
+                onClick={async () => {
+                  if (!confirm('¿Simular F&F agotado (30/30)?')) return;
+                  await updateDoc(doc(db, 'households', householdId), {
+                    anthropicApiKey: '',
+                    ffActivated: true,
+                    freeCallsUsed: 30,
+                  });
+                }}
+                className="text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 transition-colors font-medium"
+              >
+                Simular F&F agotado (30/30)
+              </button>
+            </div>
+            <p className="text-xs text-amber-500 italic">Este bloque no aparece en producción.</p>
+          </div>
+        )}
+
         {/* Sign out */}
         <button
           onClick={auth.signOut}
