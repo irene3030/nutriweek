@@ -217,13 +217,15 @@ Devuelve SOLO el JSON de esa comida:
   "tags": ["tag1", "tag2"]
 }`;
     } else if (type === 'quick_meal') {
-      const { ingredients, requirements } = payload;
+      const { ingredients, requirements, prepTime } = payload;
       const safeIngredients = sanitize(ingredients, 300);
       const safeRequirements = Array.isArray(requirements) ? requirements.map(r => sanitize(r, 50)) : [];
       const reqList = safeRequirements.length > 0 ? safeRequirements.join(', ') : null;
+      const safePrepTime = [15, 30].includes(prepTime) ? prepTime : null;
+      const prepNote = safePrepTime ? `\nTiempo de preparación: menos de ${safePrepTime} minutos.` : '';
       userMessage = `Sugiere una comida completa para un bebé de ~12 meses (BLW).
 ${safeIngredients ? `\nIngredientes disponibles: ${safeIngredients}` : ''}
-${reqList ? `\nRequisitos nutricionales: ${reqList}` : ''}
+${reqList ? `\nRequisitos nutricionales: ${reqList}` : ''}${prepNote}
 
 Devuelve SOLO este JSON:
 {
@@ -266,6 +268,64 @@ Devuelve SOLO este JSON:
   },
   ...
 ]}`;
+    } else if (type === 'analyze_meal_photo') {
+      const { imageBase64, mimeType } = payload;
+      if (!imageBase64 || typeof imageBase64 !== 'string' || imageBase64.length > 1_500_000) {
+        return {
+          statusCode: 400,
+          headers: { ...cors, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'Imagen no válida o demasiado grande.' }),
+        };
+      }
+      const safeMime = ['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)
+        ? mimeType
+        : 'image/jpeg';
+
+      const photoMsg = await client.messages.create({
+        model: 'claude-haiku-4-5',
+        max_tokens: 512,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: safeMime, data: imageBase64 },
+            },
+            {
+              type: 'text',
+              text: `Analiza esta foto de comida para bebé BLW (~12 meses). Identifica el plato e ingredientes principales. Devuelve SOLO este JSON:
+{
+  "name": "nombre corto del plato (ej: Salmón con puré de calabaza)",
+  "tags": ["tag1", "tag2"]
+}
+Tags posibles: iron (carne roja, legumbre, pescado azul), fish (pescado graso), legume (legumbre), egg (huevo), dairy (lácteo), fruit (fruta), cereal (cereal/pan/pasta/arroz), veggie:nombreVerdura (una entrada por verdura identificada).
+Si no puedes identificar el plato con claridad, devuelve name:"" y tags:[]. Devuelve solo el JSON, sin texto adicional.`,
+            },
+          ],
+        }],
+      });
+
+      const rawPhoto = photoMsg.content[0].text.trim();
+      let photoJson = rawPhoto;
+      const photoMatch = rawPhoto.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (photoMatch) photoJson = photoMatch[1].trim();
+
+      let photoResult;
+      try {
+        photoResult = JSON.parse(photoJson);
+      } catch {
+        return {
+          statusCode: 500,
+          headers: { ...cors, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'No se pudo analizar la foto.' }),
+        };
+      }
+
+      return {
+        statusCode: 200,
+        headers: { ...cors, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ result: photoResult }),
+      };
     } else {
       return {
         statusCode: 400,

@@ -17,6 +17,7 @@ const TIPOS = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
 export default function QuickMealModal({ isOpen, onClose, apiKey, currentWeek, onAddToWeek }) {
   const [ingredients, setIngredients] = useState('');
   const [requirements, setRequirements] = useState([]);
+  const [prepTime, setPrepTime] = useState(null); // null | 15 | 30
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -37,7 +38,7 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, currentWeek, o
     setError(null);
     setResult(null);
     try {
-      const res = await quickMeal({ ingredients, requirements, apiKey });
+      const res = await quickMeal({ ingredients, requirements, prepTime, apiKey });
       setResult(res);
     } catch (err) {
       setError(
@@ -68,6 +69,7 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, currentWeek, o
   const handleClose = () => {
     setIngredients('');
     setRequirements([]);
+    setPrepTime(null);
     setResult(null);
     setError(null);
     setShowAddToWeek(false);
@@ -110,6 +112,32 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, currentWeek, o
                 }`}
               >
                 {r.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Prep time */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Tiempo de preparación <span className="text-gray-400 font-normal">(opcional)</span>
+          </label>
+          <div className="flex gap-2">
+            {[
+              { value: 15, label: '⚡ < 15 min' },
+              { value: 30, label: '🕐 < 30 min' },
+            ].map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setPrepTime(prev => prev === opt.value ? null : opt.value)}
+                className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
+                  prepTime === opt.value
+                    ? 'bg-brand-600 text-white border-brand-600'
+                    : 'bg-white text-gray-600 border-gray-300 hover:border-brand-400'
+                }`}
+              >
+                {opt.label}
               </button>
             ))}
           </div>

@@ -41,8 +41,12 @@ export async function suggestMeal({ dayName, mealType, weekContext = [], ingredi
   return callClaude('suggest_meal', { dayName, mealType, weekContext, ingredients, requirements }, apiKey);
 }
 
-export async function quickMeal({ ingredients = '', requirements = [], apiKey }) {
-  return callClaude('quick_meal', { ingredients, requirements }, apiKey);
+export async function quickMeal({ ingredients = '', requirements = [], prepTime = null, apiKey }) {
+  return callClaude('quick_meal', { ingredients, requirements, prepTime }, apiKey);
+}
+
+export async function analyzeMealPhoto({ imageBase64, mimeType = 'image/jpeg', apiKey }) {
+  return callClaude('analyze_meal_photo', { imageBase64, mimeType }, apiKey);
 }
 
 export async function generateBatchCooking({ weekMenu, apiKey }) {
