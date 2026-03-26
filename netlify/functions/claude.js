@@ -437,6 +437,67 @@ Devuelve SOLO este JSON:
   },
   ...
 ]}`;
+    } else if (type === 'batch_cooking_optimized') {
+      const { weekMenu, timeSessions } = payload;
+      const safeWeekMenu = Array.isArray(weekMenu)
+        ? weekMenu.map(day => ({
+            day: sanitize(day.day, 10),
+            meals: Array.isArray(day.meals)
+              ? day.meals.map(m => ({ tipo: sanitize(m.tipo, 20), baby: sanitize(m.baby, 300) }))
+              : [],
+          }))
+        : [];
+      const safeTimeSessions = Array.isArray(timeSessions)
+        ? timeSessions
+            .filter(s => s.day && s.duration)
+            .map(s => ({ day: sanitize(s.day, 20), duration: Math.min(Math.max(parseInt(s.duration) || 60, 15), 300) }))
+        : [];
+      const sessionsDesc = safeTimeSessions.map(s => `- ${s.day}: ${s.duration} minutos disponibles`).join('\n');
+
+      userMessage = `Analiza este menú semanal para bebé BLW (~12 meses) y crea un plan de batch cooking optimizado para las sesiones de tiempo disponibles.
+
+Menú:
+${JSON.stringify(safeWeekMenu, null, 2)}
+
+Sesiones de cocina disponibles:
+${sessionsDesc}
+
+INSTRUCCIONES:
+1. Para cada sesión, selecciona las preparaciones más impactantes (las que desbloquean más comidas durante la semana). Prioriza las que aparecen en más días.
+2. Agrupa las tareas en "packs" paralelos: cosas que se pueden hacer simultáneamente (ej: mientras el horno hace el pollo, cocer lentejas en el fuego y picar verduras).
+3. El tiempo total activo de una sesión no debe superar el tiempo disponible. Indica el tiempo estimado de cada tarea.
+4. Solo incluye preparaciones que requieren técnica activa (cocer, hornear, saltear, preparar masa…). NO incluyas alimentos que se consumen sin preparar (yogur, fruta, queso, etc.).
+5. En "days" indica los días en que se usará cada preparación.
+6. Etiqueta cada pack por técnica: 🔥 Fuego, 🫙 Horno, 🔪 Prep (cortar/triturar), ❄️ En frío.
+
+Devuelve SOLO este JSON:
+{"sessions": [
+  {
+    "id": "s1",
+    "day": "Lunes",
+    "duration": 60,
+    "packs": [
+      {
+        "id": "p1",
+        "label": "🔥 Fuego",
+        "parallel": false,
+        "tasks": [
+          {"id": "t1", "text": "Cocer lentejas (200g)", "time": 20, "days": ["Mié", "Jue"]},
+          {"id": "t2", "text": "Cocer garbanzos (150g)", "time": 25, "days": ["Lun", "Mar"]}
+        ]
+      },
+      {
+        "id": "p2",
+        "label": "🔪 Mientras tanto: prep",
+        "parallel": true,
+        "tasks": [
+          {"id": "t3", "text": "Picar y reservar brócoli y zanahoria", "time": 10, "days": ["Lun", "Mar", "Mié"]}
+        ]
+      }
+    ]
+  }
+]}`;
+
     } else if (type === 'evaluate_day') {
       const { meals } = payload;
       const safeMeals = Array.isArray(meals)

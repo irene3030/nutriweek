@@ -295,7 +295,7 @@ function KPIPill({ icon, label, value, target, status, statusColors, onFix, fixi
       {canFix && (
         <button
           onClick={onFix}
-          className={`ml-0.5 text-xs font-medium underline underline-offset-2 transition-opacity ${fixing ? 'opacity-60' : 'hover:opacity-80'}`}
+          className={`ml-0.5 text-xs transition-opacity ${fixing ? 'opacity-60' : 'hover:opacity-80'}`}
           title="Corregir con IA"
         >
           {loading ? '...' : fixing ? '✕' : '✨'}

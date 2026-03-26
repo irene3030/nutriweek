@@ -4,17 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import TagChip from '../ui/TagChip';
 import MealEditor from './MealEditor';
 import TrackModal from './TrackModal';
-import { suggestMeal } from '../../lib/claude';
 import { track } from '../../lib/analytics';
-
-const REGEN_REQUIREMENTS = [
-  { id: 'hierro', label: '🩸 Hierro' },
-  { id: 'pescado graso', label: '🐟 Pescado' },
-  { id: 'legumbre', label: '🟢 Legumbre' },
-  { id: 'verdura', label: '🥦 Verdura' },
-  { id: 'huevo', label: '🟡 Huevo' },
-  { id: 'fruta', label: '🍓 Fruta' },
-];
 
 const MEAL_LABELS = {
   desayuno: 'Desayuno',
@@ -68,11 +58,6 @@ export default function MealSlot({
 }) {
   const [editing, setEditing] = useState(false);
   const [showTrack, setShowTrack] = useState(false);
-  const [showRegen, setShowRegen] = useState(false);
-  const [regenIngredients, setRegenIngredients] = useState('');
-  const [regenRequirements, setRegenRequirements] = useState([]);
-  const [regenerating, setRegenerating] = useState(false);
-  const [regenError, setRegenError] = useState(null);
 
   const {
     attributes,
@@ -92,39 +77,6 @@ export default function MealSlot({
   const barColor = getBarColor(meal?.tags || []);
   const hasContent = !!meal?.baby;
 
-  const toggleRegenReq = (id) => {
-    setRegenRequirements(prev =>
-      prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]
-    );
-  };
-
-  const handleRegenerate = async () => {
-    setRegenerating(true);
-    setRegenError(null);
-    try {
-      const result = await suggestMeal({
-        dayName,
-        mealType: meal?.tipo,
-        weekContext,
-        ingredients: regenIngredients,
-        requirements: regenRequirements,
-        apiKey,
-      });
-      onSave(dayIndex, mealIndex, { baby: result.baby, tags: result.tags || [] });
-      track('meal_suggested', { day: dayName, meal_type: meal?.tipo, tags: result.tags || [] });
-      setShowRegen(false);
-      setRegenIngredients('');
-      setRegenRequirements([]);
-    } catch (err) {
-      setRegenError(
-        err.message === 'NO_API_KEY' ? 'Añade tu API key en Perfil.' :
-        err.message === 'CALL_LIMIT_EXCEEDED' ? 'Has alcanzado el límite mensual de llamadas. Auméntalo en Perfil.' :
-        err.message === 'FREE_QUOTA_EXCEEDED' ? 'Has agotado las 30 llamadas gratuitas. Añade tu API key en Perfil.' :
-        err.message || 'Error al regenerar.');
-    } finally {
-      setRegenerating(false);
-    }
-  };
 
   const handleSave = (data) => {
     onSave(dayIndex, mealIndex, data);
@@ -184,23 +136,9 @@ export default function MealSlot({
             >
               {meal?.track?.done ? '✓ Comido' : '○ Registrar'}
             </button>
-            {/* Regenerate button */}
-            {hasContent && (
-              <button
-                onClick={() => { if (hasAiAccess) { setShowRegen(v => !v); setEditing(false); } }}
-                disabled={!hasAiAccess}
-                className={`p-1 rounded-lg transition-colors ${showRegen ? 'bg-brand-100 text-brand-600' : 'hover:bg-gray-100 text-gray-400 hover:text-gray-600'} disabled:opacity-40 disabled:cursor-not-allowed`}
-                aria-label="Regenerar con IA"
-                title={hasAiAccess ? 'Regenerar comida' : 'Necesitas una API key o un código Friends & Family en Perfil'}
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </button>
-            )}
             {/* Edit button */}
             <button
-              onClick={() => { setEditing(!editing); setShowRegen(false); }}
+              onClick={() => setEditing(!editing)}
               className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
               aria-label="Editar"
             >
@@ -238,47 +176,6 @@ export default function MealSlot({
               </button>
             )}
 
-            {/* Inline regenerate panel */}
-            {showRegen && (
-              <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
-                <input
-                  type="text"
-                  value={regenIngredients}
-                  onChange={e => setRegenIngredients(e.target.value)}
-                  placeholder="Ingredientes (opcional)"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-brand-400"
-                />
-                <div className="flex flex-wrap gap-1">
-                  {REGEN_REQUIREMENTS.map(r => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => toggleRegenReq(r.id)}
-                      className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
-                        regenRequirements.includes(r.id)
-                          ? 'bg-brand-600 text-white border-brand-600'
-                          : 'bg-white text-gray-500 border-gray-200 hover:border-brand-400'
-                      }`}
-                    >
-                      {r.label}
-                    </button>
-                  ))}
-                </div>
-                {regenError && (
-                  <p className="text-xs text-red-500">{regenError}</p>
-                )}
-                <button
-                  onClick={handleRegenerate}
-                  disabled={regenerating}
-                  className="w-full flex items-center justify-center gap-1.5 bg-brand-600 text-white text-xs font-medium py-1.5 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
-                >
-                  {regenerating
-                    ? <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Regenerando...</>
-                    : '✨ Regenerar'
-                  }
-                </button>
-              </div>
-            )}
           </>
         ) : (
           <div className="mt-2">
@@ -288,6 +185,7 @@ export default function MealSlot({
               weekContext={weekContext}
               householdId={householdId}
               apiKey={apiKey}
+              hasAiAccess={hasAiAccess}
               onSave={handleSave}
               onCopy={handleCopy}
               onCancel={() => setEditing(false)}
