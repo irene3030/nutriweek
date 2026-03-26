@@ -429,6 +429,58 @@ Devuelve SOLO este JSON:
   },
   ...
 ]}`;
+    } else if (type === 'evaluate_day') {
+      const { meals } = payload;
+      const safeMeals = Array.isArray(meals)
+        ? meals.map(m => ({ tipo: sanitize(m.tipo, 20), text: sanitize(m.text, 300) })).filter(m => m.text)
+        : [];
+      const mealLines = safeMeals.map(m => `- ${m.tipo}: ${m.text}`).join('\n');
+      userMessage = `Evalúa nutricionalmente el siguiente día de comidas para un bebé BLW de ~12 meses:
+
+${mealLines || '(sin comidas introducidas)'}
+
+Analiza qué nutrientes clave están presentes y cuáles faltan. Para los que faltan, contextualiza su importancia en el marco de una semana equilibrada.
+
+Devuelve SOLO este JSON:
+{
+  "positives": ["frase corta de algo que está bien en este día"],
+  "missing": [
+    {
+      "nutrient": "nombre del nutriente o alimento",
+      "weekly_context": "explicación breve de por qué es importante incluirlo a lo largo de la semana"
+    }
+  ],
+  "overall": "resumen de 1-2 frases del día"
+}
+Si el día está completo nutricionalmente, devuelve missing:[].`;
+
+    } else if (type === 'suggest_dinner') {
+      const { meals, weeklyFish, weeklyLegume } = payload;
+      const safeMeals = Array.isArray(meals)
+        ? meals.map(m => ({ tipo: sanitize(m.tipo, 20), text: sanitize(m.text, 300) })).filter(m => m.text)
+        : [];
+      const mealLines = safeMeals.map(m => `- ${m.tipo}: ${m.text}`).join('\n');
+      const safeWeeklyFish = [0, 1, 2, 3].includes(weeklyFish) ? weeklyFish : null;
+      const safeWeeklyLegume = [0, 1, 2, 3].includes(weeklyLegume) ? weeklyLegume : null;
+      const weekCtx = [
+        safeWeeklyFish !== null ? `Raciones de pescado graso llevadas esta semana: ${safeWeeklyFish}/3` : '',
+        safeWeeklyLegume !== null ? `Raciones de legumbre llevadas esta semana: ${safeWeeklyLegume}/3` : '',
+      ].filter(Boolean).join('\n');
+      userMessage = `Propón una cena para un bebé BLW de ~12 meses que complemente nutricionalmente este día:
+
+Comidas del día:
+${mealLines || '(sin comidas registradas)'}
+${weekCtx ? `\nContexto semanal:\n${weekCtx}` : ''}
+
+Sugiere una cena concreta y explica brevemente por qué tiene sentido nutricionalmente dado lo que ya ha comido hoy y el contexto semanal.
+
+Devuelve SOLO este JSON:
+{
+  "dinner": "descripción de la cena (apta para bebé BLW)",
+  "reasoning": "explicación breve de por qué esta cena complementa el día",
+  "tags": ["tag1", "tag2"]
+}`;
+
     } else if (type === 'detect_tags') {
       const { text } = payload;
       const safeText = sanitize(text, 300);

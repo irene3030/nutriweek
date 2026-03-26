@@ -53,6 +53,14 @@ export async function quickMeal({ ingredients = '', requirements = [], prepTime 
   return callClaude('quick_meal', { ingredients, requirements, prepTime }, apiKey);
 }
 
+export async function evaluateDay({ meals, apiKey }) {
+  return callClaude('evaluate_day', { meals }, apiKey);
+}
+
+export async function suggestDinner({ meals, weeklyFish = null, weeklyLegume = null, apiKey }) {
+  return callClaude('suggest_dinner', { meals, weeklyFish, weeklyLegume }, apiKey);
+}
+
 export async function detectTags({ text, apiKey }) {
   return callClaude('detect_tags', { text }, apiKey);
 }

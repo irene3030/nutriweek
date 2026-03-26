@@ -13,6 +13,7 @@ import UsualMeals from './components/recipes/UsualMeals';
 import { FullPageSpinner } from './components/ui/LoadingSpinner';
 import InstallBanner from './components/ui/InstallBanner';
 import SpotlightTour from './components/ui/SpotlightTour';
+import DayPlayground from './components/playground/DayPlayground';
 import {
   collection,
   onSnapshot,
@@ -45,6 +46,11 @@ const TabIcons = {
   profile: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    </svg>
+  ),
+  day: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
     </svg>
   ),
 };
@@ -333,6 +339,16 @@ function AppContent() {
           {activeTab === 'profile' && (
             <ProfileTab auth={auth} householdDoc={householdDoc} />
           )}
+
+          {activeTab === 'day' && (
+            <DayPlayground
+              apiKey={householdApiKey}
+              hasAiAccess={
+                !!householdApiKey ||
+                (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)
+              }
+            />
+          )}
         </div>
 
         {/* Day drawer */}
@@ -375,6 +391,7 @@ function AppContent() {
               { id: 'week', label: 'Semana', tour: 'tab-week' },
               { id: 'shopping', label: 'Compra' },
               { id: 'recipes', label: 'Recetas', tour: 'tab-recipes' },
+              { id: 'day', label: 'Día' },
               { id: 'profile', label: 'Perfil', tour: 'tab-profile' },
             ].map((tab) => (
               <button
