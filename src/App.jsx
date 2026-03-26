@@ -78,25 +78,6 @@ function AppContent() {
     copyMeal,
   } = useWeek(auth.userDoc?.householdId);
 
-  // Identify user in analytics on login/logout
-  useEffect(() => {
-    if (auth.user) {
-      identify(auth.user.uid, { email: auth.user.email, name: auth.user.displayName });
-    } else if (!auth.loading) {
-      resetIdentity();
-    }
-  }, [auth.user?.uid, auth.loading]);
-
-  // Update analytics user properties when household loads
-  useEffect(() => {
-    if (!auth.user || !householdDoc) return;
-    identify(auth.user.uid, {
-      has_api_key: !!householdDoc.anthropicApiKey,
-      has_ff: !!householdDoc.ffActivated,
-      household_id: auth.userDoc?.householdId,
-    });
-  }, [auth.user?.uid, !!householdDoc?.anthropicApiKey, !!householdDoc?.ffActivated]);
-
   // Show spotlight tour for users who haven't completed it
   useEffect(() => {
     if (auth.userDoc?.householdId && auth.userDoc?.tourCompleted !== true) {
@@ -366,7 +347,7 @@ function AppContent() {
               <button
                 key={tab.id}
                 data-tour={tab.tour}
-                onClick={() => { setActiveTab(tab.id); track('tab_viewed', { tab: tab.id }); }}
+                onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 flex flex-col items-center gap-0.5 py-2 px-2 transition-colors ${
                   activeTab === tab.id
                     ? 'text-brand-600'
