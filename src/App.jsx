@@ -293,7 +293,14 @@ function AppContent() {
               </header>
               <div className="max-w-2xl mx-auto px-4 py-4">
                 {recipesTab === 'usual' ? (
-                  <UsualMeals householdId={auth.userDoc?.householdId} />
+                  <UsualMeals
+                    householdId={auth.userDoc?.householdId}
+                    apiKey={householdApiKey}
+                    hasAiAccess={
+                      !!householdApiKey ||
+                      (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)
+                    }
+                  />
                 ) : (
                   <RecipeSearch householdId={auth.userDoc?.householdId} onSelect={null} />
                 )}

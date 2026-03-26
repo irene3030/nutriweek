@@ -12,7 +12,6 @@ const TAG_LABELS = {
   cereal: '🌾 Cereal', veggie: '🥦 Verdura',
 };
 
-// Resize image to max 900px and encode as base64 JPEG
 function resizeImage(file) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -50,10 +49,10 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
   const [form, setForm] = useState({ name: '', baby: '', adult: '', tags: [] });
   const [saving, setSaving] = useState(false);
 
-  // Photo state
   const [photoPreview, setPhotoPreview] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState(null);
+  const [detected, setDetected] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -99,12 +98,14 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
     setForm({ name: '', baby: '', adult: '', tags: [] });
     setPhotoPreview(null);
     setAnalyzeError(null);
+    setDetected(false);
     setShowForm(false);
   };
 
   const processPhoto = async (file) => {
     if (!file || !file.type.startsWith('image/')) return;
     setAnalyzeError(null);
+    setDetected(false);
 
     let resized;
     try {
@@ -115,7 +116,10 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
     }
     setPhotoPreview(resized.previewUrl);
 
-    if (!hasAiAccess) return; // show preview but skip analysis
+    if (!hasAiAccess) {
+      setAnalyzeError('Añade tu API key en Perfil para autorellenar desde foto.');
+      return;
+    }
 
     setAnalyzing(true);
     try {
@@ -125,18 +129,17 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
         apiKey,
       });
       if (result?.name) {
-        setForm(prev => ({
-          ...prev,
-          name: result.name,
-          tags: Array.isArray(result.tags) ? result.tags.filter(t => {
-            if (t.startsWith('veggie:')) return true;
-            return [...ALL_TAGS, 'veggie'].includes(t);
-          }) : [],
-        }));
+        const validTags = (result.tags || []).filter(t =>
+          t.startsWith('veggie:') || [...ALL_TAGS, 'veggie'].includes(t)
+        );
+        setForm(prev => ({ ...prev, name: result.name, tags: validTags }));
+        setDetected(true);
+      } else {
+        setAnalyzeError('No se reconoció el plato. Rellena el nombre manualmente.');
       }
     } catch (err) {
       setAnalyzeError(
-        err.message === 'NO_API_KEY' ? 'Añade tu API key en Perfil para analizar fotos.' :
+        err.message === 'NO_API_KEY' ? 'Añade tu API key en Perfil para autorellenar desde foto.' :
         err.message === 'FREE_QUOTA_EXCEEDED' ? 'Has agotado las llamadas gratuitas.' :
         'No se pudo analizar la foto. Rellena el nombre manualmente.'
       );
@@ -156,12 +159,6 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
     setDragOver(false);
     const file = e.dataTransfer.files?.[0];
     if (file) processPhoto(file);
-  };
-
-  const openForm = () => {
-    setShowForm(true);
-    setPhotoPreview(null);
-    setAnalyzeError(null);
   };
 
   return (
@@ -212,53 +209,64 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
       {showForm ? (
         <div className="bg-white rounded-xl border border-brand-200 p-4 space-y-3">
 
-          {/* Photo zone */}
+          {/* Photo autofill button */}
           <div
-            className={`relative rounded-xl border-2 border-dashed transition-colors ${
-              dragOver ? 'border-brand-400 bg-brand-50' : 'border-gray-200 hover:border-brand-300'
+            className={`rounded-xl border-2 border-dashed transition-colors ${
+              dragOver ? 'border-brand-400 bg-brand-50' : 'border-gray-200'
             }`}
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
           >
             {photoPreview ? (
-              <div className="relative">
+              /* Preview + status row */
+              <div className="flex items-center gap-3 p-2">
                 <img
                   src={photoPreview}
-                  alt="Vista previa"
-                  className="w-full h-36 object-cover rounded-xl"
+                  alt="Foto"
+                  className="w-14 h-14 object-cover rounded-lg shrink-0"
                 />
-                {analyzing && (
-                  <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    <span className="text-white text-xs font-medium">Analizando...</span>
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => { setPhotoPreview(null); setAnalyzeError(null); }}
-                  className="absolute top-2 right-2 bg-black/50 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-black/70 transition-colors"
-                >
-                  ✕
-                </button>
+                <div className="flex-1 min-w-0">
+                  {analyzing ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <div className="w-3.5 h-3.5 border-2 border-gray-300 border-t-brand-500 rounded-full animate-spin shrink-0" />
+                      Analizando foto...
+                    </div>
+                  ) : detected ? (
+                    <p className="text-sm text-green-700 font-medium">✓ Campos rellenados automáticamente</p>
+                  ) : (
+                    <p className="text-sm text-gray-500">Vista previa</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-xs text-brand-600 hover:text-brand-800 mt-0.5"
+                  >
+                    Cambiar foto
+                  </button>
+                </div>
               </div>
             ) : (
+              /* Main CTA */
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full py-5 flex flex-col items-center gap-1.5 text-gray-400 hover:text-brand-600 transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-xl transition-colors"
               >
-                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span className="text-xs font-medium">Foto del plato</span>
-                <span className="text-xs text-gray-300">Cámara · Galería · Arrastra aquí</span>
+                <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-800">Autorellenar desde foto</p>
+                  <p className="text-xs text-gray-400">La IA detecta el plato y marca los tags</p>
+                </div>
               </button>
             )}
           </div>
 
-          {/* Hidden file input — accepts camera + gallery on mobile, files on desktop */}
           <input
             ref={fileInputRef}
             type="file"
@@ -275,7 +283,7 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
             type="text"
             value={form.name}
             onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-            placeholder={analyzing ? 'Detectando nombre...' : 'Nombre (ej: Lentejas con verduras)'}
+            placeholder="Nombre (ej: Lentejas con verduras)"
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
           <input
@@ -329,7 +337,7 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
         </div>
       ) : (
         <button
-          onClick={openForm}
+          onClick={() => setShowForm(true)}
           className="w-full border-2 border-dashed border-gray-300 hover:border-brand-400 text-gray-400 hover:text-brand-600 rounded-xl py-3 text-sm font-medium transition-colors"
         >
           + Añadir comida habitual
