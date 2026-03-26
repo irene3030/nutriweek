@@ -70,6 +70,7 @@ export default function WeekHeader({
               </svg>
             </button>
             <button
+              data-tour="new-week-btn"
               onClick={onNewWeek}
               className="flex items-center gap-1.5 bg-brand-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-brand-700 transition-colors"
             >

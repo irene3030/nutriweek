@@ -16,7 +16,7 @@ export default function WeekKPIs({ weekDoc }) {
   return (
     <div className="px-4 py-3 space-y-2">
       {/* KPI Pills */}
-      <div className="flex flex-wrap gap-2">
+      <div data-tour="kpi-pills" className="flex flex-wrap gap-2">
         <KPIPill
           icon="🩸"
           label="Hierro"

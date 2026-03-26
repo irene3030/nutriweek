@@ -11,6 +11,7 @@ import RecipeSearch from './components/recipes/RecipeSearch';
 import UsualMeals from './components/recipes/UsualMeals';
 import { FullPageSpinner } from './components/ui/LoadingSpinner';
 import InstallBanner from './components/ui/InstallBanner';
+import SpotlightTour from './components/ui/SpotlightTour';
 import {
   collection,
   onSnapshot,
@@ -57,6 +58,7 @@ function AppContent() {
   const [householdApiKey, setHouseholdApiKey] = useState(null);
   const [householdDoc, setHouseholdDoc] = useState(null);
   const [recipesTab, setRecipesTab] = useState('recipes'); // 'recipes' | 'usual'
+  const [showTour, setShowTour] = useState(false);
 
   const {
     weeks,
@@ -76,6 +78,38 @@ function AppContent() {
     copyMeal,
   } = useWeek(auth.userDoc?.householdId);
 
+  // Identify user in analytics on login/logout
+  useEffect(() => {
+    if (auth.user) {
+      identify(auth.user.uid, { email: auth.user.email, name: auth.user.displayName });
+    } else if (!auth.loading) {
+      resetIdentity();
+    }
+  }, [auth.user?.uid, auth.loading]);
+
+  // Update analytics user properties when household loads
+  useEffect(() => {
+    if (!auth.user || !householdDoc) return;
+    identify(auth.user.uid, {
+      has_api_key: !!householdDoc.anthropicApiKey,
+      has_ff: !!householdDoc.ffActivated,
+      household_id: auth.userDoc?.householdId,
+    });
+  }, [auth.user?.uid, !!householdDoc?.anthropicApiKey, !!householdDoc?.ffActivated]);
+
+  // Show spotlight tour for users who haven't completed it
+  useEffect(() => {
+    if (auth.userDoc?.householdId && auth.userDoc?.tourCompleted !== true) {
+      setShowTour(true);
+    }
+  }, [auth.userDoc?.householdId, auth.userDoc?.tourCompleted]);
+
+  const handleTourComplete = useCallback(async () => {
+    setShowTour(false);
+    if (auth.user) {
+      await updateDoc(doc(db, 'users', auth.user.uid), { tourCompleted: true });
+    }
+  }, [auth.user]);
   // Listen to household doc in real-time (apiKey + usage data)
   useEffect(() => {
     if (!auth.userDoc?.householdId) return;
@@ -318,18 +352,21 @@ function AppContent() {
 
         <InstallBanner />
 
+        {showTour && <SpotlightTour onComplete={handleTourComplete} />}
+
         {/* Bottom tab bar */}
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20 pb-[env(safe-area-inset-bottom)]">
           <div className="max-w-lg mx-auto flex">
             {[
-              { id: 'week', label: 'Semana' },
+              { id: 'week', label: 'Semana', tour: 'tab-week' },
               { id: 'shopping', label: 'Compra' },
-              { id: 'recipes', label: 'Recetas' },
-              { id: 'profile', label: 'Perfil' },
+              { id: 'recipes', label: 'Recetas', tour: 'tab-recipes' },
+              { id: 'profile', label: 'Perfil', tour: 'tab-profile' },
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                data-tour={tab.tour}
+                onClick={() => { setActiveTab(tab.id); track('tab_viewed', { tab: tab.id }); }}
                 className={`flex-1 flex flex-col items-center gap-0.5 py-2 px-2 transition-colors ${
                   activeTab === tab.id
                     ? 'text-brand-600'
