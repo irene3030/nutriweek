@@ -161,10 +161,17 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
         apiKey,
       });
       if (result?.name) {
-        const validTags = (result.tags || []).filter(t =>
+        let photoTags = (result.tags || []).filter(t =>
           t.startsWith('veggie:') || [...ALL_TAGS, 'veggie'].includes(t)
         );
-        setForm(prev => ({ ...prev, name: result.name, tags: validTags }));
+        // Fallback: si no hay tags (o solo hay veggie sin nombre), complementar con detectTags sobre el nombre
+        if (photoTags.length === 0) {
+          try {
+            const detected = await detectTags({ text: result.name, apiKey });
+            photoTags = detected.tags || [];
+          } catch { /* ignorar error del fallback */ }
+        }
+        setForm(prev => ({ ...prev, name: result.name, tags: photoTags }));
         setDetected(true);
       } else {
         setAnalyzeError('No se reconoció el plato. Rellena el nombre manualmente.');

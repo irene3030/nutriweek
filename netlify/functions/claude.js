@@ -474,13 +474,25 @@ Si no identificas ningún tag con certeza, devuelve {"tags": []}`;
             },
             {
               type: 'text',
-              text: `Analiza esta foto de comida para bebé BLW (~12 meses). Identifica el plato e ingredientes principales. Devuelve SOLO este JSON:
+              text: `Analiza esta foto de comida para bebé BLW (~12 meses). Identifica el plato e ingredientes principales.
+
+Devuelve SOLO este JSON (sin texto adicional):
 {
-  "name": "nombre corto del plato (ej: Salmón con puré de calabaza)",
+  "name": "nombre corto del plato (ej: Albóndigas con brócoli y patata)",
   "tags": ["tag1", "tag2"]
 }
-Tags posibles: iron (carne roja, legumbre, pescado azul), fish (pescado graso), legume (legumbre), egg (huevo), dairy (lácteo), fruit (fruta), cereal (cereal/pan/pasta/arroz), veggie:nombreVerdura (una entrada por verdura identificada).
-Si no puedes identificar el plato con claridad, devuelve name:"" y tags:[]. Devuelve solo el JSON, sin texto adicional.`,
+
+Reglas para tags (incluye TODOS los que apliquen):
+- iron → si hay carne roja, legumbre o pescado azul
+- fish → si hay cualquier pescado
+- legume → si hay legumbre (lentejas, garbanzos, guisantes...)
+- egg → si hay huevo
+- dairy → si hay lácteo (yogur, queso, leche)
+- fruit → si hay fruta
+- cereal → si hay cereal, pasta, arroz, pan, avena
+- veggie:nombre → UNA entrada por cada verdura visible (ej: veggie:brócoli, veggie:zanahoria). IMPORTANTE: si ves verdura en el plato, incluye su tag veggie:nombre.
+
+Si no puedes identificar el plato, devuelve name:"" y tags:[].`,
             },
           ],
         }],
