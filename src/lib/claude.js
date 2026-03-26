@@ -45,6 +45,10 @@ export async function quickMeal({ ingredients = '', requirements = [], prepTime 
   return callClaude('quick_meal', { ingredients, requirements, prepTime }, apiKey);
 }
 
+export async function detectTags({ text, apiKey }) {
+  return callClaude('detect_tags', { text }, apiKey);
+}
+
 export async function analyzeMealPhoto({ imageBase64, mimeType = 'image/jpeg', apiKey }) {
   return callClaude('analyze_meal_photo', { imageBase64, mimeType }, apiKey);
 }

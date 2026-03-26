@@ -4,7 +4,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { ALL_TAGS } from '../ui/TagChip';
-import { analyzeMealPhoto } from '../../lib/claude';
+import { analyzeMealPhoto, detectTags } from '../../lib/claude';
 
 const TAG_LABELS = {
   iron: '🩸 Hierro', fish: '🐟 Pescado', legume: '🟢 Legumbre',
@@ -54,6 +54,8 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
   const [analyzeError, setAnalyzeError] = useState(null);
   const [detected, setDetected] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [detecting, setDetecting] = useState(false);
+  const [detectError, setDetectError] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -99,7 +101,27 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
     setPhotoPreview(null);
     setAnalyzeError(null);
     setDetected(false);
+    setDetectError(null);
     setShowForm(false);
+  };
+
+  const handleDetectTags = async () => {
+    const text = [form.name, form.baby, form.adult].filter(Boolean).join('. ');
+    if (!text.trim()) return;
+    setDetecting(true);
+    setDetectError(null);
+    try {
+      const result = await detectTags({ text, apiKey });
+      setForm(prev => ({ ...prev, tags: result.tags || [] }));
+    } catch (err) {
+      setDetectError(
+        err.message === 'NO_API_KEY' ? 'Necesitas una API key o código de invitación en Perfil.' :
+        err.message === 'FREE_QUOTA_EXCEEDED' ? 'Has agotado las llamadas gratuitas.' :
+        'Error detectando tags.'
+      );
+    } finally {
+      setDetecting(false);
+    }
   };
 
   const processPhoto = async (file) => {
@@ -301,7 +323,25 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
           <div>
-            <p className="text-xs text-gray-500 mb-1.5">Tags nutricionales</p>
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-xs text-gray-500">Tags nutricionales</p>
+              {hasAiAccess && (
+                <button
+                  type="button"
+                  onClick={handleDetectTags}
+                  disabled={detecting || (!form.name.trim() && !form.baby.trim())}
+                  className="flex items-center gap-1 text-xs text-brand-600 hover:text-brand-800 disabled:opacity-40 transition-colors"
+                >
+                  {detecting
+                    ? <><div className="w-3 h-3 border border-brand-400 border-t-transparent rounded-full animate-spin" /> Detectando...</>
+                    : '✨ Detectar automáticamente'
+                  }
+                </button>
+              )}
+            </div>
+            {detectError && (
+              <p className="text-xs text-amber-600 mb-1.5">{detectError}</p>
+            )}
             <div className="flex flex-wrap gap-1.5">
               {[...ALL_TAGS, 'veggie'].map(tag => (
                 <button

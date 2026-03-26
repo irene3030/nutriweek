@@ -268,6 +268,26 @@ Devuelve SOLO este JSON:
   },
   ...
 ]}`;
+    } else if (type === 'detect_tags') {
+      const { text } = payload;
+      const safeText = sanitize(text, 300);
+      userMessage = `Analiza el nombre y descripción de esta comida para bebé BLW (~12 meses) e identifica sus tags nutricionales.
+
+Comida: "${safeText}"
+
+Tags posibles:
+- iron → contiene carne roja, legumbre o pescado azul (fuentes de hierro)
+- fish → contiene pescado (cualquier tipo)
+- legume → contiene legumbre (lentejas, garbanzos, judías, guisantes...)
+- egg → contiene huevo
+- dairy → contiene lácteo (yogur, queso, leche...)
+- fruit → contiene fruta
+- cereal → contiene cereal (arroz, pasta, pan, avena, quinoa...)
+- veggie:nombre → contiene una verdura concreta (ej: veggie:brócoli, veggie:zanahoria). Usa una por cada verdura identificada.
+
+Devuelve SOLO este JSON: {"tags": ["tag1", "tag2"]}
+Si no identificas ningún tag con certeza, devuelve {"tags": []}`;
+
     } else if (type === 'analyze_meal_photo') {
       const { imageBase64, mimeType } = payload;
       if (!imageBase64 || typeof imageBase64 !== 'string' || imageBase64.length > 1_500_000) {
