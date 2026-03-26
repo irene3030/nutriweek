@@ -362,14 +362,18 @@ Devuelve SOLO este JSON:
 
       userMessage = `Corrige el siguiente problema nutricional en el menú semanal haciendo el mínimo de cambios posibles.
 
-IMPORTANTE: Este menú solo tiene activas estas franjas: ${activeSlotsList}. SOLO puedes proponer cambios en esas franjas. No propongas cambios en franjas que no aparecen en el menú.
+REGLAS ESTRICTAS:
+1. Este menú solo tiene activas estas franjas: ${activeSlotsList}. SOLO puedes proponer cambios en esas franjas.
+2. Al modificar una comida, CONSERVA todos los tags nutricionales que ya tenía (hierro, pescado, verduras, etc.). No elimines nutrientes que ya estaban presentes. Si el plato original tenía tag "iron", el nuevo también debe tenerlo.
+3. Haz el mínimo número de cambios posibles.
+4. Respeta las reglas BLW para bebé ~12 meses.
 
-Problema: ${kpiDescription}
+Problema a resolver: ${kpiDescription}
 
 Menú actual (solo franjas activas):
 ${JSON.stringify(safeWeekContext, null, 2)}
 
-Devuelve SOLO los slots que necesitas modificar. Para cada uno, devuelve la nueva comida completa respetando las reglas BLW.
+Devuelve SOLO los slots que necesitas modificar. Para cada uno, devuelve la nueva comida completa con TODOS sus tags (los que ya tenía + los nuevos necesarios).
 {"fixes": [
   {"day": "Mar", "tipo": "${safeActiveTipos[0] || 'comida'}", "baby": "descripción de la comida", "tags": ["iron", "veggie:zanahoria"]}
 ]}`;
