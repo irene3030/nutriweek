@@ -354,6 +354,10 @@ Devuelve SOLO este JSON:
         const needed = Math.max(0, veggieTarget - (kpiState.current || 0));
         const existing = Array.isArray(kpiState.existing) ? kpiState.existing.map(v => sanitize(v, 30)).join(', ') : '';
         kpiDescription = `Verduras distintas: actualmente ${kpiState.current} (${existing || 'ninguna'}), necesita al menos ${veggieTarget}. Añade ${needed} verdura(s) nueva(s) que no estén ya en el menú.`;
+      } else if (safeKpiType === 'legume') {
+        const legumeTarget = kpiState.target ?? 3;
+        const needed = Math.max(0, legumeTarget - (kpiState.current || 0));
+        kpiDescription = `Legumbres: actualmente ${kpiState.current} días con legumbres, necesita al menos ${legumeTarget}. Modifica ${needed} comida(s) para incluir legumbres (lentejas, garbanzos, alubias, guisantes, edamame...). Las comidas modificadas DEBEN incluir el tag "legume" en el array de tags.`;
       }
 
       userMessage = `Corrige el siguiente problema nutricional en el menú semanal haciendo el mínimo de cambios posibles.
