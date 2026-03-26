@@ -508,23 +508,32 @@ Devuelve SOLO este JSON:
 
 ${mealLines || '(sin comidas introducidas)'}
 
-Analiza qué nutrientes clave están presentes y cuáles faltan. Para los que faltan, contextualiza su importancia en el marco de una semana equilibrada.
+Analiza qué nutrientes clave están presentes y cuáles faltan. Distingue entre:
+- Lo que debería estar CADA DÍA (verduras variadas, fruta, proteína, grasa de calidad...)
+- Lo que se recomienda a lo largo de LA SEMANA pero no necesariamente cada día (pescado graso 2-3x/semana, legumbres 3x/semana...)
 
 Devuelve SOLO este JSON:
 {
+  "overall": "resumen de 1-2 frases del día",
   "positives": ["frase corta de algo que está bien en este día"],
-  "missing": [
+  "missing_daily": [
     {
-      "nutrient": "nombre del nutriente o alimento",
-      "weekly_context": "explicación breve de por qué es importante incluirlo a lo largo de la semana"
+      "nutrient": "nombre del nutriente o grupo de alimento",
+      "reason": "por qué debería estar presente hoy"
     }
   ],
-  "overall": "resumen de 1-2 frases del día"
+  "missing_weekly": [
+    {
+      "nutrient": "nombre del nutriente o alimento",
+      "frequency": "ej: 2-3 veces por semana",
+      "reason": "por qué es importante incluirlo regularmente en la semana"
+    }
+  ]
 }
-Si el día está completo nutricionalmente, devuelve missing:[].`;
+Si no falta nada en una categoría, devuelve el array vacío.`;
 
     } else if (type === 'suggest_dinner') {
-      const { meals, weeklyFish, weeklyLegume } = payload;
+      const { meals, weeklyFish, weeklyLegume, previousTitle } = payload;
       const safeMeals = Array.isArray(meals)
         ? meals.map(m => ({ tipo: sanitize(m.tipo, 20), text: sanitize(m.text, 300) })).filter(m => m.text)
         : [];
@@ -535,20 +544,39 @@ Si el día está completo nutricionalmente, devuelve missing:[].`;
         safeWeeklyFish !== null ? `Raciones de pescado graso llevadas esta semana: ${safeWeeklyFish}/3` : '',
         safeWeeklyLegume !== null ? `Raciones de legumbre llevadas esta semana: ${safeWeeklyLegume}/3` : '',
       ].filter(Boolean).join('\n');
+      const prevNote = previousTitle ? `\nNO propongas "${sanitize(previousTitle, 100)}" ni un plato muy similar. Propón algo diferente.` : '';
       userMessage = `Propón una cena para un bebé BLW de ~12 meses que complemente nutricionalmente este día:
 
 Comidas del día:
 ${mealLines || '(sin comidas registradas)'}
-${weekCtx ? `\nContexto semanal:\n${weekCtx}` : ''}
+${weekCtx ? `\nContexto semanal:\n${weekCtx}` : ''}${prevNote}
 
 Sugiere una cena concreta y explica brevemente por qué tiene sentido nutricionalmente dado lo que ya ha comido hoy y el contexto semanal.
 
 Devuelve SOLO este JSON:
 {
-  "dinner": "descripción de la cena (apta para bebé BLW)",
-  "reasoning": "explicación breve de por qué esta cena complementa el día",
+  "title": "nombre del plato (corto y claro)",
+  "preparation": "descripción breve de preparación apta para BLW",
+  "ingredients": [
+    { "name": "nombre del ingrediente", "why": "por qué lo incluyes (beneficio nutricional concreto)" }
+  ],
   "tags": ["tag1", "tag2"]
 }`;
+
+    } else if (type === 'swap_dinner_ingredient') {
+      const { ingredient, role, otherIngredients } = payload;
+      const safeIng = sanitize(ingredient, 100);
+      const safeRole = sanitize(role, 200);
+      const safeOthers = Array.isArray(otherIngredients)
+        ? otherIngredients.map(i => sanitize(i, 100)).filter(Boolean)
+        : [];
+      const excludeNote = safeOthers.length > 0
+        ? `\nNO uses ninguno de estos, ya están en la cena: ${safeOthers.join(', ')}.`
+        : '';
+      userMessage = `Sugiere UN ingrediente alternativo para sustituir "${safeIng}" en una cena BLW para bebé ~12 meses.
+El ingrediente original cumple este rol nutricional: "${safeRole}".
+El sustituto debe cumplir el mismo rol nutricional, ser apto para BLW y diferente al original.${excludeNote}
+Devuelve SOLO este JSON: { "name": "nombre del ingrediente", "why": "beneficio nutricional concreto" }`;
 
     } else if (type === 'detect_tags') {
       const { text } = payload;

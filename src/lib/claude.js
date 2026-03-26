@@ -57,8 +57,12 @@ export async function evaluateDay({ meals, apiKey }) {
   return callClaude('evaluate_day', { meals }, apiKey);
 }
 
-export async function suggestDinner({ meals, weeklyFish = null, weeklyLegume = null, apiKey }) {
-  return callClaude('suggest_dinner', { meals, weeklyFish, weeklyLegume }, apiKey);
+export async function suggestDinner({ meals, weeklyFish = null, weeklyLegume = null, previousTitle = null, apiKey }) {
+  return callClaude('suggest_dinner', { meals, weeklyFish, weeklyLegume, previousTitle }, apiKey);
+}
+
+export async function swapDinnerIngredient({ ingredient, role, otherIngredients = [], apiKey }) {
+  return callClaude('swap_dinner_ingredient', { ingredient, role, otherIngredients }, apiKey);
 }
 
 export async function detectTags({ text, apiKey }) {
