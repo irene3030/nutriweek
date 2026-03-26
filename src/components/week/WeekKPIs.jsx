@@ -93,33 +93,6 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
 
   const handleDiscard = () => { setFixing(null); setFixes(null); setError(null); };
 
-  // --- config update helpers ---
-  const toggleKPI = (id) => {
-    const isActive = config.active.includes(id);
-    const newActive = isActive ? config.active.filter(a => a !== id) : [...config.active, id];
-    onUpdateKpiConfig?.({ ...config, active: newActive });
-  };
-
-  const setTarget = (id, value) => {
-    const num = parseInt(value, 10);
-    if (isNaN(num) || num < 1) return;
-    onUpdateKpiConfig?.({ ...config, targets: { ...config.targets, [id]: num } });
-  };
-
-  const addCustomKPI = (kpi) => {
-    const id = `custom_${Date.now()}`;
-    const finalCustom = [...config.custom, { ...kpi, id }];
-    onUpdateKpiConfig?.({ ...config, custom: finalCustom, active: [...config.active, id] });
-  };
-
-  const removeCustomKPI = (id) => {
-    onUpdateKpiConfig?.({
-      ...config,
-      custom: config.custom.filter(k => k.id !== id),
-      active: config.active.filter(a => a !== id),
-    });
-  };
-
   // Build the ordered list of active KPI pills to render
   const activeCatalogKPIs = KPI_CATALOG.filter(k => config.active.includes(k.id));
   const activeCustomKPIs = config.custom.filter(k => config.active.includes(k.id));
@@ -285,10 +258,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
       {showLibrary && (
         <KPILibrary
           config={config}
-          onToggle={toggleKPI}
-          onSetTarget={setTarget}
-          onAddCustom={addCustomKPI}
-          onRemoveCustom={removeCustomKPI}
+          onSave={(newConfig) => { onUpdateKpiConfig?.(newConfig); setShowLibrary(false); }}
           onClose={() => setShowLibrary(false)}
         />
       )}
@@ -337,31 +307,54 @@ function KPIPill({ icon, label, value, target, status, statusColors, onFix, fixi
 
 // ─── KPI Library ─────────────────────────────────────────────────────────────
 
-function KPILibrary({ config, onToggle, onSetTarget, onAddCustom, onRemoveCustom, onClose }) {
+function KPILibrary({ config, onSave, onClose }) {
+  const [draft, setDraft] = useState(() => ({
+    active: [...config.active],
+    targets: { ...config.targets },
+    custom: config.custom.map(k => ({ ...k })),
+  }));
   const [showAddCustom, setShowAddCustom] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customQuery, setCustomQuery] = useState('');
   const [customTarget, setCustomTarget] = useState('3');
-  const [editingTarget, setEditingTarget] = useState(null); // kpi id being edited
-  const [targetDraft, setTargetDraft] = useState('');
+  const [editingTarget, setEditingTarget] = useState(null);
+  const [targetInput, setTargetInput] = useState('');
+
+  const isDirty = JSON.stringify(draft) !== JSON.stringify(config);
+
+  const toggleKPI = (id) => {
+    setDraft(d => ({
+      ...d,
+      active: d.active.includes(id) ? d.active.filter(a => a !== id) : [...d.active, id],
+    }));
+  };
+
+  const commitTarget = (id) => {
+    const num = parseInt(targetInput, 10);
+    if (!isNaN(num) && num >= 1) {
+      setDraft(d => ({ ...d, targets: { ...d.targets, [id]: num } }));
+    }
+    setEditingTarget(null);
+  };
 
   const handleAddCustom = () => {
     if (!customName.trim() || !customQuery.trim()) return;
-    onAddCustom({ name: customName.trim(), query: customQuery.trim(), target: parseInt(customTarget, 10) || 3 });
-    setCustomName('');
-    setCustomQuery('');
-    setCustomTarget('3');
+    const id = `custom_${Date.now()}`;
+    setDraft(d => ({
+      ...d,
+      custom: [...d.custom, { id, name: customName.trim(), query: customQuery.trim(), target: parseInt(customTarget, 10) || 3 }],
+      active: [...d.active, id],
+    }));
+    setCustomName(''); setCustomQuery(''); setCustomTarget('3');
     setShowAddCustom(false);
   };
 
-  const startEditTarget = (id, currentVal) => {
-    setEditingTarget(id);
-    setTargetDraft(String(currentVal));
-  };
-
-  const saveTarget = (id) => {
-    onSetTarget(id, targetDraft);
-    setEditingTarget(null);
+  const removeCustomKPI = (id) => {
+    setDraft(d => ({
+      ...d,
+      custom: d.custom.filter(k => k.id !== id),
+      active: d.active.filter(a => a !== id),
+    }));
   };
 
   return (
@@ -385,12 +378,12 @@ function KPILibrary({ config, onToggle, onSetTarget, onAddCustom, onRemoveCustom
           </button>
         </div>
 
-        <div className="overflow-y-auto px-4 pb-8 space-y-4 flex-1">
+        <div className="overflow-y-auto px-4 space-y-4 flex-1 pb-4">
           {/* Catalog KPIs */}
           <div className="space-y-2">
             {KPI_CATALOG.map(k => {
-              const isActive = config.active.includes(k.id);
-              const currentTarget = config.targets[k.id] ?? k.defaultTarget;
+              const isActive = draft.active.includes(k.id);
+              const currentTarget = draft.targets[k.id] ?? k.defaultTarget;
               const isEditingThis = editingTarget === k.id;
 
               return (
@@ -405,21 +398,19 @@ function KPILibrary({ config, onToggle, onSetTarget, onAddCustom, onRemoveCustom
                         {isEditingThis ? (
                           <div className="flex items-center gap-1">
                             <input
-                              type="number"
-                              min={1}
-                              max={7}
-                              value={targetDraft}
-                              onChange={e => setTargetDraft(e.target.value)}
+                              type="number" min={1} max={7}
+                              value={targetInput}
+                              onChange={e => setTargetInput(e.target.value)}
                               className="w-14 text-xs border border-brand-300 rounded-lg px-2 py-0.5 text-center focus:outline-none focus:ring-1 focus:ring-brand-400"
                               autoFocus
-                              onKeyDown={e => { if (e.key === 'Enter') saveTarget(k.id); if (e.key === 'Escape') setEditingTarget(null); }}
+                              onKeyDown={e => { if (e.key === 'Enter') commitTarget(k.id); if (e.key === 'Escape') setEditingTarget(null); }}
                             />
                             <span className="text-xs text-gray-500">{k.unit}</span>
-                            <button onClick={() => saveTarget(k.id)} className="text-xs text-brand-600 font-medium hover:text-brand-700">✓</button>
+                            <button onClick={() => commitTarget(k.id)} className="text-xs text-brand-600 font-medium hover:text-brand-700">✓</button>
                           </div>
                         ) : (
                           <button
-                            onClick={() => startEditTarget(k.id, currentTarget)}
+                            onClick={() => { setEditingTarget(k.id); setTargetInput(String(currentTarget)); }}
                             className="text-xs text-brand-600 font-medium hover:underline"
                           >
                             {currentTarget} {k.unit}
@@ -429,7 +420,7 @@ function KPILibrary({ config, onToggle, onSetTarget, onAddCustom, onRemoveCustom
                     )}
                   </div>
                   <button
-                    onClick={() => onToggle(k.id)}
+                    onClick={() => toggleKPI(k.id)}
                     className={`shrink-0 w-10 h-6 rounded-full transition-colors relative ${isActive ? 'bg-brand-600' : 'bg-gray-200'}`}
                     aria-label={isActive ? 'Desactivar' : 'Activar'}
                   >
@@ -441,12 +432,12 @@ function KPILibrary({ config, onToggle, onSetTarget, onAddCustom, onRemoveCustom
           </div>
 
           {/* Custom KPIs */}
-          {config.custom.length > 0 && (
+          {draft.custom.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Personalizados</p>
-              {config.custom.map(k => {
-                const isActive = config.active.includes(k.id);
-                const currentTarget = config.targets[k.id] ?? k.target ?? 3;
+              {draft.custom.map(k => {
+                const isActive = draft.active.includes(k.id);
+                const currentTarget = draft.targets[k.id] ?? k.target ?? 3;
                 const isEditingThis = editingTarget === k.id;
                 return (
                   <div key={k.id} className={`flex items-start gap-3 p-3 rounded-xl border transition-colors ${isActive ? 'bg-brand-50 border-brand-200' : 'bg-gray-50 border-gray-100'}`}>
@@ -461,17 +452,17 @@ function KPILibrary({ config, onToggle, onSetTarget, onAddCustom, onRemoveCustom
                             <div className="flex items-center gap-1">
                               <input
                                 type="number" min={1} max={7}
-                                value={targetDraft}
-                                onChange={e => setTargetDraft(e.target.value)}
+                                value={targetInput}
+                                onChange={e => setTargetInput(e.target.value)}
                                 className="w-14 text-xs border border-brand-300 rounded-lg px-2 py-0.5 text-center focus:outline-none focus:ring-1 focus:ring-brand-400"
                                 autoFocus
-                                onKeyDown={e => { if (e.key === 'Enter') saveTarget(k.id); if (e.key === 'Escape') setEditingTarget(null); }}
+                                onKeyDown={e => { if (e.key === 'Enter') commitTarget(k.id); if (e.key === 'Escape') setEditingTarget(null); }}
                               />
                               <span className="text-xs text-gray-500">días</span>
-                              <button onClick={() => saveTarget(k.id)} className="text-xs text-brand-600 font-medium hover:text-brand-700">✓</button>
+                              <button onClick={() => commitTarget(k.id)} className="text-xs text-brand-600 font-medium hover:text-brand-700">✓</button>
                             </div>
                           ) : (
-                            <button onClick={() => startEditTarget(k.id, currentTarget)} className="text-xs text-brand-600 font-medium hover:underline">
+                            <button onClick={() => { setEditingTarget(k.id); setTargetInput(String(currentTarget)); }} className="text-xs text-brand-600 font-medium hover:underline">
                               {currentTarget} días
                             </button>
                           )}
@@ -480,12 +471,12 @@ function KPILibrary({ config, onToggle, onSetTarget, onAddCustom, onRemoveCustom
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
-                        onClick={() => onToggle(k.id)}
+                        onClick={() => toggleKPI(k.id)}
                         className={`w-10 h-6 rounded-full transition-colors relative ${isActive ? 'bg-brand-600' : 'bg-gray-200'}`}
                       >
                         <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${isActive ? 'translate-x-5' : 'translate-x-1'}`} />
                       </button>
-                      <button onClick={() => onRemoveCustom(k.id)} className="text-gray-300 hover:text-red-400 transition-colors" title="Eliminar">
+                      <button onClick={() => removeCustomKPI(k.id)} className="text-gray-300 hover:text-red-400 transition-colors" title="Eliminar">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
@@ -514,9 +505,7 @@ function KPILibrary({ config, onToggle, onSetTarget, onAddCustom, onRemoveCustom
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Nombre</label>
                 <input
-                  type="text"
-                  value={customName}
-                  onChange={e => setCustomName(e.target.value)}
+                  type="text" value={customName} onChange={e => setCustomName(e.target.value)}
                   placeholder="Ej: Aguacate"
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white"
                 />
@@ -524,9 +513,7 @@ function KPILibrary({ config, onToggle, onSetTarget, onAddCustom, onRemoveCustom
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Buscar en menú</label>
                 <input
-                  type="text"
-                  value={customQuery}
-                  onChange={e => setCustomQuery(e.target.value)}
+                  type="text" value={customQuery} onChange={e => setCustomQuery(e.target.value)}
                   placeholder="Ej: aguacate"
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white"
                 />
@@ -535,11 +522,7 @@ function KPILibrary({ config, onToggle, onSetTarget, onAddCustom, onRemoveCustom
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Objetivo (días/semana)</label>
                 <input
-                  type="number"
-                  min={1}
-                  max={7}
-                  value={customTarget}
-                  onChange={e => setCustomTarget(e.target.value)}
+                  type="number" min={1} max={7} value={customTarget} onChange={e => setCustomTarget(e.target.value)}
                   className="w-20 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white"
                 />
               </div>
@@ -557,6 +540,16 @@ function KPILibrary({ config, onToggle, onSetTarget, onAddCustom, onRemoveCustom
               </div>
             </div>
           )}
+        </div>
+
+        {/* Save button — sticky at bottom */}
+        <div className={`px-4 py-3 border-t border-gray-100 transition-all ${isDirty ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          <button
+            onClick={() => onSave(draft)}
+            className="w-full bg-brand-600 text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-700 transition-colors"
+          >
+            Guardar cambios
+          </button>
         </div>
       </div>
     </>
