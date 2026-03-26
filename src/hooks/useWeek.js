@@ -177,6 +177,28 @@ export function useWeek(householdId) {
     await updateMeal(weekId, dayIndex, mealIndex, { track: trackData });
   }, [updateMeal]);
 
+  const applyMealFixes = useCallback(async (weekId, fixes) => {
+    if (!householdId || !fixes?.length) return;
+    const week = weeks.find((w) => w.id === weekId);
+    if (!week) return;
+
+    // Build updated days in one pass — avoids race condition from multiple updateMeal calls
+    let days = week.days.map(day => ({ ...day, meals: day.meals.map(m => ({ ...m })) }));
+    for (const fix of fixes) {
+      const dayIdx = days.findIndex(d => d.day === fix.day);
+      if (dayIdx === -1) continue;
+      const mealIdx = days[dayIdx].meals.findIndex(m => m.tipo === fix.tipo);
+      if (mealIdx === -1) continue;
+      days[dayIdx] = {
+        ...days[dayIdx],
+        meals: days[dayIdx].meals.map((m, mi) =>
+          mi === mealIdx ? { ...m, baby: fix.baby, tags: fix.tags || [] } : m
+        ),
+      };
+    }
+    await updateWeek(weekId, { days });
+  }, [householdId, weeks, updateWeek]);
+
   const copyMeal = useCallback(async (sourceWeekId, sourceDayIdx, sourceMealIdx, targetDayIdx, targetMealIdx) => {
     const week = weeks.find((w) => w.id === sourceWeekId);
     if (!week) return;
@@ -206,6 +228,7 @@ export function useWeek(householdId) {
     updateWeekLabel,
     updateBatchCooking,
     trackMeal,
+    applyMealFixes,
     copyMeal,
     DAYS,
     MEAL_TYPES,

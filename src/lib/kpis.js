@@ -147,6 +147,40 @@ export function calculateKPIs(weekDoc) {
   };
 }
 
+/**
+ * Compute adaptive KPI targets based on which slots actually have content.
+ * Returns null for iron/fish if no main meals (comida/cena) are present.
+ */
+export function computeAdaptiveTargets(weekDoc) {
+  const defaults = { ironTarget: 5, fishTarget: 3, veggieTarget: 5, isAdapted: false };
+  if (!weekDoc?.days) return defaults;
+
+  const activeSlots = new Set();
+  let mainMealDays = 0;
+
+  for (const day of weekDoc.days) {
+    let hasMainMeal = false;
+    for (const meal of (day.meals || [])) {
+      if (meal.baby) {
+        activeSlots.add(meal.tipo);
+        if (meal.tipo === 'comida' || meal.tipo === 'cena') hasMainMeal = true;
+      }
+    }
+    if (hasMainMeal) mainMealDays++;
+  }
+
+  const hasMainMeals = mainMealDays > 0;
+  const ironTarget = hasMainMeals ? Math.min(mainMealDays, 5) : null;
+  const fishTarget = hasMainMeals ? Math.max(1, Math.round(mainMealDays * 3 / 7)) : null;
+
+  const slotCount = activeSlots.size;
+  const veggieTarget = slotCount <= 1 ? 2 : slotCount === 2 ? 3 : slotCount === 3 ? 4 : 5;
+
+  const isAdapted = ironTarget !== 5 || fishTarget !== 3 || veggieTarget !== 5;
+
+  return { ironTarget, fishTarget, veggieTarget, isAdapted };
+}
+
 /** Check if a food has been absent for more than 3 weeks from foodHistory */
 export function getFoodAbsenceWarnings(foodHistory = [], currentWeekFoods = []) {
   const warnings = [];

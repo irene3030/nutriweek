@@ -31,6 +31,7 @@ export default function WeekView({
   onDayClick,
   onAddMealToSlot,
   onUpdateBatchCooking,
+  onApplyFixes,
   foodHistory,
   savedRecipes,
   usualMeals,
@@ -117,7 +118,12 @@ export default function WeekView({
       <main className="max-w-4xl mx-auto">
         {currentWeek ? (
           <>
-            <WeekKPIs weekDoc={currentWeek} />
+            <WeekKPIs
+              weekDoc={currentWeek}
+              apiKey={apiKey}
+              hasAiAccess={hasAiAccess}
+              onApplyFixes={onApplyFixes}
+            />
             <div className="px-4 pb-3">
               <button
                 onClick={() => setShowQuickMeal(true)}
@@ -143,6 +149,7 @@ export default function WeekView({
             <BatchCooking
               weekDoc={currentWeek}
               apiKey={apiKey}
+              hasAiAccess={hasAiAccess}
               onUpdate={(items) => onUpdateBatchCooking(currentWeek.id, items)}
             />
           </>
@@ -179,6 +186,7 @@ export default function WeekView({
         isOpen={showQuickMeal}
         onClose={() => setShowQuickMeal(false)}
         apiKey={apiKey}
+        hasAiAccess={hasAiAccess}
         currentWeek={currentWeek}
         onAddToWeek={onAddMealToSlot}
       />

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AuthContext, useAuth, useAuthProvider } from './hooks/useAuth';
 import { setPreCallHook, validateFFCode } from './lib/claude';
+import { identify, resetIdentity, track } from './lib/analytics';
 import { useWeek } from './hooks/useWeek';
 import LoginScreen from './components/auth/LoginScreen';
 import OnboardingScreen from './components/auth/OnboardingScreen';
@@ -76,7 +77,27 @@ function AppContent() {
     updateBatchCooking,
     trackMeal,
     copyMeal,
+    applyMealFixes,
   } = useWeek(auth.userDoc?.householdId);
+
+  // Identify user in analytics on login/logout
+  useEffect(() => {
+    if (auth.user) {
+      identify(auth.user.uid, { email: auth.user.email, name: auth.user.displayName });
+    } else if (!auth.loading) {
+      resetIdentity();
+    }
+  }, [auth.user?.uid, auth.loading]);
+
+  // Update analytics user properties when household loads
+  useEffect(() => {
+    if (!auth.user || !householdDoc) return;
+    identify(auth.user.uid, {
+      has_api_key: !!householdDoc.anthropicApiKey,
+      has_ff: !!householdDoc.ffActivated,
+      household_id: auth.userDoc?.householdId,
+    });
+  }, [auth.user?.uid, !!householdDoc?.anthropicApiKey, !!householdDoc?.ffActivated]);
 
   // Show spotlight tour for users who haven't completed it
   useEffect(() => {
@@ -243,6 +264,7 @@ function AppContent() {
               onDayClick={handleDayClick}
               onAddMealToSlot={handleAddMealToSlot}
               onUpdateBatchCooking={updateBatchCooking}
+              onApplyFixes={(fixes) => applyMealFixes(currentWeek.id, fixes)}
               foodHistory={foodHistory}
               savedRecipes={savedRecipes}
               usualMeals={usualMeals}
@@ -326,6 +348,10 @@ function AppContent() {
                 dayIndex={selectedDayIndex}
                 householdId={auth.userDoc.householdId}
                 apiKey={householdApiKey}
+                hasAiAccess={
+                  !!householdApiKey ||
+                  (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)
+                }
                 onBack={handleBackFromDay}
                 onSaveMeal={(weekId, dIdx, mIdx, data) => updateMeal(weekId, dIdx, mIdx, data)}
                 onTrackMeal={(weekId, dIdx, mIdx, trackData) => trackMeal(weekId, dIdx, mIdx, trackData)}
@@ -354,7 +380,7 @@ function AppContent() {
               <button
                 key={tab.id}
                 data-tour={tab.tour}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => { setActiveTab(tab.id); track('tab_viewed', { tab: tab.id }); }}
                 className={`flex-1 flex flex-col items-center gap-0.5 py-2 px-2 transition-colors ${
                   activeTab === tab.id
                     ? 'text-brand-600'
@@ -404,6 +430,7 @@ function ProfileTab({ auth, householdDoc }) {
     setApiKeySaving(true);
     try {
       await updateDoc(doc(db, 'households', householdId), { anthropicApiKey: apiKeyInput.trim() });
+      track('api_key_saved');
       setApiKeySaved(true);
       setTimeout(() => setApiKeySaved(false), 2500);
     } catch (err) {
@@ -440,6 +467,7 @@ function ProfileTab({ auth, householdDoc }) {
         tx.set(metaRef, { count: count + 1 }, { merge: true });
         tx.update(doc(db, 'households', householdId), { ffActivated: true, freeCallsUsed: 0 });
       });
+      track('ff_code_activated');
       setFfCodeInput('');
     } catch (err) {
       setFfError(err.message || 'Error activando el código.');

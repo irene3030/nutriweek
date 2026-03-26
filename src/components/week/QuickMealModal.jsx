@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Modal from '../ui/Modal';
 import { quickMeal } from '../../lib/claude';
+import { track } from '../../lib/analytics';
 
 const REQUIREMENTS = [
   { id: 'hierro', label: '🟠 Hierro' },
@@ -14,7 +15,7 @@ const REQUIREMENTS = [
 const DAY_ORDER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const TIPOS = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
 
-export default function QuickMealModal({ isOpen, onClose, apiKey, currentWeek, onAddToWeek }) {
+export default function QuickMealModal({ isOpen, onClose, apiKey, hasAiAccess, currentWeek, onAddToWeek }) {
   const [ingredients, setIngredients] = useState('');
   const [requirements, setRequirements] = useState([]);
   const [prepTime, setPrepTime] = useState(null); // null | 15 | 30
@@ -40,6 +41,7 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, currentWeek, o
     try {
       const res = await quickMeal({ ingredients, requirements, prepTime, apiKey });
       setResult(res);
+      track('quick_meal_generated', { tags: res.tags || [] });
     } catch (err) {
       setError(
         err.message === 'NO_API_KEY' ? 'Añade tu API key en Perfil para usar esta función.' :
@@ -61,6 +63,7 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, currentWeek, o
   const handleAddToWeek = () => {
     if (!result || !selectedDay || !selectedTipo || !onAddToWeek) return;
     onAddToWeek(selectedDay, selectedTipo, { baby: result.baby, adult: result.adult, tags: result.tags });
+    track('quick_meal_added_to_week', { day: selectedDay, meal_type: selectedTipo });
     setAddedConfirm(true);
     setShowAddToWeek(false);
     setTimeout(() => setAddedConfirm(false), 2500);
@@ -239,8 +242,8 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, currentWeek, o
           </button>
           <button
             onClick={handleGenerate}
-            disabled={loading || !apiKey}
-            title={!apiKey ? 'Añade tu API key en Perfil' : undefined}
+            disabled={loading || !hasAiAccess}
+            title={!hasAiAccess ? 'Necesitas una API key o un código Friends & Family en Perfil' : undefined}
             className="flex-1 bg-brand-600 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading

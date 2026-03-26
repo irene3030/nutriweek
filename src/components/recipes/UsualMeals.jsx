@@ -12,6 +12,11 @@ const TAG_LABELS = {
   cereal: '🌾 Cereal', veggie: '🥦 Verdura',
 };
 
+function tagLabel(tag) {
+  if (tag.startsWith('veggie:')) return `🥦 ${tag.slice(7)}`;
+  return TAG_LABELS[tag] || tag;
+}
+
 function resizeImage(file) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -48,14 +53,14 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', baby: '', adult: '', tags: [] });
   const [saving, setSaving] = useState(false);
+  const [detecting, setDetecting] = useState(false);
+  const [detectError, setDetectError] = useState(null);
 
   const [photoPreview, setPhotoPreview] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState(null);
   const [detected, setDetected] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [detecting, setDetecting] = useState(false);
-  const [detectError, setDetectError] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -202,7 +207,7 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
                 <div className="flex flex-wrap gap-1 mt-1.5">
                   {meal.tags.map(t => (
                     <span key={t} className="text-xs bg-brand-50 text-brand-700 border border-brand-100 rounded-full px-2 py-0.5">
-                      {TAG_LABELS[t] || (t.startsWith('veggie:') ? `🥦 ${t.split(':')[1]}` : t)}
+                      {tagLabel(t)}
                     </span>
                   ))}
                 </div>
@@ -231,7 +236,7 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
       {showForm ? (
         <div className="bg-white rounded-xl border border-brand-200 p-4 space-y-3">
 
-          {/* Photo autofill button */}
+          {/* Photo autofill */}
           <div
             className={`rounded-xl border-2 border-dashed transition-colors ${
               dragOver ? 'border-brand-400 bg-brand-50' : 'border-gray-200'
@@ -241,7 +246,6 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
             onDrop={handleDrop}
           >
             {photoPreview ? (
-              /* Preview + status row */
               <div className="flex items-center gap-3 p-2">
                 <img
                   src={photoPreview}
@@ -269,7 +273,6 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
                 </div>
               </div>
             ) : (
-              /* Main CTA */
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -322,6 +325,7 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
             placeholder="Versión adulto (opcional)"
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
+
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <p className="text-xs text-gray-500">Tags nutricionales</p>
@@ -359,6 +363,7 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
               ))}
             </div>
           </div>
+
           <div className="flex gap-2">
             <button
               onClick={resetForm}
