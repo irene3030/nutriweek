@@ -13,7 +13,7 @@ const TAG_LABELS = {
 };
 
 function tagLabel(tag) {
-  if (tag.startsWith('veggie:')) return `🥦 ${tag.slice(7)}`;
+  if (tag === 'veggie' || tag.startsWith('veggie:')) return TAG_LABELS['veggie'];
   return TAG_LABELS[tag] || tag;
 }
 
@@ -95,10 +95,15 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
   };
 
   const toggleTag = (tag) => {
-    setForm(prev => ({
-      ...prev,
-      tags: prev.tags.includes(tag) ? prev.tags.filter(t => t !== tag) : [...prev.tags, tag],
-    }));
+    setForm(prev => {
+      const isVeggie = tag === 'veggie';
+      const hasVeggie = prev.tags.some(t => t === 'veggie' || t.startsWith('veggie:'));
+      if (isVeggie) {
+        // Toggle all veggie* tags as a group; add plain 'veggie' when selecting
+        return { ...prev, tags: hasVeggie ? prev.tags.filter(t => t !== 'veggie' && !t.startsWith('veggie:')) : [...prev.tags, 'veggie'] };
+      }
+      return { ...prev, tags: prev.tags.includes(tag) ? prev.tags.filter(t => t !== tag) : [...prev.tags, tag] };
+    });
   };
 
   const resetForm = () => {
@@ -353,7 +358,9 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
                   type="button"
                   onClick={() => toggleTag(tag)}
                   className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                    form.tags.includes(tag)
+                    (tag === 'veggie'
+                      ? form.tags.some(t => t === 'veggie' || t.startsWith('veggie:'))
+                      : form.tags.includes(tag))
                       ? 'bg-brand-600 text-white border-brand-600'
                       : 'bg-white text-gray-600 border-gray-300 hover:border-brand-400'
                   }`}
