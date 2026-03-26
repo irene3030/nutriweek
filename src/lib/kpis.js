@@ -3,6 +3,76 @@
  * A week document has { days: [{ day, meals: [{ tipo, baby, adult, tags, track }] }] }
  */
 
+/** Static catalog of all available KPIs */
+export const KPI_CATALOG = [
+  {
+    id: 'iron',
+    label: 'Hierro',
+    icon: '🩸',
+    description: 'Proteína animal o legumbre con hierro en comidas principales',
+    defaultTarget: 5,
+    unit: 'días',
+    defaultOn: true,
+    adaptive: true,
+  },
+  {
+    id: 'fish',
+    label: 'Pescado graso',
+    icon: '🐟',
+    description: 'Salmón, caballa, sardinas, atún... (objetivo: 3 veces/semana)',
+    defaultTarget: 3,
+    unit: 'días',
+    defaultOn: true,
+    adaptive: true,
+  },
+  {
+    id: 'veggie',
+    label: 'Verduras distintas',
+    icon: '🥦',
+    description: 'Variedad de verduras distintas en la semana',
+    defaultTarget: 5,
+    unit: 'tipos',
+    defaultOn: true,
+    adaptive: true,
+  },
+  {
+    id: 'legume',
+    label: 'Legumbres',
+    icon: '🟢',
+    description: 'Lentejas, garbanzos, alubias... (objetivo: 3 veces/semana)',
+    defaultTarget: 3,
+    unit: 'días',
+    defaultOn: true,
+    adaptive: false,
+  },
+  {
+    id: 'fruit',
+    label: 'Fruta',
+    icon: '🍎',
+    description: 'Presencia de fruta al menos una vez al día',
+    defaultTarget: 5,
+    unit: 'días',
+    defaultOn: false,
+    adaptive: false,
+  },
+  {
+    id: 'protein_rotation',
+    label: 'Rotación proteínas',
+    icon: '🔄',
+    description: 'No repetir la misma proteína más de 2 días seguidos',
+    defaultTarget: 0,
+    unit: 'alertas',
+    defaultOn: false,
+    adaptive: false,
+  },
+];
+
+export const DEFAULT_KPI_CONFIG = {
+  active: ['iron', 'fish', 'veggie', 'legume'],
+  targets: {},
+  custom: [],
+};
+
 /** Count days where at least one meal has the given tag */
 function countDaysWithTag(days, tag) {
   let count = 0;
@@ -50,6 +120,22 @@ function getDistinctVeggies(days) {
     }
   }
   return [...veggies];
+}
+
+/** Count days where at least one meal text contains the query (case-insensitive) */
+function countDaysWithText(days, query) {
+  const q = query.toLowerCase().trim();
+  if (!q) return 0;
+  let count = 0;
+  for (const day of days) {
+    if (!day.meals) continue;
+    const found = day.meals.some((meal) => {
+      const text = `${meal.baby || ''} ${meal.adult || ''}`.toLowerCase();
+      return text.includes(q);
+    });
+    if (found) count++;
+  }
+  return count;
 }
 
 /** Detect if same protein type appears >2 consecutive days */
@@ -122,28 +208,41 @@ function getDayKPIs(day) {
 
 /**
  * Calculate all KPIs for a week document.
+ * @param {object} weekDoc
+ * @param {Array} customKPIs - array of { id, name, query, target } from kpiConfig.custom
  */
-export function calculateKPIs(weekDoc) {
+export function calculateKPIs(weekDoc, customKPIs = []) {
   if (!weekDoc || !weekDoc.days || weekDoc.days.length === 0) {
     return {
       ironDays: 0,
       fishDays: 0,
+      legumedDays: 0,
+      fruitDays: 0,
       distinctVeggies: 0,
       veggieList: [],
       consecutiveAlerts: [],
       dayKPIs: [],
+      customResults: {},
     };
   }
 
   const { days } = weekDoc;
 
+  const customResults = {};
+  for (const kpi of customKPIs) {
+    customResults[kpi.id] = countDaysWithText(days, kpi.query);
+  }
+
   return {
     ironDays: countDaysWithTag(days, 'iron'),
     fishDays: countDaysWithTag(days, 'fish'),
+    legumedDays: countDaysWithTag(days, 'legume'),
+    fruitDays: countDaysWithTag(days, 'fruit'),
     distinctVeggies: countDistinctVeggies(days),
     veggieList: getDistinctVeggies(days),
     consecutiveAlerts: detectConsecutiveProteinAlert(days),
     dayKPIs: days.map((day) => ({ day: day.day, ...getDayKPIs(day) })),
+    customResults,
   };
 }
 
@@ -151,8 +250,8 @@ export function calculateKPIs(weekDoc) {
  * Compute adaptive KPI targets based on which slots actually have content.
  * Returns null for iron/fish if no main meals (comida/cena) are present.
  */
-export function computeAdaptiveTargets(weekDoc) {
-  const defaults = { ironTarget: 5, fishTarget: 3, veggieTarget: 5, isAdapted: false };
+export function computeAdaptiveTargets(weekDoc, targets = {}) {
+  const defaults = { ironTarget: 5, fishTarget: 3, veggieTarget: 5, legumeTarget: 3, isAdapted: false };
   if (!weekDoc?.days) return defaults;
 
   const activeSlots = new Set();
@@ -170,15 +269,18 @@ export function computeAdaptiveTargets(weekDoc) {
   }
 
   const hasMainMeals = mainMealDays > 0;
-  const ironTarget = hasMainMeals ? Math.min(mainMealDays, 5) : null;
-  const fishTarget = hasMainMeals ? Math.max(1, Math.round(mainMealDays * 3 / 7)) : null;
+  const ironTarget = hasMainMeals ? Math.min(mainMealDays, targets.iron ?? 5) : null;
+  const fishTarget = hasMainMeals ? Math.max(1, Math.round(mainMealDays * (targets.fish ?? 3) / 7)) : null;
 
   const slotCount = activeSlots.size;
-  const veggieTarget = slotCount <= 1 ? 2 : slotCount === 2 ? 3 : slotCount === 3 ? 4 : 5;
+  const veggieDefault = targets.veggie ?? 5;
+  const veggieTarget = slotCount <= 1 ? Math.min(2, veggieDefault) : slotCount === 2 ? Math.min(3, veggieDefault) : slotCount === 3 ? Math.min(4, veggieDefault) : veggieDefault;
 
-  const isAdapted = ironTarget !== 5 || fishTarget !== 3 || veggieTarget !== 5;
+  const legumeTarget = targets.legume ?? 3;
 
-  return { ironTarget, fishTarget, veggieTarget, isAdapted };
+  const isAdapted = ironTarget !== (targets.iron ?? 5) || fishTarget !== (targets.fish ?? 3) || veggieTarget !== veggieDefault;
+
+  return { ironTarget, fishTarget, veggieTarget, legumeTarget, isAdapted };
 }
 
 /** Check if a food has been absent for more than 3 weeks from foodHistory */

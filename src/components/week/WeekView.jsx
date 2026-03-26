@@ -37,6 +37,8 @@ export default function WeekView({
   usualMeals,
   apiKey,
   hasAiAccess,
+  kpiConfig,
+  onUpdateKpiConfig,
 }) {
   const [showNewWeekModal, setShowNewWeekModal] = useState(false);
   const [showQuickMeal, setShowQuickMeal] = useState(false);
@@ -123,6 +125,8 @@ export default function WeekView({
               apiKey={apiKey}
               hasAiAccess={hasAiAccess}
               onApplyFixes={onApplyFixes}
+              kpiConfig={kpiConfig}
+              onUpdateKpiConfig={onUpdateKpiConfig}
             />
             <div className="px-4 pb-3">
               <button

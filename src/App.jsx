@@ -112,6 +112,12 @@ function AppContent() {
     }
   }, [auth.userDoc?.householdId, auth.userDoc?.tourCompleted]);
 
+  const handleUpdateKpiConfig = useCallback(async (newConfig) => {
+    const householdId = auth.userDoc?.householdId;
+    if (!householdId) return;
+    await updateDoc(doc(db, 'households', householdId), { kpiConfig: newConfig });
+  }, [auth.userDoc?.householdId]);
+
   const handleTourComplete = useCallback(async () => {
     setShowTour(false);
     if (auth.user) {
@@ -279,6 +285,8 @@ function AppContent() {
                 !!householdApiKey ||
                 (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)
               }
+              kpiConfig={householdDoc?.kpiConfig}
+              onUpdateKpiConfig={handleUpdateKpiConfig}
             />
           )}
 

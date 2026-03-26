@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { calculateKPIs } from '../lib/kpis';
 
-export function useKPIs(weekDoc) {
-  const kpis = useMemo(() => calculateKPIs(weekDoc), [weekDoc]);
+export function useKPIs(weekDoc, customKPIs = []) {
+  const kpis = useMemo(() => calculateKPIs(weekDoc, customKPIs), [weekDoc, customKPIs]);
   return kpis;
 }
