@@ -358,6 +358,20 @@ Devuelve SOLO este JSON:
         const legumeTarget = kpiState.target ?? 3;
         const needed = Math.max(0, legumeTarget - (kpiState.current || 0));
         kpiDescription = `Legumbres: actualmente ${kpiState.current} días con legumbres, necesita al menos ${legumeTarget}. Modifica ${needed} comida(s) para incluir legumbres (lentejas, garbanzos, alubias, guisantes, edamame...). Las comidas modificadas DEBEN incluir el tag "legume" en el array de tags.`;
+      } else if (safeKpiType === 'fruit') {
+        const fruitTarget = kpiState.target ?? 5;
+        const needed = Math.max(0, fruitTarget - (kpiState.current || 0));
+        kpiDescription = `Fruta: actualmente ${kpiState.current} días con fruta, necesita al menos ${fruitTarget}. Modifica ${needed} comida(s) para añadir fruta (manzana, pera, plátano, naranja, kiwi, fresas...). Las comidas modificadas DEBEN incluir el tag "fruit".`;
+      } else if (safeKpiType === 'protein_rotation') {
+        const alerts = Array.isArray(kpiState.alerts) ? kpiState.alerts : [];
+        const alertDesc = alerts.map(a => `${a.protein} aparece ${a.count} días seguidos desde ${a.startDay}`).join('; ');
+        kpiDescription = `Rotación de proteínas: ${alertDesc || 'hay proteínas repetidas más de 2 días seguidos'}. Modifica alguna comida en los días con repetición para sustituir esa proteína por otra distinta (ej: si hay pollo 3 días seguidos, cambia uno por pescado, legumbre o huevo).`;
+      } else if (safeKpiType.startsWith('custom_')) {
+        const customTarget = kpiState.target ?? 3;
+        const customName = sanitize(kpiState.name || safeKpiType, 50);
+        const customQuery = sanitize(kpiState.query || '', 100);
+        const needed = Math.max(0, customTarget - (kpiState.current || 0));
+        kpiDescription = `KPI personalizado "${customName}": actualmente ${kpiState.current} días que contienen "${customQuery}", necesita al menos ${customTarget}. Modifica ${needed} comida(s) para incluir "${customQuery}".`;
       }
 
       userMessage = `Corrige el siguiente problema nutricional en el menú semanal haciendo el mínimo de cambios posibles.

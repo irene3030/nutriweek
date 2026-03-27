@@ -55,11 +55,16 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
     setError(null);
     setLoading(true);
     try {
+      const customKPI = config.custom.find(k => k.id === kpiType);
       const kpiState =
-        kpiType === 'iron'   ? { current: kpis.ironDays,       target: ironTarget } :
-        kpiType === 'fish'   ? { current: kpis.fishDays,       target: fishTarget } :
-        kpiType === 'legume' ? { current: kpis.legumedDays,    target: legumeTarget } :
-        { current: kpis.distinctVeggies, existing: kpis.veggieList, target: veggieTarget };
+        kpiType === 'iron'             ? { current: kpis.ironDays,       target: ironTarget } :
+        kpiType === 'fish'             ? { current: kpis.fishDays,       target: fishTarget } :
+        kpiType === 'legume'           ? { current: kpis.legumedDays,    target: legumeTarget } :
+        kpiType === 'veggie'           ? { current: kpis.distinctVeggies, existing: kpis.veggieList, target: veggieTarget } :
+        kpiType === 'fruit'            ? { current: kpis.fruitDays,      target: fruitTarget } :
+        kpiType === 'protein_rotation' ? { alerts: kpis.consecutiveAlerts } :
+        customKPI                      ? { current: kpis.customResults?.[kpiType] ?? 0, target: config.targets[kpiType] ?? customKPI.target ?? 3, name: customKPI.name, query: customKPI.query } :
+        null;
 
       const activeTipos = [...new Set(
         (weekDoc?.days || []).flatMap(day =>
@@ -172,6 +177,8 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
             <KPIPill key="fruit"
               icon="🍎" label="Fruta" value={`${kpis.fruitDays}/${fruitTarget}`} target={`≥${fruitTarget} días`}
               status={fruitStatus} statusColors={statusColors}
+              onFix={hasAiAccess ? () => handleFix('fruit') : null}
+              fixing={fixing === 'fruit'} loading={loading && fixing === 'fruit'}
             />
           );
           if (k.id === 'protein_rotation') {
@@ -181,6 +188,8 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
               <KPIPill key="protein_rotation"
                 icon="🔄" label="Rotación" value={alertCount === 0 ? 'OK' : `${alertCount} alerta${alertCount > 1 ? 's' : ''}`} target="sin repetir >2 días"
                 status={rotStatus} statusColors={statusColors}
+                onFix={hasAiAccess && alertCount > 0 ? () => handleFix('protein_rotation') : null}
+                fixing={fixing === 'protein_rotation'} loading={loading && fixing === 'protein_rotation'}
               />
             );
           }
@@ -196,6 +205,8 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
             <KPIPill key={k.id}
               icon="⭐" label={k.name} value={`${val}/${tgt}`} target={`≥${tgt} días`}
               status={st} statusColors={statusColors}
+              onFix={hasAiAccess && st !== null ? () => handleFix(k.id) : null}
+              fixing={fixing === k.id} loading={loading && fixing === k.id}
             />
           );
         })}
