@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { track } from '../../lib/analytics';
 import {
   DndContext,
   closestCenter,
@@ -76,6 +77,7 @@ export default function DayView({
     const toMealIndex = MEAL_TYPES.indexOf(toMealType);
     if (toDayIndex === -1 || toMealIndex === -1) return;
     onCopyMeal(weekDoc.id, dayIndex, MEAL_TYPES.indexOf(fromMealType), toDayIndex, toMealIndex);
+    track('meal_copied');
     // Also save the current data first
     const fromMealIdx = MEAL_TYPES.indexOf(fromMealType);
     if (fromMealIdx !== -1) {

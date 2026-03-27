@@ -1,4 +1,14 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { PostHog } from 'posthog-node';
+
+const posthog = process.env.POSTHOG_KEY
+  ? new PostHog(process.env.POSTHOG_KEY, {
+      host: 'https://eu.i.posthog.com',
+      flushAt: 1,
+      flushInterval: 0,
+      enableExceptionAutocapture: true,
+    })
+  : null;
 
 const SYSTEM_PROMPT = `Eres un asistente de nutrición infantil especializado en BLW (Baby-Led Weaning).
 Planificas comidas para un bebé de ~12 meses y su familia (los adultos comen lo mismo, añadiendo sal y condimentos ellos mismos).
@@ -54,7 +64,7 @@ function corsHeaders(requestOrigin) {
     : ALLOWED_ORIGINS[0];
   return {
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, X-POSTHOG-DISTINCT-ID',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Vary': 'Origin',
   };
@@ -75,6 +85,8 @@ export const handler = async (event) => {
       body: JSON.stringify({ error: 'Method not allowed' }),
     };
   }
+
+  const distinctId = event.headers?.['x-posthog-distinct-id'] || null;
 
   try {
     const body = JSON.parse(event.body);
@@ -184,7 +196,7 @@ El alternativo debe ser de la misma categoría nutricional (${safeCategory}), f�
 Devuelve SOLO este JSON: { "alternative": "nombre del ingrediente" }`;
 
     } else if (type === 'generate_week') {
-      const { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients } = payload;
+      const { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, kpiOverrides, season } = payload;
 
       const safeIngredients = sanitize(availableIngredients, 300);
       const safeRequired = Array.isArray(requiredIngredients)
@@ -233,8 +245,40 @@ Devuelve SOLO este JSON: { "alternative": "nombre del ingrediente" }`;
         return s;
       })() : '';
 
+      const SEASON_INGREDIENTS = {
+        primavera: 'espárragos, guisantes, fresas, alcachofas, habas, espinacas, rábanos, cerezas',
+        verano:    'tomate, pimiento, calabacín, berenjena, pepino, sandía, melocotón, maíz, judías verdes',
+        otoño:     'calabaza, setas, uvas, peras, manzanas, boniato, coles, brócoli, granada',
+        invierno:  'naranja, mandarina, coliflor, puerro, col, acelga, kiwi, cardo, chirivía',
+      };
+      const SEASON_NAMES = { primavera: 'primavera', verano: 'verano', otoño: 'otoño', invierno: 'invierno' };
+      const safeSeason = SEASON_NAMES[season] ?? null;
+      const seasonSection = safeSeason
+        ? `\nTemporada: ${safeSeason}. Prioriza ingredientes de temporada: ${SEASON_INGREDIENTS[safeSeason]}. Úsalos cuando encaje nutricionalmente, sin forzarlo.`
+        : '';
+
+      const KPI_DESCRIPTIONS = {
+        iron:   (t) => `Hierro en al menos ${t} días (carne roja, legumbre o pescado azul)`,
+        fish:   (t) => `Pescado azul en al menos ${t} días`,
+        veggie: (t) => `Mínimo ${t} verduras distintas a lo largo de la semana`,
+        legume: (t) => `Legumbres en al menos ${t} días`,
+        fruit:  (t) => `Fruta en al menos ${t} días`,
+      };
+      const kpiSection = (() => {
+        if (!kpiOverrides || typeof kpiOverrides !== 'object') return '';
+        const lines = Object.entries(kpiOverrides)
+          .filter(([, v]) => v && v.active)
+          .map(([id, v]) => {
+            const target = Math.min(7, Math.max(1, Number(v.target) || 1));
+            const desc = KPI_DESCRIPTIONS[id];
+            return desc ? `- ${desc(target)}` : null;
+          })
+          .filter(Boolean);
+        return lines.length > 0 ? `\nObjetivos nutricionales para esta semana (respétalos):\n${lines.join('\n')}` : '';
+      })();
+
       userMessage = `Genera un menú completo para 7 días.
-${ingredientsSection}${recurringSection}${fixedSection}${slotsSection}
+${ingredientsSection}${recurringSection}${fixedSection}${slotsSection}${seasonSection}${kpiSection}
 
 Historial de alimentos últimas semanas: ${foodHistory ? JSON.stringify(foodHistory).slice(0, 1000) : 'sin historial'}
 
@@ -731,6 +775,20 @@ Si no puedes identificar el plato, devuelve name:"" y tags:[].`,
       };
     }
 
+    if (posthog && distinctId) {
+      posthog.capture({
+        distinctId,
+        event: 'ai_call_completed',
+        properties: {
+          call_type: type,
+          model: message.model,
+          input_tokens: message.usage?.input_tokens,
+          output_tokens: message.usage?.output_tokens,
+        },
+      });
+      await posthog.shutdown();
+    }
+
     return {
       statusCode: 200,
       headers: { ...cors, 'Content-Type': 'application/json' },
@@ -738,6 +796,21 @@ Si no puedes identificar el plato, devuelve name:"" y tags:[].`,
     };
   } catch (err) {
     console.error('Claude function error:', err);
+
+    if (posthog && distinctId) {
+      let callType = 'unknown';
+      try { callType = JSON.parse(event.body).type || 'unknown'; } catch { /* ignore */ }
+      posthog.capture({
+        distinctId,
+        event: 'ai_call_failed',
+        properties: {
+          call_type: callType,
+          error_type: err.constructor?.name || 'Error',
+        },
+      });
+      await posthog.shutdown();
+    }
+
     return {
       statusCode: 500,
       headers: { ...cors, 'Content-Type': 'application/json' },

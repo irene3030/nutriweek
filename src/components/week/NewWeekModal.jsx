@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import MenuLoadingAnimation from '../ui/MenuLoadingAnimation';
@@ -44,6 +44,53 @@ function mondayToLabel(mondayStr) {
 }
 
 const SLOTS_WITH_SAME = ['desayuno', 'snack', 'merienda'];
+
+const KPI_GENERATION_META = {
+  iron:   { icon: '🩸', label: 'Hierro',         unit: 'días' },
+  fish:   { icon: '🐟', label: 'Pescado graso',   unit: 'días' },
+  veggie: { icon: '🥦', label: 'Verduras dist.',  unit: 'tipos' },
+  legume: { icon: '🟢', label: 'Legumbres',       unit: 'días' },
+  fruit:  { icon: '🍎', label: 'Fruta',           unit: 'días' },
+};
+
+const DEFAULT_KPI_IDS = ['iron', 'fish', 'veggie', 'legume'];
+
+const SEASONS = {
+  primavera: { label: 'Primavera', emoji: '🌸', months: [3, 4, 5], ingredients: 'espárragos, guisantes, fresas, alcachofas, habas, espinacas, rábanos, cerezas' },
+  verano:    { label: 'Verano',    emoji: '☀️',  months: [6, 7, 8], ingredients: 'tomate, pimiento, calabacín, berenjena, pepino, sandía, melocotón, maíz, judías verdes' },
+  otoño:     { label: 'Otoño',     emoji: '🍂',  months: [9, 10, 11], ingredients: 'calabaza, setas, uvas, peras, manzanas, boniato, coles, brócoli, granada' },
+  invierno:  { label: 'Invierno',  emoji: '❄️',  months: [12, 1, 2], ingredients: 'naranja, mandarina, coliflor, puerro, col, acelga, kiwi, cardo, chirivía' },
+};
+
+function getSeason(dateStr) {
+  if (!dateStr) return null;
+  const month = new Date(dateStr + 'T12:00:00').getMonth() + 1; // 1-12
+  return Object.entries(SEASONS).find(([, s]) => s.months.includes(month))?.[0] ?? null;
+}
+
+function initKpiOverrides(kpiConfig) {
+  const config = kpiConfig || DEFAULT_KPI_CONFIG;
+  const overrides = {};
+  // Always include the 4 default KPIs
+  for (const id of DEFAULT_KPI_IDS) {
+    const catalog = KPI_CATALOG.find(k => k.id === id);
+    overrides[id] = {
+      active: config.active.includes(id),
+      target: config.targets[id] ?? catalog?.defaultTarget ?? 3,
+    };
+  }
+  // Add any other active KPIs (custom, fruit, etc.) excluding protein_rotation
+  for (const id of config.active) {
+    if (id === 'protein_rotation' || DEFAULT_KPI_IDS.includes(id)) continue;
+    const catalog = KPI_CATALOG.find(k => k.id === id);
+    const custom = (config.custom || []).find(k => k.id === id);
+    overrides[id] = {
+      active: true,
+      target: config.targets[id] ?? catalog?.defaultTarget ?? custom?.target ?? 3,
+    };
+  }
+  return overrides;
+}
 
 const DEFAULT_SLOTS = {
   desayuno:  { enabled: true, sameEveryDay: false },
@@ -114,7 +161,7 @@ function enforceSlots(result, mealSlots) {
   return { ...result, days };
 }
 
-export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds = [], foodHistory, savedRecipes, usualMeals = [], apiKey, hasAiAccess, kpiConfig }) {
+export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds = [], foodHistory, savedRecipes, usualMeals = [], apiKey, hasAiAccess, kpiConfig, onUpdateKpiConfig }) {
   const [step, setStep] = useState('form');
   const [ingredients, setIngredients] = useState('');
   const [mondayDate, setMondayDate] = useState(getThisMonday());
@@ -129,11 +176,14 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
   const [recurringInput, setRecurringInput] = useState('');
   const [mealSlots, setMealSlots] = useState(DEFAULT_SLOTS);
   const [includeWeekend, setIncludeWeekend] = useState(true);
+  const [kpiOverrides, setKpiOverrides] = useState(() => initKpiOverrides(kpiConfig));
+  useEffect(() => { setKpiOverrides(initKpiOverrides(kpiConfig)); }, [kpiConfig]);
 
   // Ingredient review state
   const [ingredientsList, setIngredientsList] = useState([]); // [{id, name, category, reason, removed, customName, editing, altLoading}]
   const [ingredientsLoading, setIngredientsLoading] = useState(false);
   const [ingredientsError, setIngredientsError] = useState(null);
+  const [newIngredientInput, setNewIngredientInput] = useState('');
 
   const weekLabel = mondayToLabel(mondayDate);
   const isDuplicate = existingWeekIds.includes(mondayDate);
@@ -163,6 +213,25 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
     setRecurringInput('');
   };
 
+  const updateKpiOverride = (id, field, value) => {
+    setKpiOverrides(prev => {
+      const updated = { ...prev, [id]: { ...prev[id], [field]: value } };
+      if (onUpdateKpiConfig) {
+        const config = kpiConfig || DEFAULT_KPI_CONFIG;
+        let newActive = [...config.active];
+        const newTargets = { ...config.targets };
+        if (field === 'active') {
+          if (value && !newActive.includes(id)) newActive.push(id);
+          else if (!value) newActive = newActive.filter(a => a !== id);
+        } else if (field === 'target') {
+          newTargets[id] = value;
+        }
+        onUpdateKpiConfig({ ...config, active: newActive, targets: newTargets });
+      }
+      return updated;
+    });
+  };
+
   const toggleSlot = (tipo) => {
     setMealSlots(prev => ({ ...prev, [tipo]: { ...prev[tipo], enabled: !prev[tipo].enabled } }));
   };
@@ -190,6 +259,8 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
         foodHistory,
         savedRecipes,
         requiredIngredients,
+        kpiOverrides,
+        season: getSeason(mondayDate),
         apiKey,
       });
       let proposed = enforceSlots(result, mealSlots);
@@ -231,6 +302,22 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
     } finally {
       setIngredientsLoading(false);
     }
+  };
+
+  const handleAddIngredient = () => {
+    const name = newIngredientInput.trim();
+    if (!name) return;
+    setIngredientsList(prev => [...prev, {
+      id: `manual_${Date.now()}`,
+      name,
+      category: 'manual',
+      reason: 'Añadido manualmente',
+      removed: false,
+      customName: null,
+      editing: false,
+      altLoading: false,
+    }]);
+    setNewIngredientInput('');
   };
 
   const toggleIngredientRemoved = (id) => {
@@ -379,12 +466,31 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
               }}
               className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent text-sm"
             />
-            {weekLabel && (
-              <p className="text-xs text-brand-700 font-medium mt-1">{weekLabel}</p>
-            )}
+            {mondayDate && (() => {
+              const seasonKey = getSeason(mondayDate);
+              const season = SEASONS[seasonKey];
+              if (!season) return null;
+              return (
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  <span className="inline-flex items-center gap-1 text-xs font-medium bg-green-50 text-green-700 border border-green-200 rounded-full px-2.5 py-0.5">
+                    {season.emoji} {season.label}
+                  </span>
+                  <span className="text-xs text-gray-400">La IA priorizará ingredientes de temporada</span>
+                </div>
+              );
+            })()}
             {isDuplicate && (
               <p className="text-xs text-red-600 mt-1">Ya existe un menú para esta semana.</p>
             )}
+            <label className="flex items-center gap-2 cursor-pointer mt-2">
+              <input
+                type="checkbox"
+                checked={includeWeekend}
+                onChange={e => setIncludeWeekend(e.target.checked)}
+                className="w-4 h-4 rounded accent-brand-600"
+              />
+              <span className="text-sm text-gray-700">Incluir fin de semana (sáb y dom)</span>
+            </label>
           </div>
 
           <div>
@@ -436,19 +542,8 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
             </div>
           </div>
 
-          {/* Incluir fin de semana */}
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={includeWeekend}
-              onChange={e => setIncludeWeekend(e.target.checked)}
-              className="w-4 h-4 rounded accent-brand-600"
-            />
-            <span className="text-sm text-gray-700">Incluir fin de semana (sáb y dom)</span>
-          </label>
-
           {/* KPIs que intentará cumplir la IA */}
-          {hasAiAccess && <KPIPreview kpiConfig={kpiConfig} mealSlots={mealSlots} includeWeekend={includeWeekend} />}
+          {hasAiAccess && <KPIPreview kpiConfig={kpiConfig} mealSlots={mealSlots} includeWeekend={includeWeekend} kpiOverrides={kpiOverrides} onUpdate={updateKpiOverride} />}
 
           {/* Fixed meals & recurring */}
           <div className="border border-gray-200 rounded-xl overflow-hidden">
@@ -637,11 +732,12 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
 
       {/* Choice dialog */}
       {step === 'choice' && (
-        <div className="py-6 space-y-4">
+        <div className="py-4 space-y-4">
           <div className="text-center space-y-1">
             <p className="text-base font-semibold text-gray-800">¿Cómo quieres generar el menú?</p>
             <p className="text-sm text-gray-500">Puedes revisar los ingredientes antes o generar directamente.</p>
           </div>
+
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <button
               onClick={() => handleGenerateDirect()}
@@ -788,6 +884,23 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
               </div>
 
               <div className="border-t border-gray-100 pt-3 space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newIngredientInput}
+                    onChange={e => setNewIngredientInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddIngredient()}
+                    placeholder="Añadir ingrediente..."
+                    className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                  />
+                  <button
+                    onClick={handleAddIngredient}
+                    disabled={!newIngredientInput.trim()}
+                    className="text-sm px-3 py-1.5 bg-brand-50 text-brand-600 border border-brand-200 rounded-lg hover:bg-brand-100 transition-colors disabled:opacity-40"
+                  >
+                    +
+                  </button>
+                </div>
                 <p className="text-xs text-gray-400">
                   {ingredientsList.filter(i => !i.removed).length} ingredientes seleccionados de {ingredientsList.length}
                 </p>
@@ -914,9 +1027,9 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
   );
 }
 
-// ─── KPI Preview ─────────────────────────────────────────────────────────────
+// ─── KPI Preview (editable) ──────────────────────────────────────────────────
 
-function KPIPreview({ kpiConfig, mealSlots, includeWeekend }) {
+function KPIPreview({ kpiConfig, mealSlots, includeWeekend, kpiOverrides, onUpdate }) {
   const config = {
     active: kpiConfig?.active ?? DEFAULT_KPI_CONFIG.active,
     targets: kpiConfig?.targets ?? {},
@@ -924,71 +1037,53 @@ function KPIPreview({ kpiConfig, mealSlots, includeWeekend }) {
   };
 
   const fakeWeek = simulateWeekDoc(mealSlots, includeWeekend);
-  const { ironTarget, fishTarget, veggieTarget, legumeTarget } = computeAdaptiveTargets(fakeWeek, config.targets);
+  const adaptive = computeAdaptiveTargets(fakeWeek, config.targets);
 
-  const activeCatalog = KPI_CATALOG.filter(k => config.active.includes(k.id));
-  const activeCustom = config.custom.filter(k => config.active.includes(k.id));
-
-  if (activeCatalog.length === 0 && activeCustom.length === 0) return null;
-
-  function getTarget(id) {
-    if (id === 'iron') return ironTarget;
-    if (id === 'fish') return fishTarget;
-    if (id === 'veggie') return veggieTarget;
-    if (id === 'legume') return legumeTarget;
-    if (id === 'fruit') return config.targets.fruit ?? 5;
-    if (id === 'protein_rotation') return null; // no aplica como target numérico
-    return null;
-  }
-
-  function getDefaultTarget(id) {
-    const kpi = KPI_CATALOG.find(k => k.id === id);
-    return config.targets[id] ?? kpi?.defaultTarget ?? null;
-  }
+  const entries = Object.entries(kpiOverrides || {});
+  if (entries.length === 0) return null;
 
   return (
     <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-2">
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">KPIs que intentará cumplir la IA</p>
       <div className="space-y-1.5">
-        {activeCatalog.map(k => {
-          if (k.id === 'protein_rotation') {
-            return (
-              <div key={k.id} className="flex items-center gap-2">
-                <span className="text-sm">{k.icon}</span>
-                <span className="text-xs text-gray-600">{k.label}</span>
-                <span className="text-xs text-gray-400">sin repetir &gt;2 días seguidos</span>
-              </div>
-            );
-          }
-
-          const target = getTarget(k.id);
-          const defaultTarget = getDefaultTarget(k.id);
-          const notApplicable = target === null;
-          const isAdapted = !notApplicable && target !== defaultTarget;
+        {entries.map(([id, override]) => {
+          const catalogKpi = KPI_CATALOG.find(k => k.id === id);
+          const customKpi = config.custom.find(k => k.id === id);
+          const icon = catalogKpi?.icon ?? '⭐';
+          const label = catalogKpi?.label ?? customKpi?.name ?? id;
+          const unit = catalogKpi?.unit ?? 'días';
+          const adaptiveTarget = id === 'iron' ? adaptive.ironTarget
+            : id === 'fish' ? adaptive.fishTarget
+            : null;
+          const notApplicable = adaptiveTarget === null && (id === 'iron' || id === 'fish');
+          const wasAdapted = adaptiveTarget !== null && adaptiveTarget < override.target;
 
           return (
-            <div key={k.id} className={`flex items-center gap-2 ${notApplicable ? 'opacity-40' : ''}`}>
-              <span className="text-sm">{k.icon}</span>
-              <span className={`text-xs ${notApplicable ? 'text-gray-400' : 'text-gray-700'}`}>{k.label}</span>
-              {notApplicable ? (
-                <span className="text-xs text-gray-400 italic">No aplica con estas franjas</span>
-              ) : (
-                <span className="text-xs text-brand-700 font-medium">
-                  ≥{target} {k.unit}
-                  {isAdapted && <span className="text-gray-400 font-normal ml-1">(ajustado)</span>}
-                </span>
-              )}
-            </div>
-          );
-        })}
-
-        {activeCustom.map(k => {
-          const target = config.targets[k.id] ?? k.target ?? 3;
-          return (
-            <div key={k.id} className="flex items-center gap-2">
-              <span className="text-sm">⭐</span>
-              <span className="text-xs text-gray-700">{k.name}</span>
-              <span className="text-xs text-brand-700 font-medium">≥{target} días</span>
+            <div key={id} className={`flex items-center gap-2 ${notApplicable ? 'opacity-40' : ''}`}>
+              <input
+                type="checkbox"
+                checked={override.active && !notApplicable}
+                disabled={notApplicable}
+                onChange={e => onUpdate(id, 'active', e.target.checked)}
+                className="accent-brand-600 shrink-0"
+              />
+              <span className="text-sm flex-1">{icon} {label}</span>
+              <input
+                type="number"
+                min={1}
+                max={7}
+                value={override.target}
+                disabled={!override.active || notApplicable}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === '' || val === '0') return;
+                  onUpdate(id, 'target', Math.min(7, Math.max(1, Number(val))));
+                }}
+                className="w-12 text-sm text-center border border-gray-200 rounded-lg px-1 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-brand-400 disabled:opacity-40"
+              />
+              <span className="text-xs text-gray-400 w-16 shrink-0">
+                {notApplicable ? 'No aplica' : wasAdapted ? `≥${adaptiveTarget} ajust.` : unit}
+              </span>
             </div>
           );
         })}

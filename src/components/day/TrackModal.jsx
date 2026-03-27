@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
+import { track } from '../../lib/analytics';
 
 export default function TrackModal({ isOpen, onClose, meal, dayName, onSave }) {
   const [done, setDone] = useState(false);
@@ -17,6 +18,7 @@ export default function TrackModal({ isOpen, onClose, meal, dayName, onSave }) {
 
   const handleSave = () => {
     onSave({ done, note: note.trim() });
+    track('meal_tracked', { done, has_note: !!note.trim() });
     onClose();
   };
 

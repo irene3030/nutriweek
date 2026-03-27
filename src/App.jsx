@@ -232,6 +232,17 @@ function AppContent() {
 
   const handleNewWeek = async (mondayDate, label, daysData) => {
     await createWeek(mondayDate, label, daysData);
+    track('week_created', { generated_with_ai: !!daysData });
+  };
+
+  const handleDeleteWeek = async (weekId) => {
+    await deleteWeek(weekId);
+    track('week_deleted');
+  };
+
+  const handleApplyFixes = async (fixes) => {
+    await applyMealFixes(currentWeek.id, fixes);
+    track('ai_kpi_fix_applied', { fix_count: fixes.length });
   };
 
   const handleAddMealToSlot = (dayName, tipo, mealData) => {
@@ -269,12 +280,12 @@ function AppContent() {
               onGoToPrevious={goToPreviousWeek}
               onGoToNext={goToNextWeek}
               onNewWeek={handleNewWeek}
-              onDeleteWeek={deleteWeek}
+              onDeleteWeek={handleDeleteWeek}
               onUpdateLabel={updateWeekLabel}
               onDayClick={handleDayClick}
               onAddMealToSlot={handleAddMealToSlot}
               onUpdateBatchCooking={updateBatchCooking}
-              onApplyFixes={(fixes) => applyMealFixes(currentWeek.id, fixes)}
+              onApplyFixes={handleApplyFixes}
               foodHistory={foodHistory}
               savedRecipes={savedRecipes}
               usualMeals={usualMeals}
