@@ -4,6 +4,7 @@ import LoadingSpinner from '../ui/LoadingSpinner';
 import MenuLoadingAnimation from '../ui/MenuLoadingAnimation';
 import { generateWeekMenu, regenerateDay, suggestIngredients, suggestIngredientAlternative } from '../../lib/claude';
 import { track } from '../../lib/analytics';
+import { computeAdaptiveTargets, KPI_CATALOG, DEFAULT_KPI_CONFIG } from '../../lib/kpis';
 
 const CATEGORY_META = {
   proteína: { label: 'Proteínas', emoji: '🥩' },
@@ -52,6 +53,22 @@ const DEFAULT_SLOTS = {
   cena:      { enabled: true, sameEveryDay: false },
 };
 
+/** Build a fake weekDoc from mealSlots so computeAdaptiveTargets can simulate targets */
+function simulateWeekDoc(mealSlots, includeWeekend) {
+  const activeDays = includeWeekend ? DAYS : DAYS.slice(0, 5);
+  return {
+    days: activeDays.map(day => ({
+      day,
+      meals: MEAL_TYPES.map(tipo => ({
+        tipo,
+        baby: mealSlots[tipo]?.enabled ? 'placeholder' : '',
+        adult: '',
+        tags: [],
+      })),
+    })),
+  };
+}
+
 /** Enforce mealSlots constraints on a generated week result */
 function enforceSlots(result, mealSlots) {
   if (!mealSlots || !result?.days) return result;
@@ -97,7 +114,7 @@ function enforceSlots(result, mealSlots) {
   return { ...result, days };
 }
 
-export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds = [], foodHistory, savedRecipes, usualMeals = [], apiKey, hasAiAccess }) {
+export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds = [], foodHistory, savedRecipes, usualMeals = [], apiKey, hasAiAccess, kpiConfig }) {
   const [step, setStep] = useState('form');
   const [ingredients, setIngredients] = useState('');
   const [mondayDate, setMondayDate] = useState(getThisMonday());
@@ -429,6 +446,9 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
             />
             <span className="text-sm text-gray-700">Incluir fin de semana (sáb y dom)</span>
           </label>
+
+          {/* KPIs que intentará cumplir la IA */}
+          {hasAiAccess && <KPIPreview kpiConfig={kpiConfig} mealSlots={mealSlots} includeWeekend={includeWeekend} />}
 
           {/* Fixed meals & recurring */}
           <div className="border border-gray-200 rounded-xl overflow-hidden">
@@ -891,5 +911,88 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
         </div>
       )}
     </Modal>
+  );
+}
+
+// ─── KPI Preview ─────────────────────────────────────────────────────────────
+
+function KPIPreview({ kpiConfig, mealSlots, includeWeekend }) {
+  const config = {
+    active: kpiConfig?.active ?? DEFAULT_KPI_CONFIG.active,
+    targets: kpiConfig?.targets ?? {},
+    custom: kpiConfig?.custom ?? [],
+  };
+
+  const fakeWeek = simulateWeekDoc(mealSlots, includeWeekend);
+  const { ironTarget, fishTarget, veggieTarget, legumeTarget } = computeAdaptiveTargets(fakeWeek, config.targets);
+
+  const activeCatalog = KPI_CATALOG.filter(k => config.active.includes(k.id));
+  const activeCustom = config.custom.filter(k => config.active.includes(k.id));
+
+  if (activeCatalog.length === 0 && activeCustom.length === 0) return null;
+
+  function getTarget(id) {
+    if (id === 'iron') return ironTarget;
+    if (id === 'fish') return fishTarget;
+    if (id === 'veggie') return veggieTarget;
+    if (id === 'legume') return legumeTarget;
+    if (id === 'fruit') return config.targets.fruit ?? 5;
+    if (id === 'protein_rotation') return null; // no aplica como target numérico
+    return null;
+  }
+
+  function getDefaultTarget(id) {
+    const kpi = KPI_CATALOG.find(k => k.id === id);
+    return config.targets[id] ?? kpi?.defaultTarget ?? null;
+  }
+
+  return (
+    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-2">
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">KPIs que intentará cumplir la IA</p>
+      <div className="space-y-1.5">
+        {activeCatalog.map(k => {
+          if (k.id === 'protein_rotation') {
+            return (
+              <div key={k.id} className="flex items-center gap-2">
+                <span className="text-sm">{k.icon}</span>
+                <span className="text-xs text-gray-600">{k.label}</span>
+                <span className="text-xs text-gray-400">sin repetir &gt;2 días seguidos</span>
+              </div>
+            );
+          }
+
+          const target = getTarget(k.id);
+          const defaultTarget = getDefaultTarget(k.id);
+          const notApplicable = target === null;
+          const isAdapted = !notApplicable && target !== defaultTarget;
+
+          return (
+            <div key={k.id} className={`flex items-center gap-2 ${notApplicable ? 'opacity-40' : ''}`}>
+              <span className="text-sm">{k.icon}</span>
+              <span className={`text-xs ${notApplicable ? 'text-gray-400' : 'text-gray-700'}`}>{k.label}</span>
+              {notApplicable ? (
+                <span className="text-xs text-gray-400 italic">No aplica con estas franjas</span>
+              ) : (
+                <span className="text-xs text-brand-700 font-medium">
+                  ≥{target} {k.unit}
+                  {isAdapted && <span className="text-gray-400 font-normal ml-1">(ajustado)</span>}
+                </span>
+              )}
+            </div>
+          );
+        })}
+
+        {activeCustom.map(k => {
+          const target = config.targets[k.id] ?? k.target ?? 3;
+          return (
+            <div key={k.id} className="flex items-center gap-2">
+              <span className="text-sm">⭐</span>
+              <span className="text-xs text-gray-700">{k.name}</span>
+              <span className="text-xs text-brand-700 font-medium">≥{target} días</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

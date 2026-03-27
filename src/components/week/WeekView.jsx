@@ -210,6 +210,7 @@ export default function WeekView({
         usualMeals={usualMeals}
         apiKey={apiKey}
         hasAiAccess={hasAiAccess}
+        kpiConfig={kpiConfig}
       />
       <QuickMealModal
         isOpen={showQuickMeal}
