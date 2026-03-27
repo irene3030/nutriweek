@@ -19,13 +19,23 @@ Reglas por franja horaria (MUY IMPORTANTE — respétalas siempre):
 
 Reglas nutricionales semanales:
 - Hierro en al menos 5 de 7 días (carne roja, legumbre, pescado azul)
-- Pescado graso (salmón, caballa, sardina, atún) al menos 3 veces
+- Pescado azul (salmón, caballa, sardina, atún, boquerón) al menos 3 veces — tag oily_fish (+ fish)
 - Mínimo 5 verduras distintas a lo largo de la semana
 - No repetir la misma proteína animal más de 2 días consecutivos
+- Evitar pescados altos en mercurio (pez espada, tiburón, atún rojo, marlín) — especialmente en bebé BLW
 
 Para cada comida devuelve:
 - baby: descripción de la comida (apta para bebé BLW, la familia come lo mismo)
-- tags: array con los tags aplicables (iron, fish, legume, egg, dairy, fruit, cereal, y/o veggie:nombre)
+- tags: array con los tags aplicables. Definición de cada tag:
+  - iron → contiene carne roja (ternera, cerdo, cordero) o legumbre o pescado azul (salmón, caballa, sardina, atún, boquerón)
+  - oily_fish → contiene pescado azul alto en omega-3 (salmón, caballa, sardina, atún, boquerón) — también añade siempre el tag fish
+  - fish → contiene cualquier pescado o marisco (incluido pescado blanco: merluza, bacalao, dorada, lubina...)
+  - legume → contiene legumbre (lentejas, garbanzos, judías, guisantes, edamame)
+  - egg → contiene huevo
+  - dairy → contiene lácteo (yogur, queso, leche)
+  - fruit → contiene fruta
+  - cereal → contiene cereal (arroz, pasta, pan, avena, quinoa)
+  - veggie:nombre → una por cada verdura concreta identificada (ej: veggie:brócoli, veggie:zanahoria)
 
 Devuelve SOLO JSON válido con la estructura definida, sin texto adicional.`;
 
@@ -317,7 +327,7 @@ Devuelve SOLO este JSON:
   "tags": ["tag1", "tag2"]
 }`;
     } else if (type === 'fix_kpi') {
-      const { kpiType, weekContext, kpiState, activeTipos } = payload;
+      const { kpiType, weekContext, kpiState, activeTipos, allKpiStates } = payload;
       const safeKpiType = sanitize(kpiType, 20);
       const safeActiveTipos = Array.isArray(activeTipos)
         ? activeTipos.map(t => sanitize(t, 20)).filter(Boolean)
@@ -374,13 +384,17 @@ Devuelve SOLO este JSON:
         kpiDescription = `KPI personalizado "${customName}": actualmente ${kpiState.current} días que contienen "${customQuery}", necesita al menos ${customTarget}. Modifica ${needed} comida(s) para incluir "${customQuery}".`;
       }
 
+      const otherKpiContext = Array.isArray(allKpiStates) && allKpiStates.length > 0
+        ? `\n5. Estado actual de otros KPIs activos: ${allKpiStates.join(', ')}. Intenta no empeorar los que ya están en buen estado o cerca del objetivo.`
+        : '';
+
       userMessage = `Corrige el siguiente problema nutricional en el menú semanal haciendo el mínimo de cambios posibles.
 
 REGLAS ESTRICTAS:
 1. Este menú solo tiene activas estas franjas: ${activeSlotsList}. SOLO puedes proponer cambios en esas franjas.
 2. Al modificar una comida, CONSERVA todos los tags nutricionales que ya tenía (hierro, pescado, verduras, etc.). No elimines nutrientes que ya estaban presentes. Si el plato original tenía tag "iron", el nuevo también debe tenerlo.
 3. Haz el mínimo número de cambios posibles.
-4. Respeta las reglas BLW para bebé ~12 meses.
+4. Respeta las reglas BLW para bebé ~12 meses.${otherKpiContext}
 
 Problema a resolver: ${kpiDescription}
 

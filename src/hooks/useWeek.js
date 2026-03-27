@@ -194,7 +194,7 @@ export function useWeek(householdId) {
       // Merge: union of fix tags + original tags. Fix tags take precedence for
       // standard KPI tags; original veggie:* tags are always preserved to avoid
       // losing vegetable variety count. Duplicates are removed.
-      const KPI_TAGS = new Set(['iron', 'fish', 'legume', 'egg', 'dairy', 'fruit', 'cereal']);
+      const KPI_TAGS = new Set(['iron', 'oily_fish', 'fish', 'legume', 'egg', 'dairy', 'fruit', 'cereal']);
       // KPI tags (iron, fish, legume…) come from Claude's response — it's instructed to preserve them.
       // veggie:* tags from the original are always preserved to avoid losing vegetable variety count.
       // Non-KPI tags from original are also kept.

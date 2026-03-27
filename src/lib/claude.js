@@ -81,8 +81,8 @@ export async function generateBatchCookingOptimized({ weekMenu, timeSessions, ap
   return callClaude('batch_cooking_optimized', { weekMenu, timeSessions }, apiKey);
 }
 
-export async function fixKPI({ kpiType, weekContext, kpiState, activeTipos, apiKey }) {
-  return callClaude('fix_kpi', { kpiType, weekContext, kpiState, activeTipos }, apiKey);
+export async function fixKPI({ kpiType, weekContext, kpiState, activeTipos, allKpiStates, apiKey }) {
+  return callClaude('fix_kpi', { kpiType, weekContext, kpiState, activeTipos, allKpiStates }, apiKey);
 }
 
 export async function validateFFCode(code) {

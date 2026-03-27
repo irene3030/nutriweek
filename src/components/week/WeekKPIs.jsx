@@ -34,6 +34,24 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
     return 'bad';
   }
 
+  function getCustomStatus(value, target, quality) {
+    if (target === null) return null;
+    if (quality === 'máximo') {
+      if (value <= target) return 'good';
+      if (value <= Math.round(target * 1.4)) return 'warning';
+      return 'bad';
+    }
+    if (quality === 'exacto') {
+      if (value === target) return 'good';
+      if (Math.abs(value - target) <= 1) return 'warning';
+      return 'bad';
+    }
+    // mínimo (default)
+    if (value >= target) return 'good';
+    if (value >= Math.ceil(target * 0.6)) return 'warning';
+    return 'bad';
+  }
+
   const ironStatus = getStatus(kpis.ironDays, ironTarget);
   const fishStatus = getStatus(kpis.fishDays, fishTarget);
   const veggieStatus = getStatus(kpis.distinctVeggies, veggieTarget);
@@ -72,8 +90,22 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
         )
       )];
 
-      const result = await fixKPI({ kpiType, weekContext: weekDoc.days, kpiState, activeTipos, apiKey });
-      const validFixes = (result.fixes || []).filter(f => activeTipos.includes(f.tipo));
+      const allKpiStates = [
+        config.active.includes('iron') && ironTarget ? `Hierro ${kpis.ironDays}/${ironTarget} días` : null,
+        config.active.includes('fish') && fishTarget ? `Pescado graso ${kpis.fishDays}/${fishTarget} días` : null,
+        config.active.includes('legume') ? `Legumbres ${kpis.legumedDays}/${legumeTarget} días` : null,
+        config.active.includes('veggie') ? `Verduras distintas ${kpis.distinctVeggies}/${veggieTarget} tipos` : null,
+        config.active.includes('fruit') ? `Fruta ${kpis.fruitDays}/${fruitTarget} días` : null,
+        ...activeCustomKPIs.map(k => `${k.name} ${kpis.customResults?.[k.id] ?? 0}/${config.targets[k.id] ?? k.target ?? 3} días`),
+      ].filter(Boolean);
+
+      const result = await fixKPI({ kpiType, weekContext: weekDoc.days, kpiState, activeTipos, allKpiStates, apiKey });
+      const validFixes = (result.fixes || []).filter(f => {
+        if (!activeTipos.includes(f.tipo)) return false;
+        const originalDay = weekDoc?.days?.find(d => d.day === f.day);
+        const originalMeal = originalDay?.meals?.find(m => m.tipo === f.tipo);
+        return !originalMeal || originalMeal.baby?.trim() !== f.baby?.trim();
+      });
       setFixes(validFixes);
       track('kpi_fix_proposed', { kpiType, fixCount: result.fixes?.length || 0 });
     } catch (err) {
@@ -110,7 +142,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
 
     const TAG_KPI = [
       { tag: 'iron',   id: 'iron',   icon: '🩸' },
-      { tag: 'fish',   id: 'fish',   icon: '🐟' },
+      { tag: 'oily_fish', id: 'fish', icon: '🐟' },
       { tag: 'legume', id: 'legume', icon: '🟢' },
       { tag: 'fruit',  id: 'fruit',  icon: '🍎' },
     ];
@@ -144,6 +176,29 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
     return { impacts, originalText: originalMeal.baby || null };
   };
 
+  const KPI_ICON_NAMES = { '🩸': 'Hierro', '🐟': 'Pescado', '🟢': 'Legumbres', '🍎': 'Fruta', '🥦': 'Verduras', '⭐': 'KPI personalizado' };
+
+  const getConflictSummary = (fixes) => {
+    if (!fixes?.length) return null;
+    const totals = {};
+    for (const fix of fixes) {
+      const { impacts } = computeFixImpact(fix);
+      for (const { icon, delta } of impacts) {
+        totals[icon] = (totals[icon] || 0) + delta;
+      }
+    }
+    const worsens = Object.entries(totals)
+      .filter(([, d]) => d < 0)
+      .map(([icon, delta]) => ({ icon, name: KPI_ICON_NAMES[icon] || icon, delta }));
+    const improvements = Object.entries(totals)
+      .filter(([, d]) => d > 0)
+      .map(([icon, delta]) => ({ icon, name: KPI_ICON_NAMES[icon] || icon, delta }));
+    if (!worsens.length) return null;
+    return { worsens, improvements };
+  };
+
+  const conflictSummary = fixes ? getConflictSummary(fixes) : null;
+
   // Build the ordered list of active KPI pills to render
   const activeCatalogKPIs = KPI_CATALOG.filter(k => config.active.includes(k.id));
   const activeCustomKPIs = config.custom.filter(k => config.active.includes(k.id));
@@ -153,7 +208,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
     (d.meals || []).filter(m => m.baby && m.tags?.includes('iron')).map(m => `${d.day} · ${MEAL_LABELS[m.tipo]}`)
   ).join('\n') || null;
   const fishDetail = (weekDoc?.days || []).flatMap(d =>
-    (d.meals || []).filter(m => m.baby && m.tags?.includes('fish')).map(m => `${d.day} · ${MEAL_LABELS[m.tipo]}`)
+    (d.meals || []).filter(m => m.baby && m.tags?.includes('oily_fish')).map(m => `${d.day} · ${MEAL_LABELS[m.tipo]}`)
   ).join('\n') || null;
   const legumeDetail = (weekDoc?.days || []).flatMap(d =>
     (d.meals || []).filter(m => m.baby && m.tags?.includes('legume')).map(m => `${d.day} · ${MEAL_LABELS[m.tipo]}`)
@@ -246,12 +301,14 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
         {activeCustomKPIs.map(k => {
           const val = kpis.customResults?.[k.id] ?? 0;
           const tgt = config.targets[k.id] ?? k.target ?? 3;
-          const st = getStatus(val, tgt);
+          const quality = k.quality || 'mínimo';
+          const st = getCustomStatus(val, tgt, quality);
+          const targetLabel = quality === 'máximo' ? `≤${tgt} días` : quality === 'exacto' ? `=${tgt} días` : `≥${tgt} días`;
           return (
             <KPIPill key={k.id}
-              icon="⭐" label={k.name} value={`${val}/${tgt}`} target={`≥${tgt} días`}
+              icon="⭐" label={k.name} value={`${val}/${tgt}`} target={targetLabel}
               status={st} statusColors={statusColors}
-              onFix={hasAiAccess && st !== null ? () => handleFix(k.id) : null}
+              onFix={hasAiAccess && st !== null && quality === 'mínimo' ? () => handleFix(k.id) : null}
               fixing={fixing === k.id} loading={loading && fixing === k.id}
             />
           );
@@ -327,12 +384,25 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
                   );
                 })}
               </ul>
+              {conflictSummary && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 space-y-0.5">
+                  <p className="text-xs font-medium text-amber-700">⚠ Conflicto entre KPIs</p>
+                  <p className="text-xs text-amber-600">
+                    {conflictSummary.improvements.map(i => `${i.icon} +${i.delta}`).join(' ')}
+                    {conflictSummary.improvements.length > 0 ? ' mejora' : ''}
+                    {conflictSummary.improvements.length > 0 && conflictSummary.worsens.length > 0 ? ', pero ' : ''}
+                    {conflictSummary.worsens.map(w => `${w.icon} ${w.delta}`).join(' ')}
+                    {conflictSummary.worsens.length > 0 ? ' empeora' : ''}
+                  </p>
+                  <p className="text-xs text-amber-500">Puedes aplicar igualmente si lo consideras prioritario.</p>
+                </div>
+              )}
               <div className="flex gap-2">
                 <button onClick={handleDiscard} className="flex-1 border border-gray-300 text-gray-600 rounded-lg py-1.5 text-xs hover:bg-gray-50 transition-colors">
                   Descartar
                 </button>
                 <button onClick={handleApply} className="flex-1 bg-brand-600 text-white rounded-lg py-1.5 text-xs font-medium hover:bg-brand-700 transition-colors">
-                  Aplicar cambios
+                  Aplicar{conflictSummary ? ' igualmente' : ' cambios'}
                 </button>
               </div>
             </>
@@ -417,6 +487,8 @@ function KPILibrary({ config, onSave, onClose }) {
   const [customTarget, setCustomTarget] = useState('3');
   const [editingTarget, setEditingTarget] = useState(null);
   const [targetInput, setTargetInput] = useState('');
+  const [customQuality, setCustomQuality] = useState('mínimo');
+  const [editingCustomId, setEditingCustomId] = useState(null);
 
   const isDirty = JSON.stringify(draft) !== JSON.stringify(config);
 
@@ -440,11 +512,18 @@ function KPILibrary({ config, onSave, onClose }) {
     const id = `custom_${Date.now()}`;
     setDraft(d => ({
       ...d,
-      custom: [...d.custom, { id, name: customName.trim(), query: customQuery.trim(), target: parseInt(customTarget, 10) || 3 }],
+      custom: [...d.custom, { id, name: customName.trim(), query: customQuery.trim(), target: parseInt(customTarget, 10) || 3, quality: customQuality }],
       active: [...d.active, id],
     }));
-    setCustomName(''); setCustomQuery(''); setCustomTarget('3');
+    setCustomName(''); setCustomQuery(''); setCustomTarget('3'); setCustomQuality('mínimo');
     setShowAddCustom(false);
+  };
+
+  const updateCustomKPI = (id, changes) => {
+    setDraft(d => ({
+      ...d,
+      custom: d.custom.map(k => k.id === id ? { ...k, ...changes } : k),
+    }));
   };
 
   const removeCustomKPI = (id) => {
@@ -537,6 +616,8 @@ function KPILibrary({ config, onSave, onClose }) {
                 const isActive = draft.active.includes(k.id);
                 const currentTarget = draft.targets[k.id] ?? k.target ?? 3;
                 const isEditingThis = editingTarget === k.id;
+                const isEditingCard = editingCustomId === k.id;
+                const currentQuality = k.quality || 'mínimo';
                 return (
                   <div key={k.id} className={`flex items-start gap-3 p-3 rounded-xl border transition-colors ${isActive ? 'bg-brand-50 border-brand-200' : 'bg-gray-50 border-gray-100'}`}>
                     <span className="text-xl mt-0.5">⭐</span>
@@ -544,24 +625,43 @@ function KPILibrary({ config, onSave, onClose }) {
                       <p className="text-sm font-medium text-gray-800">{k.name}</p>
                       <p className="text-xs text-gray-400">busca: "{k.query}"</p>
                       {isActive && (
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="text-xs text-gray-500">Objetivo:</span>
-                          {isEditingThis ? (
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="number" min={1} max={7}
-                                value={targetInput}
-                                onChange={e => setTargetInput(e.target.value)}
-                                className="w-14 text-xs border border-brand-300 rounded-lg px-2 py-0.5 text-center focus:outline-none focus:ring-1 focus:ring-brand-400"
-                                autoFocus
-                                onKeyDown={e => { if (e.key === 'Enter') commitTarget(k.id); if (e.key === 'Escape') setEditingTarget(null); }}
-                              />
-                              <span className="text-xs text-gray-500">días</span>
-                              <button onClick={() => commitTarget(k.id)} className="text-xs text-brand-600 font-medium hover:text-brand-700">✓</button>
+                        <div className="mt-2 space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">Objetivo:</span>
+                            {isEditingThis ? (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="number" min={1} max={7}
+                                  value={targetInput}
+                                  onChange={e => setTargetInput(e.target.value)}
+                                  className="w-14 text-xs border border-brand-300 rounded-lg px-2 py-0.5 text-center focus:outline-none focus:ring-1 focus:ring-brand-400"
+                                  autoFocus
+                                  onKeyDown={e => { if (e.key === 'Enter') commitTarget(k.id); if (e.key === 'Escape') setEditingTarget(null); }}
+                                />
+                                <span className="text-xs text-gray-500">días</span>
+                                <button onClick={() => commitTarget(k.id)} className="text-xs text-brand-600 font-medium hover:text-brand-700">✓</button>
+                              </div>
+                            ) : (
+                              <button onClick={() => { setEditingTarget(k.id); setTargetInput(String(currentTarget)); }} className="text-xs text-brand-600 font-medium hover:underline">
+                                {currentTarget} días
+                              </button>
+                            )}
+                          </div>
+                          {isEditingCard ? (
+                            <div className="flex gap-1">
+                              {['mínimo', 'máximo', 'exacto'].map(q => (
+                                <button
+                                  key={q} type="button"
+                                  onClick={() => { updateCustomKPI(k.id, { quality: q }); setEditingCustomId(null); }}
+                                  className={`flex-1 text-xs py-1 rounded-lg border transition-colors ${currentQuality === q ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300'}`}
+                                >
+                                  {q === 'mínimo' ? '≥ mín' : q === 'máximo' ? '≤ máx' : '= exacto'}
+                                </button>
+                              ))}
                             </div>
                           ) : (
-                            <button onClick={() => { setEditingTarget(k.id); setTargetInput(String(currentTarget)); }} className="text-xs text-brand-600 font-medium hover:underline">
-                              {currentTarget} días
+                            <button onClick={() => setEditingCustomId(k.id)} className="text-xs text-gray-400 hover:text-brand-600 transition-colors">
+                              tipo: {currentQuality === 'mínimo' ? '≥ mínimo' : currentQuality === 'máximo' ? '≤ máximo' : '= exacto'} ✎
                             </button>
                           )}
                         </div>
@@ -612,10 +712,24 @@ function KPILibrary({ config, onSave, onClose }) {
                 <label className="text-xs text-gray-500 mb-1 block">Buscar en menú</label>
                 <input
                   type="text" value={customQuery} onChange={e => setCustomQuery(e.target.value)}
-                  placeholder="Ej: aguacate"
+                  placeholder="Ej: salmón, atún, sardina"
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white"
                 />
-                <p className="text-xs text-gray-400 mt-1">Cuenta los días en que este alimento aparece en el menú</p>
+                <p className="text-xs text-gray-400 mt-1">Palabras clave separadas por coma: ej. salmón, atún, sardina</p>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Tipo de objetivo</label>
+                <div className="flex gap-1">
+                  {['mínimo', 'máximo', 'exacto'].map(q => (
+                    <button
+                      key={q} type="button"
+                      onClick={() => setCustomQuality(q)}
+                      className={`flex-1 text-xs py-1.5 rounded-lg border transition-colors ${customQuality === q ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300'}`}
+                    >
+                      {q === 'mínimo' ? '≥ mínimo' : q === 'máximo' ? '≤ máximo' : '= exacto'}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Objetivo (días/semana)</label>

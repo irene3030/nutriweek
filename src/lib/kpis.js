@@ -122,16 +122,16 @@ function getDistinctVeggies(days) {
   return [...veggies];
 }
 
-/** Count days where at least one meal text contains the query (case-insensitive) */
+/** Count days where at least one meal text contains any of the query terms (comma-separated OR logic) */
 function countDaysWithText(days, query) {
-  const q = query.toLowerCase().trim();
-  if (!q) return 0;
+  const terms = query.split(',').map(t => t.toLowerCase().trim()).filter(Boolean);
+  if (!terms.length) return 0;
   let count = 0;
   for (const day of days) {
     if (!day.meals) continue;
     const found = day.meals.some((meal) => {
       const text = `${meal.baby || ''} ${meal.adult || ''}`.toLowerCase();
-      return text.includes(q);
+      return terms.some(t => text.includes(t));
     });
     if (found) count++;
   }
@@ -192,7 +192,7 @@ function detectConsecutiveProteinAlert(days) {
 function getDayKPIs(day) {
   if (!day.meals) return { hasIron: false, hasFish: false, veggies: [] };
   const hasIron = day.meals.some((m) => m.tags && m.tags.includes('iron'));
-  const hasFish = day.meals.some((m) => m.tags && m.tags.includes('fish'));
+  const hasFish = day.meals.some((m) => m.tags && m.tags.includes('oily_fish'));
   const veggies = new Set();
   for (const meal of day.meals) {
     if (!meal.tags) continue;
@@ -235,7 +235,7 @@ export function calculateKPIs(weekDoc, customKPIs = []) {
 
   return {
     ironDays: countDaysWithTag(days, 'iron'),
-    fishDays: countDaysWithTag(days, 'fish'),
+    fishDays: countDaysWithTag(days, 'oily_fish'),
     legumedDays: countDaysWithTag(days, 'legume'),
     fruitDays: countDaysWithTag(days, 'fruit'),
     distinctVeggies: countDistinctVeggies(days),

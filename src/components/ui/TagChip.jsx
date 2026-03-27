@@ -1,6 +1,7 @@
 const TAG_CONFIG = {
   iron: { label: 'Hierro', color: 'bg-orange-100 text-orange-700 border-orange-200' },
   fish: { label: 'Pescado', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  oily_fish: { label: 'Pesc. graso', color: 'bg-blue-200 text-blue-800 border-blue-300' },
   legume: { label: 'Legumbre', color: 'bg-green-100 text-green-700 border-green-200' },
   egg: { label: 'Huevo', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
   dairy: { label: 'Lácteo', color: 'bg-sky-100 text-sky-700 border-sky-200' },
@@ -44,5 +45,5 @@ export default function TagChip({ tag, onRemove, small = false }) {
   );
 }
 
-export const ALL_TAGS = ['iron', 'fish', 'legume', 'egg', 'dairy', 'fruit', 'cereal'];
+export const ALL_TAGS = ['iron', 'oily_fish', 'fish', 'legume', 'egg', 'dairy', 'fruit', 'cereal'];
 export { getTagConfig, TAG_CONFIG };
