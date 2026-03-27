@@ -196,11 +196,14 @@ El alternativo debe ser de la misma categoría nutricional (${safeCategory}), f�
 Devuelve SOLO este JSON: { "alternative": "nombre del ingrediente" }`;
 
     } else if (type === 'generate_week') {
-      const { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, kpiOverrides, season } = payload;
+      const { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, kpiOverrides, season, vetoedIngredients } = payload;
 
       const safeIngredients = sanitize(availableIngredients, 300);
       const safeRequired = Array.isArray(requiredIngredients)
         ? requiredIngredients.map(i => sanitize(i, 100)).filter(Boolean)
+        : [];
+      const safeVetoed = Array.isArray(vetoedIngredients)
+        ? vetoedIngredients.map(v => sanitize(typeof v === 'string' ? v : v?.name, 100)).filter(Boolean)
         : [];
       const safeFixedMeals = Array.isArray(fixedMeals)
         ? fixedMeals.map(m => ({
@@ -277,8 +280,12 @@ Devuelve SOLO este JSON: { "alternative": "nombre del ingrediente" }`;
         return lines.length > 0 ? `\nObjetivos nutricionales para esta semana (respétalos):\n${lines.join('\n')}` : '';
       })();
 
+      const vetoedSection = safeVetoed.length > 0
+        ? `\nIngredientes PROHIBIDOS (NO los uses bajo ningún concepto en ninguna comida): ${safeVetoed.join(', ')}`
+        : '';
+
       userMessage = `Genera un menú completo para 7 días.
-${ingredientsSection}${recurringSection}${fixedSection}${slotsSection}${seasonSection}${kpiSection}
+${ingredientsSection}${recurringSection}${fixedSection}${slotsSection}${seasonSection}${kpiSection}${vetoedSection}
 
 Historial de alimentos últimas semanas: ${foodHistory ? JSON.stringify(foodHistory).slice(0, 1000) : 'sin historial'}
 
