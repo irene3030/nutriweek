@@ -98,6 +98,52 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
 
   const handleDiscard = () => { setFixing(null); setFixes(null); setError(null); };
 
+  // Compute KPI impact of a single fix vs the original meal
+  const computeFixImpact = (fix) => {
+    const originalDay = weekDoc?.days?.find(d => d.day === fix.day);
+    const originalMeal = originalDay?.meals?.find(m => m.tipo === fix.tipo);
+    if (!originalMeal) return { impacts: [], originalText: null };
+
+    const origTags = originalMeal.tags || [];
+    const newTags = fix.tags || [];
+    const impacts = [];
+
+    const TAG_KPI = [
+      { tag: 'iron',   id: 'iron',   icon: '🩸' },
+      { tag: 'fish',   id: 'fish',   icon: '🐟' },
+      { tag: 'legume', id: 'legume', icon: '🟢' },
+      { tag: 'fruit',  id: 'fruit',  icon: '🍎' },
+    ];
+    for (const { tag, id, icon } of TAG_KPI) {
+      if (!config.active.includes(id)) continue;
+      const had = origTags.includes(tag);
+      const has = newTags.includes(tag);
+      if (had && !has) impacts.push({ icon, delta: -1 });
+      if (!had && has) impacts.push({ icon, delta: +1 });
+    }
+
+    if (config.active.includes('veggie')) {
+      const origVeggies = new Set(origTags.filter(t => t.startsWith('veggie:')).map(t => t.split(':')[1]));
+      const newVeggies  = new Set(newTags.filter(t => t.startsWith('veggie:')).map(t => t.split(':')[1]));
+      const weekVeggies = new Set(kpis.veggieList);
+      let delta = 0;
+      for (const v of newVeggies)  if (!origVeggies.has(v) && !weekVeggies.has(v)) delta++;
+      for (const v of origVeggies) if (!newVeggies.has(v)) delta--;
+      if (delta !== 0) impacts.push({ icon: '🥦', delta });
+    }
+
+    for (const k of config.custom) {
+      if (!config.active.includes(k.id)) continue;
+      const q = k.query.toLowerCase().trim();
+      const had = (originalMeal.baby || '').toLowerCase().includes(q);
+      const has = (fix.baby || '').toLowerCase().includes(q);
+      if (had && !has) impacts.push({ icon: '⭐', delta: -1 });
+      if (!had && has) impacts.push({ icon: '⭐', delta: +1 });
+    }
+
+    return { impacts, originalText: originalMeal.baby || null };
+  };
+
   // Build the ordered list of active KPI pills to render
   const activeCatalogKPIs = KPI_CATALOG.filter(k => config.active.includes(k.id));
   const activeCustomKPIs = config.custom.filter(k => config.active.includes(k.id));
@@ -259,12 +305,27 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
                 {fixes.length === 1 ? 'Cambio propuesto:' : `${fixes.length} cambios propuestos:`}
               </p>
               <ul className="space-y-2">
-                {fixes.map((fix, i) => (
-                  <li key={i} className="text-xs bg-brand-50 border border-brand-100 rounded-lg px-3 py-2">
-                    <span className="font-semibold text-brand-700">{fix.day} · {MEAL_LABELS[fix.tipo] || fix.tipo}</span>
-                    <p className="text-gray-700 mt-0.5 leading-snug">{fix.baby}</p>
-                  </li>
-                ))}
+                {fixes.map((fix, i) => {
+                  const { impacts, originalText } = computeFixImpact(fix);
+                  return (
+                    <li key={i} className="text-xs bg-brand-50 border border-brand-100 rounded-lg px-3 py-2 space-y-1">
+                      <span className="font-semibold text-brand-700">{fix.day} · {MEAL_LABELS[fix.tipo] || fix.tipo}</span>
+                      {originalText && (
+                        <p className="text-gray-400 line-through leading-snug">{originalText}</p>
+                      )}
+                      <p className="text-gray-700 leading-snug">→ {fix.baby}</p>
+                      {impacts.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-0.5">
+                          {impacts.map((imp, j) => (
+                            <span key={j} className={`font-medium px-1.5 py-0.5 rounded ${imp.delta > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {imp.icon} {imp.delta > 0 ? '+1' : '-1'}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
               <div className="flex gap-2">
                 <button onClick={handleDiscard} className="flex-1 border border-gray-300 text-gray-600 rounded-lg py-1.5 text-xs hover:bg-gray-50 transition-colors">
