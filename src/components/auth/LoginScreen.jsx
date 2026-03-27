@@ -29,9 +29,9 @@ export default function LoginScreen() {
         {/* Logo */}
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-brand-600 rounded-2xl shadow-lg mb-4">
-            <span className="text-4xl">🥦</span>
+            <span className="text-4xl">🥄</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">NutriWeek</h1>
+          <h1 className="text-3xl font-bold text-gray-900">MealOps</h1>
           <p className="text-gray-500 mt-2 text-sm">Planificador de alimentación BLW</p>
         </div>
 

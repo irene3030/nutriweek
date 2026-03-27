@@ -50,8 +50,8 @@ export default function WeekHeader({
         {/* Top row: logo + actions */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🥦</span>
-            <span className="font-bold text-brand-700 text-lg">NutriWeek</span>
+            <span className="text-xl">🥄</span>
+            <span className="font-bold text-brand-700 text-lg">MealOps</span>
             {saving && (
               <span className="text-xs text-gray-400 flex items-center gap-1">
                 <div className="w-3 h-3 border border-gray-300 border-t-gray-500 rounded-full animate-spin" />

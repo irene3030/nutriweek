@@ -10,8 +10,8 @@ export default defineConfig({
       strategies: 'generateSW',
       includeAssets: ['favicon.svg', 'icons/*.png'],
       manifest: {
-        name: 'NutriWeek',
-        short_name: 'NutriWeek',
+        name: 'MealOps',
+        short_name: 'MealOps',
         description: 'Planificador semanal de alimentación BLW para bebés y familia',
         theme_color: '#16a34a',
         background_color: '#f2f1f0',
@@ -47,7 +47,7 @@ export default defineConfig({
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'nutriweek-fonts-stylesheets',
+              cacheName: 'mealops-fonts-stylesheets',
               expiration: { maxEntries: 5, maxAgeSeconds: 60 * 60 * 24 * 365 },
             },
           },
@@ -56,7 +56,7 @@ export default defineConfig({
             urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'nutriweek-fonts-webfonts',
+              cacheName: 'mealops-fonts-webfonts',
               cacheableResponse: { statuses: [0, 200] },
               expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
             },
@@ -66,7 +66,7 @@ export default defineConfig({
             urlPattern: /\/\.netlify\/functions\//i,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'nutriweek-api',
+              cacheName: 'mealops-api',
               networkTimeoutSeconds: 10,
               expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 },
               cacheableResponse: { statuses: [200] },
