@@ -111,6 +111,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
   const [recurringMeals, setRecurringMeals] = useState([]); // string[]
   const [recurringInput, setRecurringInput] = useState('');
   const [mealSlots, setMealSlots] = useState(DEFAULT_SLOTS);
+  const [includeWeekend, setIncludeWeekend] = useState(true);
 
   // Ingredient review state
   const [ingredientsList, setIngredientsList] = useState([]); // [{id, name, category, reason, removed, customName, editing, altLoading}]
@@ -174,7 +175,11 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
         requiredIngredients,
         apiKey,
       });
-      setProposedWeek(enforceSlots(result, mealSlots));
+      let proposed = enforceSlots(result, mealSlots);
+      if (!includeWeekend) {
+        proposed = { ...proposed, days: proposed.days.filter(d => !['Sáb', 'Dom'].includes(d.day)) };
+      }
+      setProposedWeek(proposed);
       setStep('preview');
       track('menu_generated', {
         method: requiredIngredients ? 'ingredient_review' : 'direct',
@@ -321,6 +326,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
     setRecurringMeals([]);
     setRecurringInput('');
     setMealSlots(DEFAULT_SLOTS);
+    setIncludeWeekend(true);
     onClose();
   };
 
@@ -412,6 +418,17 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
               ))}
             </div>
           </div>
+
+          {/* Incluir fin de semana */}
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={includeWeekend}
+              onChange={e => setIncludeWeekend(e.target.checked)}
+              className="w-4 h-4 rounded accent-brand-600"
+            />
+            <span className="text-sm text-gray-700">Incluir fin de semana (sáb y dom)</span>
+          </label>
 
           {/* Fixed meals & recurring */}
           <div className="border border-gray-200 rounded-xl overflow-hidden">
@@ -583,7 +600,12 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
           <button
             disabled={isDuplicate}
             onClick={() => {
-              onSave(mondayDate, weekLabel, null);
+              const activeDays = includeWeekend ? DAYS : DAYS.slice(0, 5);
+              const emptyDaysData = activeDays.map(day => ({
+                day,
+                meals: MEAL_TYPES.map(tipo => ({ tipo, baby: '', adult: '', tags: [], track: null })),
+              }));
+              onSave(mondayDate, weekLabel, emptyDaysData);
               handleClose();
             }}
             className="w-full text-sm text-gray-500 hover:text-gray-700 transition-colors py-1 disabled:opacity-40 disabled:cursor-not-allowed"

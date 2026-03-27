@@ -97,8 +97,34 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
   const activeCatalogKPIs = KPI_CATALOG.filter(k => config.active.includes(k.id));
   const activeCustomKPIs = config.custom.filter(k => config.active.includes(k.id));
 
+  // Tooltip detail content for each KPI
+  const ironDetail = (weekDoc?.days || []).flatMap(d =>
+    (d.meals || []).filter(m => m.baby && m.tags?.includes('iron')).map(m => `${d.day} · ${MEAL_LABELS[m.tipo]}`)
+  ).join('\n') || null;
+  const fishDetail = (weekDoc?.days || []).flatMap(d =>
+    (d.meals || []).filter(m => m.baby && m.tags?.includes('fish')).map(m => `${d.day} · ${MEAL_LABELS[m.tipo]}`)
+  ).join('\n') || null;
+  const legumeDetail = (weekDoc?.days || []).flatMap(d =>
+    (d.meals || []).filter(m => m.baby && m.tags?.includes('legume')).map(m => `${d.day} · ${MEAL_LABELS[m.tipo]}`)
+  ).join('\n') || null;
+  const veggieDetail = kpis.veggieList.length > 0 ? kpis.veggieList.join(', ') : null;
+
   return (
     <div className="px-4 py-3 space-y-2">
+      {/* Title */}
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">KPIs nutricionales</span>
+        <div className="relative group">
+          <svg className="w-3.5 h-3.5 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div className="absolute bottom-full left-0 mb-1.5 px-2 py-1.5 bg-gray-800 text-white text-xs rounded-lg w-56 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
+            Los targets se adaptan automáticamente a las franjas activas del menú
+            <div className="absolute top-full left-3 border-4 border-transparent border-t-gray-800" />
+          </div>
+        </div>
+      </div>
+
       {/* KPI Pills */}
       <div data-tour="kpi-pills" className="flex flex-wrap gap-2 items-center">
         {activeCatalogKPIs.map(k => {
@@ -108,6 +134,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
               status={ironStatus} statusColors={statusColors}
               disabled={ironStatus === null}
               disabledTooltip="Solo aplica cuando el menú tiene comidas principales (comida o cena)"
+              tooltip={ironDetail}
               onFix={hasAiAccess && ironStatus !== null ? () => handleFix('iron') : null}
               fixing={fixing === 'iron'} loading={loading && fixing === 'iron'}
             />
@@ -118,6 +145,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
               status={fishStatus} statusColors={statusColors}
               disabled={fishStatus === null}
               disabledTooltip="Solo aplica cuando el menú tiene comidas principales (comida o cena)"
+              tooltip={fishDetail}
               onFix={hasAiAccess && fishStatus !== null ? () => handleFix('fish') : null}
               fixing={fixing === 'fish'} loading={loading && fixing === 'fish'}
             />
@@ -126,6 +154,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
             <KPIPill key="veggie"
               icon="🥦" label="Verduras" value={`${kpis.distinctVeggies} distintas`} target={`≥${veggieTarget} tipos`}
               status={veggieStatus} statusColors={statusColors}
+              tooltip={veggieDetail}
               onFix={hasAiAccess ? () => handleFix('veggie') : null}
               fixing={fixing === 'veggie'} loading={loading && fixing === 'veggie'}
             />
@@ -134,6 +163,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
             <KPIPill key="legume"
               icon="🟢" label="Legumbres" value={`${kpis.legumedDays}/${legumeTarget}`} target={`≥${legumeTarget} días`}
               status={legumeStatus} statusColors={statusColors}
+              tooltip={legumeDetail}
               onFix={hasAiAccess ? () => handleFix('legume') : null}
               fixing={fixing === 'legume'} loading={loading && fixing === 'legume'}
             />
@@ -184,18 +214,6 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
           </button>
         )}
       </div>
-
-      {isAdapted && (
-        <p className="text-xs text-gray-400">ℹ️ Targets adaptados a las franjas activas de este menú</p>
-      )}
-
-      {/* Veggie list */}
-      {config.active.includes('veggie') && kpis.veggieList.length > 0 && (
-        <div className="text-xs text-gray-500">
-          <span className="font-medium">Verduras esta semana: </span>
-          {kpis.veggieList.join(', ')}
-        </div>
-      )}
 
       {/* Protein rotation alerts (when KPI active) */}
       {config.active.includes('protein_rotation') && kpis.consecutiveAlerts.length > 0 && (
@@ -268,7 +286,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
 
 // ─── KPI Pill ───────────────────────────────────────────────────────────────
 
-function KPIPill({ icon, label, value, target, status, statusColors, onFix, fixing, loading, disabled, disabledTooltip }) {
+function KPIPill({ icon, label, value, target, status, statusColors, onFix, fixing, loading, disabled, disabledTooltip, tooltip }) {
   if (disabled) {
     return (
       <div className="relative group">
@@ -287,19 +305,27 @@ function KPIPill({ icon, label, value, target, status, statusColors, onFix, fixi
   }
   const canFix = onFix && status !== 'good';
   return (
-    <div className={`flex items-center gap-1.5 border rounded-full px-3 py-1.5 ${statusColors[status]}`}>
-      <span className="text-sm">{icon}</span>
-      <span className="text-xs font-semibold">{label}</span>
-      <span className="text-xs font-bold">{value}</span>
-      <span className="text-xs opacity-60">({target})</span>
-      {canFix && (
-        <button
-          onClick={onFix}
-          className={`ml-0.5 text-xs transition-opacity ${fixing ? 'opacity-60' : 'hover:opacity-80'}`}
-          title="Corregir con IA"
-        >
-          {loading ? '...' : fixing ? '✕' : '✨'}
-        </button>
+    <div className="relative group">
+      <div className={`flex items-center gap-1.5 border rounded-full px-3 py-1.5 ${statusColors[status]}`}>
+        <span className="text-sm">{icon}</span>
+        <span className="text-xs font-semibold">{label}</span>
+        <span className="text-xs font-bold">{value}</span>
+        <span className="text-xs opacity-60">({target})</span>
+        {canFix && (
+          <button
+            onClick={onFix}
+            className={`ml-0.5 text-xs transition-opacity ${fixing ? 'opacity-60' : 'hover:opacity-80'}`}
+            title="Corregir con IA"
+          >
+            {loading ? '...' : fixing ? '✕' : '✨'}
+          </button>
+        )}
+      </div>
+      {tooltip && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10 whitespace-pre-wrap text-left" style={{ minWidth: '100px', maxWidth: '200px' }}>
+          {tooltip}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+        </div>
       )}
     </div>
   );

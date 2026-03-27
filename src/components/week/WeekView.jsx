@@ -6,6 +6,7 @@ import BatchCooking from './BatchCooking';
 import NewWeekModal from './NewWeekModal';
 import QuickMealModal from './QuickMealModal';
 import LoadingSpinner from '../ui/LoadingSpinner';
+import ShoppingList from '../shopping/ShoppingList';
 
 const DAY_ORDER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
@@ -37,11 +38,13 @@ export default function WeekView({
   usualMeals,
   apiKey,
   hasAiAccess,
+  householdId,
   kpiConfig,
   onUpdateKpiConfig,
 }) {
   const [showNewWeekModal, setShowNewWeekModal] = useState(false);
   const [showQuickMeal, setShowQuickMeal] = useState(false);
+  const [showShopping, setShowShopping] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [exportSimple, setExportSimple] = useState(true);
   const [exportCopied, setExportCopied] = useState(false);
@@ -156,6 +159,28 @@ export default function WeekView({
               hasAiAccess={hasAiAccess}
               onUpdate={(items) => onUpdateBatchCooking(currentWeek.id, items)}
             />
+
+            <div className="px-4 pb-4">
+              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                <button
+                  onClick={() => setShowShopping(v => !v)}
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🛒</span>
+                    <span className="text-sm font-semibold text-gray-800">Lista de la compra</span>
+                  </div>
+                  <svg className={`w-4 h-4 text-gray-400 transition-transform ${showShopping ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showShopping && (
+                  <div className="border-t border-gray-100">
+                    <ShoppingList weekDoc={currentWeek} householdId={householdId} />
+                  </div>
+                )}
+              </div>
+            </div>
           </>
         ) : (
           <div className="flex flex-col items-center justify-center py-24 px-6 text-center">

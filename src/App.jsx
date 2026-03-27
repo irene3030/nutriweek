@@ -7,8 +7,6 @@ import LoginScreen from './components/auth/LoginScreen';
 import OnboardingScreen from './components/auth/OnboardingScreen';
 import WeekView from './components/week/WeekView';
 import DayView from './components/day/DayView';
-import ShoppingList from './components/shopping/ShoppingList';
-import RecipeSearch from './components/recipes/RecipeSearch';
 import UsualMeals from './components/recipes/UsualMeals';
 import { FullPageSpinner } from './components/ui/LoadingSpinner';
 import InstallBanner from './components/ui/InstallBanner';
@@ -64,7 +62,7 @@ function AppContent() {
   const [foodHistory, setFoodHistory] = useState([]);
   const [householdApiKey, setHouseholdApiKey] = useState(null);
   const [householdDoc, setHouseholdDoc] = useState(null);
-  const [recipesTab, setRecipesTab] = useState('recipes'); // 'recipes' | 'usual'
+  const [recipesTab, setRecipesTab] = useState('usual');
   const [showTour, setShowTour] = useState(false);
 
   const {
@@ -247,7 +245,7 @@ function AppContent() {
   };
 
   // Render loading state
-  if (auth.loading) return <FullPageSpinner label="Iniciando NutriWeek..." />;
+  if (auth.loading) return <FullPageSpinner label="Iniciando MealOps..." />;
 
   // Render login if not authenticated
   if (!auth.user) return <LoginScreen />;
@@ -285,61 +283,29 @@ function AppContent() {
                 !!householdApiKey ||
                 (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)
               }
+              householdId={auth.userDoc?.householdId}
               kpiConfig={householdDoc?.kpiConfig}
               onUpdateKpiConfig={handleUpdateKpiConfig}
             />
           )}
 
-          {activeTab === 'shopping' && (
-            <div className="min-h-screen bg-gray-50">
-              <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-                <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-2">
-                  <span className="text-xl">🛒</span>
-                  <h1 className="text-lg font-bold text-gray-900">Lista de la compra</h1>
-                </div>
-              </header>
-              <ShoppingList
-                weekDoc={currentWeek}
-                householdId={auth.userDoc?.householdId}
-              />
-            </div>
-          )}
-
           {activeTab === 'recipes' && (
             <div className="min-h-screen bg-gray-50">
               <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-                <div className="max-w-2xl mx-auto px-4 py-3">
-                  <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
-                    {[
-                      { id: 'usual', label: '⭐ Habituales' },
-                      { id: 'recipes', label: '📖 Recetas' },
-                    ].map(t => (
-                      <button
-                        key={t.id}
-                        onClick={() => setRecipesTab(t.id)}
-                        className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                          recipesTab === t.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
+                <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-2">
+                  <span className="text-xl">⭐</span>
+                  <h1 className="text-lg font-bold text-gray-900">Comidas habituales</h1>
                 </div>
               </header>
               <div className="max-w-2xl mx-auto px-4 py-4">
-                {recipesTab === 'usual' ? (
-                  <UsualMeals
-                    householdId={auth.userDoc?.householdId}
-                    apiKey={householdApiKey}
-                    hasAiAccess={
-                      !!householdApiKey ||
-                      (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)
-                    }
-                  />
-                ) : (
-                  <RecipeSearch householdId={auth.userDoc?.householdId} onSelect={null} />
-                )}
+                <UsualMeals
+                  householdId={auth.userDoc?.householdId}
+                  apiKey={householdApiKey}
+                  hasAiAccess={
+                    !!householdApiKey ||
+                    (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)
+                  }
+                />
               </div>
             </div>
           )}
@@ -397,9 +363,8 @@ function AppContent() {
           <div className="max-w-lg mx-auto flex">
             {[
               { id: 'week', label: 'Semana', tour: 'tab-week' },
-              { id: 'shopping', label: 'Compra' },
-              { id: 'recipes', label: 'Recetas', tour: 'tab-recipes' },
               { id: 'day', label: 'Día' },
+              { id: 'recipes', label: 'Comidas', tour: 'tab-recipes' },
               { id: 'profile', label: 'Perfil', tour: 'tab-profile' },
             ].map((tab) => (
               <button
@@ -724,9 +689,9 @@ function ProfileTab({ auth, householdDoc }) {
 
         {/* App info */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
-          <h3 className="font-semibold text-gray-800 mb-3">Sobre NutriWeek</h3>
+          <h3 className="font-semibold text-gray-800 mb-3">Sobre MealOps</h3>
           <div className="space-y-1 text-sm text-gray-500">
-            <p>🥦 Planificador BLW para bebés ~12 meses</p>
+            <p>🥄 Planificador BLW para bebés ~12 meses</p>
             <p>🤖 Generación de menús con Claude AI</p>
             <p>📊 KPIs nutricionales automáticos</p>
             <p>🛒 Lista de la compra integrada</p>
