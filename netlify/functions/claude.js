@@ -495,6 +495,7 @@ IMPORTANTE:
 - Solo incluye preparaciones que requieren cocción u otra técnica activa (cocer, hornear, saltear, preparar masa, etc.). NO incluyas alimentos que se consumen directamente sin preparar (yogur, fruta fresca entera, queso, pan de molde, leche, etc.).
 - En el campo "days" indica el array de días de la semana (Lun, Mar, Mié, Jue, Vie, Sáb, Dom) en que se usará esa preparación.
 - En el campo "text" NO menciones los días; solo la tarea y cantidad aproximada.
+- En el campo "days_fresh" indica cuántos días aguanta la preparación en nevera (número entero, ej: lentejas cocidas=4, pollo horneado=3, arroz cocido=3, verdura salteada=3, pescado=2, masa/rebozado=1).
 
 Devuelve SOLO este JSON:
 {"sections": [
@@ -503,8 +504,8 @@ Devuelve SOLO este JSON:
     "emoji": "🟢",
     "title": "Legumbres",
     "tasks": [
-      {"id": "t1", "text": "Cocer lentejas (200g)", "days": ["Lun", "Jue"]},
-      {"id": "t2", "text": "Cocer garbanzos (150g)", "days": ["Mié"]}
+      {"id": "t1", "text": "Cocer lentejas (200g)", "days": ["Lun", "Jue"], "days_fresh": 4},
+      {"id": "t2", "text": "Cocer garbanzos (150g)", "days": ["Mié"], "days_fresh": 4}
     ]
   },
   ...
@@ -541,6 +542,7 @@ INSTRUCCIONES:
 4. Solo incluye preparaciones que requieren técnica activa (cocer, hornear, saltear, preparar masa…). NO incluyas alimentos que se consumen sin preparar (yogur, fruta, queso, etc.).
 5. En "days" indica los días en que se usará cada preparación.
 6. Etiqueta cada pack por técnica: 🔥 Fuego, 🫙 Horno, 🔪 Prep (cortar/triturar), ❄️ En frío.
+7. En el campo "days_fresh" de cada tarea indica cuántos días aguanta en nevera (ej: lentejas cocidas=4, pollo horneado=3, arroz cocido=3, verdura salteada=3, pescado=2, masa/rebozado=1).
 
 Devuelve SOLO este JSON:
 {"sessions": [
@@ -554,8 +556,8 @@ Devuelve SOLO este JSON:
         "label": "🔥 Fuego",
         "parallel": false,
         "tasks": [
-          {"id": "t1", "text": "Cocer lentejas (200g)", "time": 20, "days": ["Mié", "Jue"]},
-          {"id": "t2", "text": "Cocer garbanzos (150g)", "time": 25, "days": ["Lun", "Mar"]}
+          {"id": "t1", "text": "Cocer lentejas (200g)", "time": 20, "days": ["Mié", "Jue"], "days_fresh": 4},
+          {"id": "t2", "text": "Cocer garbanzos (150g)", "time": 25, "days": ["Lun", "Mar"], "days_fresh": 4}
         ]
       },
       {
@@ -563,7 +565,7 @@ Devuelve SOLO este JSON:
         "label": "🔪 Mientras tanto: prep",
         "parallel": true,
         "tasks": [
-          {"id": "t3", "text": "Picar y reservar brócoli y zanahoria", "time": 10, "days": ["Lun", "Mar", "Mié"]}
+          {"id": "t3", "text": "Picar y reservar brócoli y zanahoria", "time": 10, "days": ["Lun", "Mar", "Mié"], "days_fresh": 3}
         ]
       }
     ]
