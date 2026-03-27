@@ -357,6 +357,7 @@ function AppContent() {
                   !!householdApiKey ||
                   (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)
                 }
+                kpiConfig={householdDoc?.kpiConfig}
                 onBack={handleBackFromDay}
                 onSaveMeal={(weekId, dIdx, mIdx, data) => updateMeal(weekId, dIdx, mIdx, data)}
                 onTrackMeal={(weekId, dIdx, mIdx, trackData) => trackMeal(weekId, dIdx, mIdx, trackData)}

@@ -1,31 +1,66 @@
-import { useState, useCallback } from 'react';
 import { track } from '../../lib/analytics';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragOverlay,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  arrayMove,
-} from '@dnd-kit/sortable';
 import MealSlot from './MealSlot';
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const MEAL_TYPES = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
-const MEAL_LABELS = {
-  desayuno: 'Desayuno',
-  snack: 'Snack AM',
-  comida: 'Comida',
-  merienda: 'Merienda',
-  cena: 'Cena',
+
+const KPI_DAY_META = {
+  iron:   { icon: '🩸', label: 'Hierro' },
+  fish:   { icon: '🐟', label: 'Pescado graso' },
+  legume: { icon: '🟢', label: 'Legumbre' },
+  fruit:  { icon: '🍎', label: 'Fruta' },
+  veggie: { icon: '🥦', label: 'Verduras' },
 };
+
+function computeDayContributions(dayData, kpiConfig) {
+  if (!dayData?.meals || !kpiConfig) return [];
+  const meals = dayData.meals;
+  const active = kpiConfig.active || [];
+  const result = [];
+
+  for (const id of active) {
+    if (id === 'protein_rotation') continue;
+
+    if (id === 'iron') {
+      if (meals.some(m => m.tags?.includes('iron')))
+        result.push({ id, ...KPI_DAY_META.iron, value: '+1' });
+    } else if (id === 'fish') {
+      if (meals.some(m => m.tags?.includes('oily_fish')))
+        result.push({ id, ...KPI_DAY_META.fish, value: '+1' });
+    } else if (id === 'legume') {
+      if (meals.some(m => m.tags?.includes('legume')))
+        result.push({ id, ...KPI_DAY_META.legume, value: '+1' });
+    } else if (id === 'fruit') {
+      if (meals.some(m => m.tags?.includes('fruit')))
+        result.push({ id, ...KPI_DAY_META.fruit, value: '+1' });
+    } else if (id === 'veggie') {
+      const veggies = new Set();
+      for (const m of meals) {
+        for (const tag of (m.tags || [])) {
+          if (tag.startsWith('veggie:')) {
+            const name = tag.split(':')[1];
+            if (name) veggies.add(name.toLowerCase().trim());
+          }
+        }
+      }
+      if (veggies.size > 0)
+        result.push({ id, ...KPI_DAY_META.veggie, value: `+${veggies.size}` });
+    } else {
+      // Custom KPI
+      const custom = (kpiConfig.custom || []).find(k => k.id === id);
+      if (custom) {
+        const terms = custom.query.split(',').map(t => t.toLowerCase().trim()).filter(Boolean);
+        const matched = meals.some(m => {
+          const text = `${m.baby || ''} ${m.adult || ''}`.toLowerCase();
+          return terms.some(t => text.includes(t));
+        });
+        if (matched)
+          result.push({ id, icon: '✨', label: custom.name, value: '+1' });
+      }
+    }
+  }
+  return result;
+}
 
 export default function DayView({
   weekDoc,
@@ -33,38 +68,18 @@ export default function DayView({
   householdId,
   apiKey,
   hasAiAccess,
+  kpiConfig,
   onBack,
   onSaveMeal,
   onTrackMeal,
   onCopyMeal,
   onReorderMeals,
 }) {
-  const [activeId, setActiveId] = useState(null);
-
   const dayData = weekDoc?.days?.[dayIndex];
   const dayName = dayData?.day || DAYS[dayIndex];
   const meals = dayData?.meals || MEAL_TYPES.map((tipo) => ({ tipo, baby: '', tags: [], track: null }));
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-
-  const mealIds = meals.map((m, i) => `${dayName}-${m.tipo}-${i}`);
-
-  const handleDragStart = ({ active }) => setActiveId(active.id);
-
-  const handleDragEnd = ({ active, over }) => {
-    setActiveId(null);
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = mealIds.indexOf(active.id);
-    const newIndex = mealIds.indexOf(over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const reordered = arrayMove(meals, oldIndex, newIndex);
-    onReorderMeals(weekDoc.id, dayIndex, reordered);
-  };
+  const contributions = computeDayContributions(dayData, kpiConfig);
 
   // Navigate between days
   const canGoPrev = dayIndex > 0;
@@ -130,35 +145,38 @@ export default function DayView({
 
       {/* Meal slots */}
       <main className="flex-1 overflow-y-auto px-4 py-4">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext items={mealIds} strategy={verticalListSortingStrategy}>
-            <div className="space-y-3">
-              {meals.map((meal, mealIndex) => (
-                <MealSlot
-                  key={`${dayName}-${meal.tipo}-${mealIndex}`}
-                  id={`${dayName}-${meal.tipo}-${mealIndex}`}
-                  meal={meal}
-                  dayName={dayName}
-                  dayIndex={dayIndex}
-                  mealIndex={mealIndex}
-                  weekId={weekDoc?.id}
-                  weekContext={weekContext}
-                  householdId={householdId}
-                  apiKey={apiKey}
-                  hasAiAccess={hasAiAccess}
-                  onSave={(dIdx, mIdx, data) => onSaveMeal(weekDoc.id, dIdx, mIdx, data)}
-                  onTrack={(dIdx, mIdx, trackData) => onTrackMeal(weekDoc.id, dIdx, mIdx, trackData)}
-                  onCopy={handleCopy}
-                />
+        <div className="space-y-3">
+          {meals.map((meal, mealIndex) => (
+            <MealSlot
+              key={`${dayName}-${meal.tipo}-${mealIndex}`}
+              meal={meal}
+              dayName={dayName}
+              dayIndex={dayIndex}
+              mealIndex={mealIndex}
+              weekId={weekDoc?.id}
+              weekContext={weekContext}
+              householdId={householdId}
+              apiKey={apiKey}
+              hasAiAccess={hasAiAccess}
+              onSave={(dIdx, mIdx, data) => onSaveMeal(weekDoc.id, dIdx, mIdx, data)}
+              onTrack={(dIdx, mIdx, trackData) => onTrackMeal(weekDoc.id, dIdx, mIdx, trackData)}
+              onCopy={handleCopy}
+            />
+          ))}
+        </div>
+
+        {contributions.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-gray-100">
+            <p className="text-xs text-gray-400 mb-2">Contribución de hoy</p>
+            <div className="flex flex-wrap gap-1.5">
+              {contributions.map(c => (
+                <span key={c.id} className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-100">
+                  {c.icon} {c.value} {c.label}
+                </span>
               ))}
             </div>
-          </SortableContext>
-        </DndContext>
+          </div>
+        )}
       </main>
     </div>
   );
