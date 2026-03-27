@@ -250,9 +250,13 @@ function AppContent() {
     const dayIdx = currentWeek.days.findIndex(d => d.day === dayName);
     if (dayIdx === -1) return;
     const day = currentWeek.days[dayIdx];
-    const mealIdx = day.meals?.findIndex(m => m.tipo === tipo);
-    if (mealIdx === undefined || mealIdx === -1) return;
-    updateMeal(currentWeek.id, dayIdx, mealIdx, mealData);
+    const mealIdx = day.meals?.findIndex(m => m.tipo === tipo) ?? -1;
+    if (mealIdx !== -1) {
+      updateMeal(currentWeek.id, dayIdx, mealIdx, mealData);
+    } else {
+      const newMeals = [...(day.meals || []), { tipo, ...mealData }];
+      updateDayMeals(currentWeek.id, dayIdx, newMeals);
+    }
   };
 
   // Render loading state
