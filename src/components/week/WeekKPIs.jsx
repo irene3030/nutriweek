@@ -447,7 +447,7 @@ function KPILibrary({ config, onSave, onClose }) {
                   </div>
                   <button
                     onClick={() => toggleKPI(k.id)}
-                    className={`shrink-0 w-10 h-6 rounded-full transition-colors relative ${isActive ? 'bg-brand-600' : 'bg-gray-200'}`}
+                    className={`shrink-0 w-10 h-6 rounded-full transition-colors relative overflow-hidden ${isActive ? 'bg-brand-600' : 'bg-gray-200'}`}
                     aria-label={isActive ? 'Desactivar' : 'Activar'}
                   >
                     <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${isActive ? 'translate-x-5' : 'translate-x-1'}`} />
@@ -498,7 +498,7 @@ function KPILibrary({ config, onSave, onClose }) {
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => toggleKPI(k.id)}
-                        className={`w-10 h-6 rounded-full transition-colors relative ${isActive ? 'bg-brand-600' : 'bg-gray-200'}`}
+                        className={`w-10 h-6 rounded-full transition-colors relative overflow-hidden ${isActive ? 'bg-brand-600' : 'bg-gray-200'}`}
                       >
                         <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${isActive ? 'translate-x-5' : 'translate-x-1'}`} />
                       </button>
