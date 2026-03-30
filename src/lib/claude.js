@@ -29,8 +29,8 @@ async function callClaude(type, payload, apiKey) {
   return data.result;
 }
 
-export async function generateWeekMenu({ availableIngredients = '', fixedMeals = [], recurringMeals = [], mealSlots = null, foodHistory = [], savedRecipes = [], requiredIngredients = null, apiKey } = {}) {
-  return callClaude('generate_week', { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients }, apiKey);
+export async function generateWeekMenu({ availableIngredients = '', fixedMeals = [], recurringMeals = [], mealSlots = null, foodHistory = [], savedRecipes = [], requiredIngredients = null, babyProfile = null, apiKey } = {}) {
+  return callClaude('generate_week', { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, babyProfile }, apiKey);
 }
 
 export async function suggestIngredients({ foodHistory = [], availableIngredients = '', mealSlots = null, apiKey } = {}) {

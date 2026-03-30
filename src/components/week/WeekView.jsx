@@ -41,6 +41,7 @@ export default function WeekView({
   householdId,
   kpiConfig,
   onUpdateKpiConfig,
+  babyProfile,
 }) {
   const [showNewWeekModal, setShowNewWeekModal] = useState(false);
   const [showQuickMeal, setShowQuickMeal] = useState(false);
@@ -212,6 +213,7 @@ export default function WeekView({
         apiKey={apiKey}
         hasAiAccess={hasAiAccess}
         kpiConfig={kpiConfig}
+        babyProfile={babyProfile}
       />
       <QuickMealModal
         isOpen={showQuickMeal}

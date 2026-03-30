@@ -114,7 +114,7 @@ function enforceSlots(result, mealSlots) {
   return { ...result, days };
 }
 
-export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds = [], pastWeeks = [], foodHistory, savedRecipes, usualMeals = [], apiKey, hasAiAccess, kpiConfig }) {
+export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds = [], pastWeeks = [], foodHistory, savedRecipes, usualMeals = [], apiKey, hasAiAccess, kpiConfig, babyProfile = null }) {
   const [step, setStep] = useState('form');
   const [copyFromWeekId, setCopyFromWeekId] = useState('');
   const [ingredients, setIngredients] = useState('');
@@ -192,6 +192,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
         foodHistory,
         savedRecipes,
         requiredIngredients,
+        babyProfile,
         apiKey,
       });
       let proposed = enforceSlots(result, mealSlots);

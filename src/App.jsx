@@ -286,6 +286,7 @@ function AppContent() {
               householdId={auth.userDoc?.householdId}
               kpiConfig={householdDoc?.kpiConfig}
               onUpdateKpiConfig={handleUpdateKpiConfig}
+              babyProfile={householdDoc?.baby}
             />
           )}
 
@@ -398,13 +399,20 @@ function ProfileTab({ auth, householdDoc }) {
   const [ffCodeInput, setFfCodeInput] = useState('');
   const [ffLoading, setFfLoading] = useState(false);
   const [ffError, setFfError] = useState('');
+  const [babyName, setBabyName] = useState('');
+  const [babyBirthDate, setBabyBirthDate] = useState('');
+  const [babyIsBreastfeeding, setBabyIsBreastfeeding] = useState(false);
+  const [babySaved, setBabySaved] = useState(false);
 
   // Sync inputs when householdDoc arrives (real-time)
   useEffect(() => {
     if (!householdDoc) return;
     setApiKeyInput(householdDoc.anthropicApiKey || '');
     setLimitInput(householdDoc.aiCallLimit ? String(householdDoc.aiCallLimit) : '');
-  }, [householdDoc?.anthropicApiKey, householdDoc?.aiCallLimit]);
+    setBabyName(householdDoc.baby?.name || '');
+    setBabyBirthDate(householdDoc.baby?.birthDate || '');
+    setBabyIsBreastfeeding(householdDoc.baby?.isBreastfeeding || false);
+  }, [householdDoc?.anthropicApiKey, householdDoc?.aiCallLimit, householdDoc?.baby]);
 
   // Load members
   useEffect(() => {
@@ -466,6 +474,19 @@ function ProfileTab({ auth, householdDoc }) {
     }
   };
 
+  const handleSaveBaby = async () => {
+    if (!householdId) return;
+    await updateDoc(doc(db, 'households', householdId), {
+      baby: {
+        name: babyName.trim(),
+        birthDate: babyBirthDate,
+        isBreastfeeding: babyIsBreastfeeding,
+      },
+    });
+    setBabySaved(true);
+    setTimeout(() => setBabySaved(false), 2000);
+  };
+
   // Usage this month
   const currentMonth = new Date().toISOString().slice(0, 7);
   const callsThisMonth = householdDoc?.aiCallMonth === currentMonth
@@ -496,6 +517,61 @@ function ProfileTab({ auth, householdDoc }) {
             <p className="text-sm text-gray-500">{auth.user?.email}</p>
           </div>
         </div>
+
+        {/* Baby profile */}
+        {householdDoc && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+            <h3 className="font-semibold text-gray-800">Tu bebé</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1.5">Nombre</label>
+                <input
+                  type="text"
+                  value={babyName}
+                  onChange={e => setBabyName(e.target.value)}
+                  placeholder="Ej: Leo"
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1.5">Fecha de nacimiento</label>
+                <input
+                  type="date"
+                  value={babyBirthDate}
+                  onChange={e => setBabyBirthDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+                />
+                {babyBirthDate && (() => {
+                  const birth = new Date(babyBirthDate);
+                  const now = new Date();
+                  const months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
+                  return <p className="text-xs text-gray-400 mt-1">{months} meses</p>;
+                })()}
+              </div>
+              <div className="flex items-center justify-between py-1">
+                <div>
+                  <span className="text-sm text-gray-700">Toma lactancia materna</span>
+                  <p className="text-xs text-gray-400">Afecta a las recomendaciones de lácteos y calcio</p>
+                </div>
+                <button
+                  onClick={() => setBabyIsBreastfeeding(v => !v)}
+                  className={`relative rounded-full transition-colors shrink-0`}
+                  style={{ height: '22px', width: '40px', backgroundColor: babyIsBreastfeeding ? 'var(--color-brand-600, #7c3aed)' : '#d1d5db' }}
+                >
+                  <span
+                    className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${babyIsBreastfeeding ? 'translate-x-5' : 'translate-x-0.5'}`}
+                  />
+                </button>
+              </div>
+              <button
+                onClick={handleSaveBaby}
+                className="w-full bg-brand-600 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-brand-700 transition-colors"
+              >
+                {babySaved ? '✓ Guardado' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Household info */}
         {householdDoc && (
