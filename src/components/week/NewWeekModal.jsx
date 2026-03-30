@@ -114,8 +114,9 @@ function enforceSlots(result, mealSlots) {
   return { ...result, days };
 }
 
-export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds = [], foodHistory, savedRecipes, usualMeals = [], apiKey, hasAiAccess, kpiConfig }) {
+export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds = [], pastWeeks = [], foodHistory, savedRecipes, usualMeals = [], apiKey, hasAiAccess, kpiConfig }) {
   const [step, setStep] = useState('form');
+  const [copyFromWeekId, setCopyFromWeekId] = useState('');
   const [ingredients, setIngredients] = useState('');
   const [mondayDate, setMondayDate] = useState(getThisMonday());
   const [proposedWeek, setProposedWeek] = useState(null);
@@ -330,6 +331,24 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleCopyWeek = () => {
+    const sourceId = copyFromWeekId || pastWeeks[0]?.id;
+    const source = pastWeeks.find(w => w.id === sourceId);
+    if (!source) return;
+    const cleanDays = (source.days || []).map(day => ({
+      day: day.day,
+      meals: (day.meals || []).map(meal => ({
+        tipo: meal.tipo,
+        baby: meal.baby ?? '',
+        adult: meal.adult ?? '',
+        tags: meal.tags ?? [],
+        track: null,
+      })),
+    }));
+    onSave(mondayDate, weekLabel, cleanDays);
+    handleClose();
   };
 
   const handleClose = () => {
@@ -660,6 +679,28 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
           >
             O crear semana vacía sin IA
           </button>
+
+          {pastWeeks.length > 0 && (
+            <div className="flex items-center gap-2 pt-1">
+              <span className="text-sm text-gray-400 shrink-0">O copiar</span>
+              <select
+                value={copyFromWeekId || pastWeeks[0]?.id}
+                onChange={e => setCopyFromWeekId(e.target.value)}
+                className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-brand-400 bg-white"
+              >
+                {pastWeeks.map(w => (
+                  <option key={w.id} value={w.id}>{w.label}</option>
+                ))}
+              </select>
+              <button
+                disabled={isDuplicate}
+                onClick={handleCopyWeek}
+                className="shrink-0 text-sm text-brand-600 hover:text-brand-800 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Copiar →
+              </button>
+            </div>
+          )}
         </div>
       )}
 

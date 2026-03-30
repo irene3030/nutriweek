@@ -205,6 +205,7 @@ export default function WeekView({
         onClose={() => setShowNewWeekModal(false)}
         onSave={onNewWeek}
         existingWeekIds={weeks.map((w) => w.id)}
+        pastWeeks={weeks}
         foodHistory={foodHistory}
         savedRecipes={savedRecipes}
         usualMeals={usualMeals}
