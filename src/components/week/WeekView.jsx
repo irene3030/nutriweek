@@ -46,7 +46,7 @@ export default function WeekView({
   const [showQuickMeal, setShowQuickMeal] = useState(false);
   const [showShopping, setShowShopping] = useState(false);
   const [showExport, setShowExport] = useState(false);
-  const [exportSimple, setExportSimple] = useState(true);
+  const [exportSimple, setExportSimple] = useState(false);
   const [exportCopied, setExportCopied] = useState(false);
   const todayName = getTodayDayName();
 
@@ -232,7 +232,7 @@ export default function WeekView({
             </div>
             {/* Simple / Detallado toggle */}
             <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5">
-              <span className="text-sm text-gray-700">Menú simple</span>
+              <span className="text-sm text-gray-700">Resumir nombres</span>
               <button
                 onClick={() => setExportSimple(v => !v)}
                 className={`relative w-10 h-5.5 rounded-full transition-colors ${exportSimple ? 'bg-brand-600' : 'bg-gray-300'}`}
