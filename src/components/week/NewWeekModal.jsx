@@ -123,6 +123,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [showFixedMeals, setShowFixedMeals] = useState(false);
+  const [showAllUsualMeals, setShowAllUsualMeals] = useState(false);
   const [fixedMeals, setFixedMeals] = useState([]);      // [{day, tipo, text}] day can be null
   const [newFixed, setNewFixed] = useState({ day: 'Lun', tipo: 'comida', text: '', anyDay: false });
   const [recurringMeals, setRecurringMeals] = useState([]); // string[]
@@ -480,7 +481,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                   <p className="text-xs text-gray-400 mb-2">La IA la colocará en el día y franja más adecuados.</p>
                   {usualMeals.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-2">
-                      {usualMeals.map(m => {
+                      {(showAllUsualMeals ? usualMeals : usualMeals.slice(0, 3)).map(m => {
                         const alreadyAdded = recurringMeals.includes(m.name);
                         return (
                           <button
@@ -498,6 +499,15 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                           </button>
                         );
                       })}
+                      {usualMeals.length > 3 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllUsualMeals(v => !v)}
+                          className="text-xs px-2.5 py-1 rounded-full border border-dashed border-gray-300 text-gray-400 hover:border-brand-400 hover:text-brand-600 transition-colors"
+                        >
+                          {showAllUsualMeals ? 'Ver menos' : `+${usualMeals.length - 3} más…`}
+                        </button>
+                      )}
                     </div>
                   )}
                   <div className="flex gap-2 mb-2">
@@ -548,6 +558,24 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                           </button>
                         </div>
+                      ))}
+                    </div>
+                  )}
+                  {usualMeals.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {usualMeals.map(m => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => setNewFixed(p => ({ ...p, text: m.name }))}
+                          className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                            newFixed.text === m.name
+                              ? 'bg-orange-100 text-orange-700 border-orange-300'
+                              : 'bg-white text-gray-600 border-gray-300 hover:border-orange-400 hover:text-orange-600'
+                          }`}
+                        >
+                          ⭐ {m.name}
+                        </button>
                       ))}
                     </div>
                   )}
