@@ -24,3 +24,8 @@ Items implementados en `dev` pendientes de revisión visual antes de merge.
 - **Revisar:** que el toggle se ve bien en activo e inactivo en ambas secciones (catálogo y personalizados)
 
 ## 9b. Compartir menú con texto completo *(en curso)*
+
+## Tu bebé — perfil del bebé
+- Nombre, fecha de nacimiento (con edad en meses calculada al momento), toggle de lactancia materna
+- Guardado en `households.baby`, pasado al prompt de generación de semana
+- **Revisar:** que el layout del formulario se ve bien en móvil; que el toggle de lactancia tiene buen contraste
