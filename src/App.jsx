@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AuthContext, useAuth, useAuthProvider } from './hooks/useAuth';
 import { setPreCallHook, validateFFCode } from './lib/claude';
+import { createInvite, buildInviteUrl, redeemInvite } from './lib/invites';
 import { identify, resetIdentity, track } from './lib/analytics';
 import { useWeek } from './hooks/useWeek';
 import LoginScreen from './components/auth/LoginScreen';
@@ -102,6 +103,28 @@ function AppContent() {
       household_id: auth.userDoc?.householdId,
     });
   }, [auth.user?.uid, !!householdDoc?.anthropicApiKey, !!householdDoc?.ffActivated]);
+
+  // Capture invite token from URL on mount and store for post-login redemption
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('invite');
+    if (token) {
+      localStorage.setItem('pendingInvite', token);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
+  // Redeem pending invite once the user is logged in and household is loaded
+  useEffect(() => {
+    const householdId = auth.userDoc?.householdId;
+    if (!householdId || !householdDoc || householdDoc.ffActivated) return;
+    const token = localStorage.getItem('pendingInvite');
+    if (!token) return;
+    localStorage.removeItem('pendingInvite');
+    redeemInvite(token, householdId)
+      .then(() => track('invite_redeemed'))
+      .catch(err => console.warn('Invite redemption failed:', err.message));
+  }, [auth.userDoc?.householdId, !!householdDoc, householdDoc?.ffActivated]);
 
   // Show spotlight tour for users who haven't completed it
   useEffect(() => {
@@ -414,6 +437,9 @@ function ProfileTab({ auth, householdDoc }) {
   const [ffCodeInput, setFfCodeInput] = useState('');
   const [ffLoading, setFfLoading] = useState(false);
   const [ffError, setFfError] = useState('');
+  const [inviteUrl, setInviteUrl] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
 
   // Sync inputs when householdDoc arrives (real-time)
   useEffect(() => {
@@ -479,6 +505,24 @@ function ProfileTab({ auth, householdDoc }) {
       setFfError(err.message || 'Error activando el código.');
     } finally {
       setFfLoading(false);
+    }
+  };
+
+  const handleCreateInvite = async () => {
+    if (!householdId) return;
+    setInviteLoading(true);
+    try {
+      const token = await createInvite(householdId);
+      const url = buildInviteUrl(token);
+      setInviteUrl(url);
+      await navigator.clipboard.writeText(url);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 3000);
+      track('invite_created');
+    } catch (err) {
+      alert('Error generando el enlace: ' + err.message);
+    } finally {
+      setInviteLoading(false);
     }
   };
 
@@ -667,7 +711,7 @@ function ProfileTab({ auth, householdDoc }) {
             </div>
 
             {householdDoc.ffActivated ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between bg-brand-50 rounded-xl px-4 py-3">
                   <span className="text-sm text-brand-800 font-medium">✓ Código activado</span>
                   <span className={`text-sm font-semibold ${(householdDoc.freeCallsUsed || 0) >= 30 ? 'text-red-600' : 'text-brand-700'}`}>
@@ -676,6 +720,32 @@ function ProfileTab({ auth, householdDoc }) {
                 </div>
                 {(householdDoc.freeCallsUsed || 0) >= 30 && (
                   <p className="text-xs text-amber-600">Has agotado las llamadas gratuitas. Añade tu API key para continuar.</p>
+                )}
+                {auth.user?.uid === import.meta.env.VITE_OWNER_UID && (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-500">Invita a alguien generando un enlace de un solo uso. Al abrirlo, se activará automáticamente su acceso.</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleCreateInvite}
+                      disabled={inviteLoading}
+                      className="bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-50 shrink-0"
+                    >
+                      {inviteLoading ? '...' : '🔗 Generar enlace'}
+                    </button>
+                    {inviteUrl && (
+                      <button
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(inviteUrl);
+                          setInviteCopied(true);
+                          setTimeout(() => setInviteCopied(false), 3000);
+                        }}
+                        className="flex-1 text-left text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 truncate hover:bg-gray-100 transition-colors"
+                      >
+                        {inviteCopied ? '✓ Copiado' : inviteUrl}
+                      </button>
+                    )}
+                  </div>
+                </div>
                 )}
               </div>
             ) : (
