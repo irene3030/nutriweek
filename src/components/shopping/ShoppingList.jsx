@@ -3,6 +3,14 @@ import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { generateShoppingList, formatShoppingListText } from '../../lib/shopping';
 
+const MEAL_LABELS = {
+  desayuno: 'Desayuno',
+  snack: 'Snack',
+  comida: 'Comida',
+  merienda: 'Merienda',
+  cena: 'Cena',
+};
+
 const CATEGORY_ICONS = {
   'proteína animal': '🥩',
   verdura: '🥦',
@@ -131,7 +139,7 @@ export default function ShoppingList({ weekDoc, householdId }) {
       {/* Categories */}
       {Object.entries(shoppingList.categories).map(([cat, items]) => {
         if (items.length === 0) return null;
-        const remaining = items.filter((i) => !checked[i]);
+        const remaining = items.filter((i) => !checked[i.name]);
         return (
           <div key={cat} className={`border rounded-xl overflow-hidden ${CATEGORY_COLORS[cat]}`}>
             <div className="flex items-center gap-2 px-4 py-2.5 border-b border-inherit">
@@ -144,20 +152,35 @@ export default function ShoppingList({ weekDoc, householdId }) {
             <div className="bg-white divide-y divide-gray-50">
               {items.map((item) => (
                 <label
-                  key={item}
-                  className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-gray-50 transition-colors ${
-                    checked[item] ? 'opacity-50' : ''
+                  key={item.name}
+                  className={`flex items-start gap-3 px-4 py-2.5 cursor-pointer hover:bg-gray-50 transition-colors ${
+                    checked[item.name] ? 'opacity-50' : ''
                   }`}
                 >
                   <input
                     type="checkbox"
-                    checked={!!checked[item]}
-                    onChange={() => handleToggle(item)}
-                    className="w-4 h-4 rounded accent-brand-600"
+                    checked={!!checked[item.name]}
+                    onChange={() => handleToggle(item.name)}
+                    className="w-4 h-4 rounded accent-brand-600 mt-0.5 shrink-0"
                   />
-                  <span className={`text-sm capitalize ${checked[item] ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-                    {item}
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <span className={`text-sm capitalize ${checked[item.name] ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                      {item.name}
+                    </span>
+                    {item.usages?.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {item.usages.map((u, i) => (
+                          <span
+                            key={i}
+                            title={u.text}
+                            className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 cursor-default"
+                          >
+                            {u.day} · {MEAL_LABELS[u.tipo] ?? u.tipo}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </label>
               ))}
             </div>
@@ -174,9 +197,20 @@ export default function ShoppingList({ weekDoc, householdId }) {
           </div>
           <div className="bg-white divide-y divide-gray-50">
             {shoppingList.atHome.map((item) => (
-              <div key={item} className="px-4 py-2.5 flex items-center gap-3 opacity-60">
-                <span className="w-4 h-4 flex items-center justify-center text-green-500 text-xs">✓</span>
-                <span className="text-sm capitalize text-gray-500">{item}</span>
+              <div key={item.name} className="px-4 py-2.5 flex items-start gap-3 opacity-60">
+                <span className="w-4 h-4 flex items-center justify-center text-green-500 text-xs mt-0.5 shrink-0">✓</span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm capitalize text-gray-500">{item.name}</span>
+                  {item.usages?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {item.usages.map((u, i) => (
+                        <span key={i} title={u.text} className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 cursor-default">
+                          {u.day} · {MEAL_LABELS[u.tipo] ?? u.tipo}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
