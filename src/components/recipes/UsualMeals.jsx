@@ -396,6 +396,7 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
         </div>
       ) : (
         <button
+          data-tour="add-meal-btn"
           onClick={() => setShowForm(true)}
           className="w-full border-2 border-dashed border-gray-300 hover:border-brand-400 text-gray-400 hover:text-brand-600 rounded-xl py-3 text-sm font-medium transition-colors"
         >

@@ -372,14 +372,14 @@ function AppContent() {
 
         <InstallBanner />
 
-        {showTour && <SpotlightTour onComplete={handleTourComplete} />}
+        {showTour && <SpotlightTour onComplete={handleTourComplete} onNavigate={setActiveTab} />}
 
         {/* Bottom tab bar */}
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20 pb-[env(safe-area-inset-bottom)]">
           <div className="max-w-lg mx-auto flex">
             {[
               { id: 'week', label: 'Semana', tour: 'tab-week' },
-              { id: 'day', label: 'Día' },
+              { id: 'day', label: 'Día', tour: 'tab-day' },
               { id: 'recipes', label: 'Comidas', tour: 'tab-recipes' },
               { id: 'profile', label: 'Perfil', tour: 'tab-profile' },
             ].map((tab) => (
@@ -758,6 +758,15 @@ function ProfileTab({ auth, householdDoc }) {
                 className="text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 transition-colors font-medium"
               >
                 Simular F&F agotado (30/30)
+              </button>
+              <button
+                onClick={async () => {
+                  await updateDoc(doc(db, 'users', auth.user.uid), { tourCompleted: false });
+                  setShowTour(true);
+                }}
+                className="text-xs bg-indigo-500 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-600 transition-colors font-medium"
+              >
+                🔦 Lanzar Spotlight Tour
               </button>
             </div>
             <p className="text-xs text-amber-500 italic">Este bloque no aparece en producción.</p>

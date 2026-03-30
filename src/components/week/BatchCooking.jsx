@@ -199,6 +199,7 @@ export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate })
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         {/* Header */}
         <button
+          data-tour="batch-cooking-btn"
           onClick={() => setOpen(v => !v)}
           className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
         >
