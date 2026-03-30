@@ -205,13 +205,16 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
 
   // Tooltip detail content for each KPI
   const ironDetail = (weekDoc?.days || []).flatMap(d =>
-    (d.meals || []).filter(m => m.baby && m.tags?.includes('iron')).map(m => `${d.day} · ${MEAL_LABELS[m.tipo]}`)
+    (d.meals || []).filter(m => m.baby && m.tags?.includes('iron')).map(m => `${m.baby} (${d.day} - ${MEAL_LABELS[m.tipo]})`)
   ).join('\n') || null;
   const fishDetail = (weekDoc?.days || []).flatMap(d =>
-    (d.meals || []).filter(m => m.baby && m.tags?.includes('oily_fish')).map(m => `${d.day} · ${MEAL_LABELS[m.tipo]}`)
+    (d.meals || []).filter(m => m.baby && m.tags?.includes('oily_fish')).map(m => `${m.baby} (${d.day} - ${MEAL_LABELS[m.tipo]})`)
   ).join('\n') || null;
   const legumeDetail = (weekDoc?.days || []).flatMap(d =>
-    (d.meals || []).filter(m => m.baby && m.tags?.includes('legume')).map(m => `${d.day} · ${MEAL_LABELS[m.tipo]}`)
+    (d.meals || []).filter(m => m.baby && m.tags?.includes('legume')).map(m => `${m.baby} (${d.day} - ${MEAL_LABELS[m.tipo]})`)
+  ).join('\n') || null;
+  const fruitDetail = (weekDoc?.days || []).flatMap(d =>
+    (d.meals || []).filter(m => m.baby && m.tags?.includes('fruit')).map(m => `${m.baby} (${d.day} - ${MEAL_LABELS[m.tipo]})`)
   ).join('\n') || null;
   const veggieDetail = kpis.veggieList.length > 0 ? kpis.veggieList.join(', ') : null;
 
@@ -278,6 +281,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
             <KPIPill key="fruit"
               icon="🍎" label="Fruta" value={`${kpis.fruitDays}/${fruitTarget}`} target={`≥${fruitTarget} días`}
               status={fruitStatus} statusColors={statusColors}
+              tooltip={fruitDetail}
               onFix={hasAiAccess ? () => handleFix('fruit') : null}
               fixing={fixing === 'fruit'} loading={loading && fixing === 'fruit'}
             />
