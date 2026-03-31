@@ -49,7 +49,7 @@ export default function DayCard({ dayData, onClick, isToday, onClear }) {
   const kpi = dayKPIs[0] || { hasIron: false, hasFish: false, veggies: [] };
 
   const filledMeals = meals ? meals.filter((m) => m.baby) : [];
-  const trackedMeals = meals ? meals.filter((m) => m.track?.done) : [];
+  const trackedMeals = meals ? meals.filter((m) => m.track?.done || m.track?.status) : [];
 
   return (
     <div
@@ -109,9 +109,13 @@ export default function DayCard({ dayData, onClick, isToday, onClear }) {
                 <div className="h-2.5 bg-gray-100 rounded w-3/4" />
               )}
             </div>
-            {meal.track?.done && (
+            {meal.track?.status === 'partial' ? (
+              <span className="text-orange-400 text-xs">◑</span>
+            ) : meal.track?.status === 'other' ? (
+              <span className="text-blue-400 text-xs">↔</span>
+            ) : (meal.track?.status === 'done' || meal.track?.done) ? (
               <span className="text-green-500 text-xs">✓</span>
-            )}
+            ) : null}
           </div>
         ))}
       </div>
