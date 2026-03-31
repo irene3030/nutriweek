@@ -170,12 +170,16 @@ export default function ShoppingList({ weekDoc, householdId }) {
                     {item.usages?.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {item.usages.map((u, i) => (
-                          <span
-                            key={i}
-                            title={u.text}
-                            className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 cursor-default"
-                          >
-                            {u.day} · {MEAL_LABELS[u.tipo] ?? u.tipo}
+                          <span key={i} className="relative group/pill inline-block">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 cursor-default">
+                              {u.day} · {MEAL_LABELS[u.tipo] ?? u.tipo}
+                            </span>
+                            {u.text && (
+                              <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-800 text-white text-[10px] rounded-lg whitespace-nowrap opacity-0 group-hover/pill:opacity-100 transition-opacity z-20 max-w-[180px] text-center leading-snug">
+                                {u.text}
+                                <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+                              </span>
+                            )}
                           </span>
                         ))}
                       </div>
@@ -204,8 +208,16 @@ export default function ShoppingList({ weekDoc, householdId }) {
                   {item.usages?.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {item.usages.map((u, i) => (
-                        <span key={i} title={u.text} className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 cursor-default">
-                          {u.day} · {MEAL_LABELS[u.tipo] ?? u.tipo}
+                        <span key={i} className="relative group/pill inline-block">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 cursor-default">
+                            {u.day} · {MEAL_LABELS[u.tipo] ?? u.tipo}
+                          </span>
+                          {u.text && (
+                            <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-800 text-white text-[10px] rounded-lg whitespace-nowrap opacity-0 group-hover/pill:opacity-100 transition-opacity z-20 max-w-[180px] text-center leading-snug">
+                              {u.text}
+                              <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
+                            </span>
+                          )}
                         </span>
                       ))}
                     </div>
