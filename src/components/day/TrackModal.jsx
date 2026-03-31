@@ -87,17 +87,18 @@ export default function TrackModal({ isOpen, onClose, meal, dayName, onSave, api
         }
       }
 
-      onSave({
-        status,
-        checkedIngredients: (status === 'partial' && hasChecklist) ? [...checkedIngredients] : undefined,
-        extra: extra.trim() || undefined,
-        altFood: status === 'other' ? (altFood.trim() || undefined) : undefined,
-        tags,
-        done: true,
-      });
+      const trackData = { status, tags, done: true };
+      if (status === 'partial' && hasChecklist) trackData.checkedIngredients = [...checkedIngredients];
+      if (extra.trim()) trackData.extra = extra.trim();
+      if (status === 'other' && altFood.trim()) trackData.altFood = altFood.trim();
+      onSave(trackData);
       onClose();
     } catch {
-      onSave({ status, checkedIngredients: (status === 'partial' && hasChecklist) ? [...checkedIngredients] : undefined, extra: extra.trim() || undefined, altFood: status === 'other' ? altFood.trim() || undefined : undefined, tags: null, done: true });
+      const trackData = { status, tags: null, done: true };
+      if (status === 'partial' && hasChecklist) trackData.checkedIngredients = [...checkedIngredients];
+      if (extra.trim()) trackData.extra = extra.trim();
+      if (status === 'other' && altFood.trim()) trackData.altFood = altFood.trim();
+      onSave(trackData);
       onClose();
     } finally {
       setTagsLoading(false);
