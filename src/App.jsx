@@ -82,6 +82,7 @@ function AppContent() {
     trackMeal,
     copyMeal,
     applyMealFixes,
+    clearDay,
   } = useWeek(auth.userDoc?.householdId);
 
   // Identify user in analytics on login/logout
@@ -275,6 +276,7 @@ function AppContent() {
               onAddMealToSlot={handleAddMealToSlot}
               onUpdateBatchCooking={updateBatchCooking}
               onApplyFixes={(fixes) => applyMealFixes(currentWeek.id, fixes)}
+              onClearDay={(dayName) => clearDay(currentWeek.id, dayName)}
               foodHistory={foodHistory}
               savedRecipes={savedRecipes}
               usualMeals={usualMeals}

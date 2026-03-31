@@ -42,6 +42,7 @@ export default function WeekView({
   kpiConfig,
   onUpdateKpiConfig,
   babyProfile,
+  onClearDay,
 }) {
   const [showNewWeekModal, setShowNewWeekModal] = useState(false);
   const [showQuickMeal, setShowQuickMeal] = useState(false);
@@ -149,6 +150,7 @@ export default function WeekView({
                     dayData={dayData}
                     onClick={() => onDayClick(DAY_ORDER.indexOf(dayData.day))}
                     isToday={dayData.day === todayName}
+                    onClear={() => onClearDay?.(dayData.day)}
                   />
                 ))}
               </div>

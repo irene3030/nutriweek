@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import { useKPIs } from '../../hooks/useKPIs';
 
 const MEAL_LABELS = {
@@ -25,7 +26,19 @@ function shortName(text) {
   return first;
 }
 
-export default function DayCard({ dayData, onClick, isToday }) {
+export default function DayCard({ dayData, onClick, isToday, onClear }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [menuOpen]);
+
   if (!dayData) return null;
 
   const { day, meals } = dayData;
@@ -39,13 +52,13 @@ export default function DayCard({ dayData, onClick, isToday }) {
   const trackedMeals = meals ? meals.filter((m) => m.track?.done) : [];
 
   return (
-    <button
-      onClick={onClick}
-      className={`w-full text-left bg-white rounded-xl border transition-all hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 ${
+    <div
+      className={`w-full text-left bg-white rounded-xl border transition-all hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 cursor-pointer ${
         isToday
           ? 'border-brand-400 shadow-sm shadow-brand-100'
           : 'border-gray-100 hover:border-gray-200'
       }`}
+      onClick={onClick}
     >
       {/* Day header */}
       <div
@@ -54,11 +67,34 @@ export default function DayCard({ dayData, onClick, isToday }) {
         }`}
       >
         <span className="font-semibold text-sm">{day}</span>
-        {trackedMeals.length > 0 && (
-          <span className={`text-xs ${isToday ? 'text-brand-200' : 'text-gray-400'}`}>
-            ✓ {trackedMeals.length}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {trackedMeals.length > 0 && (
+            <span className={`text-xs ${isToday ? 'text-brand-200' : 'text-gray-400'}`}>
+              ✓ {trackedMeals.length}
+            </span>
+          )}
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(v => !v); }}
+              className={`p-0.5 rounded transition-colors ${isToday ? 'hover:bg-brand-500 text-brand-200' : 'hover:bg-gray-200 text-gray-400'}`}
+              aria-label="Opciones"
+            >
+              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                <circle cx="10" cy="4" r="1.5" /><circle cx="10" cy="10" r="1.5" /><circle cx="10" cy="16" r="1.5" />
+              </svg>
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1 min-w-[140px]">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onClear?.(); }}
+                  className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  🗑 Eliminar comidas
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Meal dots */}
@@ -95,6 +131,6 @@ export default function DayCard({ dayData, onClick, isToday }) {
           <span className="text-xs text-gray-300">Sin planificar</span>
         )}
       </div>
-    </button>
+    </div>
   );
 }
