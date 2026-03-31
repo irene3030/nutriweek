@@ -65,6 +65,23 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
     bad:     'text-red-700 bg-red-50 border-red-200',
   };
 
+  // --- helpers ---
+  const DAY_ORDER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+  function futureDays(days) {
+    const mondayDate = weekDoc?.mondayDate;
+    if (!mondayDate) return days;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return days.filter(d => {
+      const idx = DAY_ORDER.indexOf(d.day);
+      if (idx === -1) return true;
+      const date = new Date(mondayDate);
+      date.setDate(date.getDate() + idx);
+      return date >= today;
+    });
+  }
+
   // --- fix handler ---
   const handleFix = async (kpiType) => {
     if (fixing === kpiType) { setFixing(null); setFixes(null); setError(null); return; }
@@ -99,7 +116,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
         ...activeCustomKPIs.map(k => `${k.name} ${kpis.customResults?.[k.id] ?? 0}/${config.targets[k.id] ?? k.target ?? 3} días`),
       ].filter(Boolean);
 
-      const result = await fixKPI({ kpiType, weekContext: weekDoc.days, kpiState, activeTipos, allKpiStates, apiKey });
+      const result = await fixKPI({ kpiType, weekContext: futureDays(weekDoc.days), kpiState, activeTipos, allKpiStates, apiKey });
       const validFixes = (result.fixes || []).filter(f => {
         if (!activeTipos.includes(f.tipo)) return false;
         const originalDay = weekDoc?.days?.find(d => d.day === f.day);
