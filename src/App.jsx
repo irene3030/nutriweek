@@ -367,7 +367,7 @@ function AppContent() {
           <div className="max-w-lg mx-auto flex">
             {[
               { id: 'week', label: 'Semana', tour: 'tab-week' },
-              { id: 'day', label: 'Día' },
+              { id: 'day', label: 'Día', tour: 'tab-day' },
               { id: 'recipes', label: 'Comidas', tour: 'tab-recipes' },
               { id: 'profile', label: 'Perfil', tour: 'tab-profile' },
             ].map((tab) => (
@@ -523,7 +523,7 @@ function ProfileTab({ auth, householdDoc }) {
 
         {/* Baby profile */}
         {householdDoc && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+          <div data-tour="baby-profile" className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
             <h3 className="font-semibold text-gray-800">Tu bebé</h3>
             <div className="space-y-3">
               <div>

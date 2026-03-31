@@ -6,22 +6,37 @@ const STEPS = [
   {
     selector: '[data-tour="tab-week"]',
     title: 'Tu menú semanal',
-    text: 'Aquí ves el menú de la semana. Pulsa + para crear tu primera semana.',
+    text: 'Aquí ves el menú de la semana. Pulsa + para crear tu primera semana con IA.',
   },
   {
     selector: '[data-tour="new-week-btn"]',
     title: 'Generar con IA',
-    text: 'Claude puede generarte un menú completo basado en tus ingredientes.',
+    text: 'Claude genera un menú completo de 7 días adaptado a la edad de tu bebé y los KPIs nutricionales.',
   },
   {
     selector: '[data-tour="kpi-pills"]',
     title: 'Objetivos nutricionales',
-    text: 'Aquí ves si el menú cumple los objetivos nutricionales de la semana.',
+    text: 'Hierro, pescado azul, legumbres… la app cuenta cuántas veces aparecen en la semana y te avisa si falta algo.',
+  },
+  {
+    selector: '[data-tour="shopping-toggle"]',
+    title: 'Lista de la compra',
+    text: 'Se genera automáticamente a partir del menú. Marca lo que ya tienes en casa y copia el resto al portapapeles.',
+  },
+  {
+    selector: '[data-tour="tab-day"]',
+    title: 'Vista de día',
+    text: 'Pulsa cualquier día del menú para ver sus comidas al detalle. Desde aquí también puedes registrar qué comió realmente tu bebé.',
   },
   {
     selector: '[data-tour="tab-recipes"]',
-    title: 'Tus recetas',
-    text: 'Guarda las comidas que ya le gustan a tu bebé para reutilizarlas.',
+    title: 'Tus comidas habituales',
+    text: 'Guarda las comidas que ya le gustan a tu bebé para incluirlas rápido en futuros menús.',
+  },
+  {
+    selector: '[data-tour="baby-profile"]',
+    title: 'Perfil de tu bebé',
+    text: 'Añade el nombre, fecha de nacimiento y si toma lactancia. La IA usa esta info para adaptar las raciones y recomendaciones.',
   },
   {
     selector: '[data-tour="tab-profile"]',

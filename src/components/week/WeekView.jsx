@@ -166,6 +166,7 @@ export default function WeekView({
             <div className="px-4 pb-4">
               <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
                 <button
+                  data-tour="shopping-toggle"
                   onClick={() => setShowShopping(v => !v)}
                   className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
                 >
