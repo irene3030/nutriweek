@@ -335,10 +335,7 @@ export default function MealEditor({
             </select>
             <button
               onClick={() => {
-                const targetDayData = (weekContext || []).find(d => d.day === swapTarget.day);
-                const targetMeal = targetDayData?.meals?.find(m => m.tipo === swapTarget.meal);
-                onSwap(swapTarget.day, swapTarget.meal, { baby, tags });
-                onSave({ baby: targetMeal?.baby || '', tags: targetMeal?.tags || [] });
+                onSwap(swapTarget.day, swapTarget.meal);
                 setShowSwap(false);
               }}
               className="text-xs px-3 py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"

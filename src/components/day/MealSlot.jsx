@@ -85,8 +85,9 @@ export default function MealSlot({
     onCopy(dayName, meal?.tipo, targetDay, targetMealType, data);
   };
 
-  const handleSwap = (targetDay, targetMealType, data) => {
-    onSwap(dayName, meal?.tipo, targetDay, targetMealType, data);
+  const handleSwap = (targetDay, targetMealType) => {
+    onSwap(dayName, meal?.tipo, targetDay, targetMealType);
+    setEditing(false);
   };
 
   return (

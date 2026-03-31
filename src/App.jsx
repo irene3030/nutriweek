@@ -82,6 +82,7 @@ function AppContent() {
     updateBatchCooking,
     trackMeal,
     copyMeal,
+    swapMeals,
     applyMealFixes,
     clearDay,
   } = useWeek(auth.userDoc?.householdId);
@@ -390,6 +391,9 @@ function AppContent() {
                 onTrackMeal={(weekId, dIdx, mIdx, trackData) => trackMeal(weekId, dIdx, mIdx, trackData)}
                 onCopyMeal={(weekId, srcDayIdx, srcMealIdx, tgtDayIdx, tgtMealIdx) =>
                   copyMeal(weekId, srcDayIdx, srcMealIdx, tgtDayIdx, tgtMealIdx)
+                }
+                onSwapMeals={(weekId, dIdx1, mIdx1, dIdx2, mIdx2) =>
+                  swapMeals(weekId, dIdx1, mIdx1, dIdx2, mIdx2)
                 }
                 onReorderMeals={(weekId, dIdx, newMeals) => updateDayMeals(weekId, dIdx, newMeals)}
               />

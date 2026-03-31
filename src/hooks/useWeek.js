@@ -226,6 +226,24 @@ export function useWeek(householdId) {
     await updateWeek(weekId, { days: updatedDays });
   }, [householdId, weeks, updateWeek]);
 
+  const swapMeals = useCallback(async (weekId, dayIdx1, mealIdx1, dayIdx2, mealIdx2) => {
+    const week = weeks.find((w) => w.id === weekId);
+    if (!week) return;
+    const meal1 = week.days[dayIdx1]?.meals[mealIdx1];
+    const meal2 = week.days[dayIdx2]?.meals[mealIdx2];
+    const updatedDays = week.days.map((day, di) => ({
+      ...day,
+      meals: day.meals.map((meal, mi) => {
+        if (di === dayIdx1 && mi === mealIdx1)
+          return { ...meal, baby: meal2?.baby || '', adult: meal2?.adult || '', tags: meal2?.tags || [], track: null };
+        if (di === dayIdx2 && mi === mealIdx2)
+          return { ...meal, baby: meal1?.baby || '', adult: meal1?.adult || '', tags: meal1?.tags || [], track: null };
+        return meal;
+      }),
+    }));
+    await updateWeek(weekId, { days: updatedDays });
+  }, [weeks, updateWeek]);
+
   const copyMeal = useCallback(async (sourceWeekId, sourceDayIdx, sourceMealIdx, targetDayIdx, targetMealIdx) => {
     const week = weeks.find((w) => w.id === sourceWeekId);
     if (!week) return;
@@ -257,6 +275,7 @@ export function useWeek(householdId) {
     trackMeal,
     applyMealFixes,
     copyMeal,
+    swapMeals,
     clearDay,
     DAYS,
     MEAL_TYPES,

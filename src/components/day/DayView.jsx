@@ -73,6 +73,7 @@ export default function DayView({
   onSaveMeal,
   onTrackMeal,
   onCopyMeal,
+  onSwapMeals,
   onReorderMeals,
 }) {
   const dayData = weekDoc?.days?.[dayIndex];
@@ -87,12 +88,13 @@ export default function DayView({
 
   const weekContext = weekDoc?.days || [];
 
-  const handleSwap = (fromDay, fromMealType, toDay, toMealType, currentData) => {
+  const handleSwap = (fromDay, fromMealType, toDay, toMealType) => {
+    const fromDayIndex = DAYS.indexOf(fromDay);
+    const fromMealIndex = MEAL_TYPES.indexOf(fromMealType);
     const toDayIndex = DAYS.indexOf(toDay);
     const toMealIndex = MEAL_TYPES.indexOf(toMealType);
     if (toDayIndex === -1 || toMealIndex === -1) return;
-    // Write current meal → target slot (target meal was already written to current slot via onSave in MealEditor)
-    onSaveMeal(weekDoc.id, toDayIndex, toMealIndex, { baby: currentData.baby, tags: currentData.tags, track: null });
+    onSwapMeals(weekDoc.id, fromDayIndex, fromMealIndex, toDayIndex, toMealIndex);
   };
 
   const handleCopy = (fromDay, fromMealType, toDay, toMealType, data) => {
