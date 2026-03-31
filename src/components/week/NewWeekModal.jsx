@@ -125,6 +125,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
   const [saving, setSaving] = useState(false);
   const [showFixedMeals, setShowFixedMeals] = useState(false);
   const [showAllUsualMeals, setShowAllUsualMeals] = useState(false);
+  const [showAllUsualMealsFixed, setShowAllUsualMealsFixed] = useState(false);
   const [fixedMeals, setFixedMeals] = useState([]);      // [{day, tipo, text}] day can be null
   const [newFixed, setNewFixed] = useState({ day: 'Lun', tipo: 'comida', text: '', anyDay: false });
   const [recurringMeals, setRecurringMeals] = useState([]); // string[]
@@ -583,7 +584,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                   )}
                   {usualMeals.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-2">
-                      {usualMeals.map(m => (
+                      {(showAllUsualMealsFixed ? usualMeals : usualMeals.slice(0, 3)).map(m => (
                         <button
                           key={m.id}
                           type="button"
@@ -597,6 +598,15 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                           ⭐ {m.name}
                         </button>
                       ))}
+                      {usualMeals.length > 3 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllUsualMealsFixed(v => !v)}
+                          className="text-xs px-2.5 py-1 rounded-full border border-dashed border-gray-300 text-gray-400 hover:border-orange-400 hover:text-orange-600 transition-colors"
+                        >
+                          {showAllUsualMealsFixed ? 'Ver menos' : `+${usualMeals.length - 3} más…`}
+                        </button>
+                      )}
                     </div>
                   )}
                   <div className="flex gap-2 flex-wrap">
@@ -987,6 +997,8 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
 // ─── KPI Preview ─────────────────────────────────────────────────────────────
 
 function KPIPreview({ kpiConfig, mealSlots, includeWeekend }) {
+  const [expanded, setExpanded] = useState(false);
+
   const config = {
     active: kpiConfig?.active ?? DEFAULT_KPI_CONFIG.active,
     targets: kpiConfig?.targets ?? {},
@@ -1016,53 +1028,72 @@ function KPIPreview({ kpiConfig, mealSlots, includeWeekend }) {
     return config.targets[id] ?? kpi?.defaultTarget ?? null;
   }
 
+  const totalActive = activeCatalog.length + activeCustom.length;
+
   return (
-    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-2">
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">KPIs que intentará cumplir la IA</p>
-      <div className="space-y-1.5">
-        {activeCatalog.map(k => {
-          if (k.id === 'protein_rotation') {
-            return (
-              <div key={k.id} className="flex items-center gap-2">
-                <span className="text-sm">{k.icon}</span>
-                <span className="text-xs text-gray-600">{k.label}</span>
-                <span className="text-xs text-gray-400">sin repetir &gt;2 días seguidos</span>
-              </div>
-            );
-          }
+    <div className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setExpanded(v => !v)}
+        className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-gray-100 transition-colors"
+      >
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          KPIs que intentará cumplir la IA
+          <span className="ml-1.5 text-gray-400 font-normal normal-case">({totalActive} activos)</span>
+        </p>
+        <svg className={`w-4 h-4 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
 
-          const target = getTarget(k.id);
-          const defaultTarget = getDefaultTarget(k.id);
-          const notApplicable = target === null;
-          const isAdapted = !notApplicable && target !== defaultTarget;
+      {expanded && (
+        <div className="px-3 pb-3 space-y-1.5 border-t border-gray-200">
+          <div className="pt-2 space-y-1.5">
+            {activeCatalog.map(k => {
+              if (k.id === 'protein_rotation') {
+                return (
+                  <div key={k.id} className="flex items-center gap-2">
+                    <span className="text-sm">{k.icon}</span>
+                    <span className="text-xs text-gray-600">{k.label}</span>
+                    <span className="text-xs text-gray-400">sin repetir &gt;2 días seguidos</span>
+                  </div>
+                );
+              }
 
-          return (
-            <div key={k.id} className={`flex items-center gap-2 ${notApplicable ? 'opacity-40' : ''}`}>
-              <span className="text-sm">{k.icon}</span>
-              <span className={`text-xs ${notApplicable ? 'text-gray-400' : 'text-gray-700'}`}>{k.label}</span>
-              {notApplicable ? (
-                <span className="text-xs text-gray-400 italic">No aplica con estas franjas</span>
-              ) : (
-                <span className="text-xs text-brand-700 font-medium">
-                  ≥{target} {k.unit}
-                  {isAdapted && <span className="text-gray-400 font-normal ml-1">(ajustado)</span>}
-                </span>
-              )}
-            </div>
-          );
-        })}
+              const target = getTarget(k.id);
+              const defaultTarget = getDefaultTarget(k.id);
+              const notApplicable = target === null;
+              const isAdapted = !notApplicable && target !== defaultTarget;
 
-        {activeCustom.map(k => {
-          const target = config.targets[k.id] ?? k.target ?? 3;
-          return (
-            <div key={k.id} className="flex items-center gap-2">
-              <span className="text-sm">⭐</span>
-              <span className="text-xs text-gray-700">{k.name}</span>
-              <span className="text-xs text-brand-700 font-medium">≥{target} días</span>
-            </div>
-          );
-        })}
-      </div>
+              return (
+                <div key={k.id} className={`flex items-center gap-2 ${notApplicable ? 'opacity-40' : ''}`}>
+                  <span className="text-sm">{k.icon}</span>
+                  <span className={`text-xs ${notApplicable ? 'text-gray-400' : 'text-gray-700'}`}>{k.label}</span>
+                  {notApplicable ? (
+                    <span className="text-xs text-gray-400 italic">No aplica con estas franjas</span>
+                  ) : (
+                    <span className="text-xs text-brand-700 font-medium">
+                      ≥{target} {k.unit}
+                      {isAdapted && <span className="text-gray-400 font-normal ml-1">(ajustado)</span>}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+
+            {activeCustom.map(k => {
+              const target = config.targets[k.id] ?? k.target ?? 3;
+              return (
+                <div key={k.id} className="flex items-center gap-2">
+                  <span className="text-sm">⭐</span>
+                  <span className="text-xs text-gray-700">{k.name}</span>
+                  <span className="text-xs text-brand-700 font-medium">≥{target} días</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
