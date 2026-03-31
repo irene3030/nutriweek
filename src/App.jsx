@@ -324,6 +324,7 @@ function AppContent() {
                 !!householdApiKey ||
                 (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)
               }
+              householdId={auth.userDoc?.householdId}
             />
           )}
         </div>
