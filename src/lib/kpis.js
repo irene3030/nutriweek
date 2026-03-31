@@ -273,20 +273,29 @@ export function calculateKPIs(weekDoc, customKPIs = []) {
 
   const { days } = weekDoc;
 
+  // Use track.tags (effective eaten tags) when available, falling back to planned tags
+  const effectiveDays = days.map(day => ({
+    ...day,
+    meals: (day.meals || []).map(meal => ({
+      ...meal,
+      tags: meal.track?.tags ?? meal.tags ?? [],
+    })),
+  }));
+
   const customResults = {};
   for (const kpi of customKPIs) {
-    customResults[kpi.id] = countDaysWithText(days, kpi.query);
+    customResults[kpi.id] = countDaysWithText(effectiveDays, kpi.query);
   }
 
   return {
-    ironDays: countDaysWithTag(days, 'iron'),
-    fishDays: countDaysWithTag(days, 'oily_fish'),
-    legumedDays: countDaysWithTag(days, 'legume'),
-    fruitDays: countDaysWithTag(days, 'fruit'),
-    distinctVeggies: countDistinctVeggies(days),
-    veggieList: getDistinctVeggies(days),
-    consecutiveAlerts: detectConsecutiveProteinAlert(days),
-    dayKPIs: days.map((day) => ({ day: day.day, ...getDayKPIs(day) })),
+    ironDays: countDaysWithTag(effectiveDays, 'iron'),
+    fishDays: countDaysWithTag(effectiveDays, 'oily_fish'),
+    legumedDays: countDaysWithTag(effectiveDays, 'legume'),
+    fruitDays: countDaysWithTag(effectiveDays, 'fruit'),
+    distinctVeggies: countDistinctVeggies(effectiveDays),
+    veggieList: getDistinctVeggies(effectiveDays),
+    consecutiveAlerts: detectConsecutiveProteinAlert(effectiveDays),
+    dayKPIs: effectiveDays.map((day) => ({ day: day.day, ...getDayKPIs(day) })),
     customResults,
   };
 }

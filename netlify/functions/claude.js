@@ -196,7 +196,28 @@ El alternativo debe ser de la misma categoría nutricional (${safeCategory}), f�
 Devuelve SOLO este JSON: { "alternative": "nombre del ingrediente" }`;
 
     } else if (type === 'generate_week') {
-      const { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, kpiOverrides, season, vetoedIngredients } = payload;
+      const { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, kpiOverrides, season, vetoedIngredients, babyProfile } = payload;
+
+      // Build baby context from profile
+      let babyContext = 'bebé de ~12 meses';
+      if (babyProfile) {
+        const name = babyProfile.name ? sanitize(babyProfile.name, 30) : null;
+        const birthDate = babyProfile.birthDate ? sanitize(babyProfile.birthDate, 12) : null;
+        const isBreastfeeding = !!babyProfile.isBreastfeeding;
+        if (birthDate) {
+          const birth = new Date(birthDate);
+          const now = new Date();
+          const ageMonths = Math.max(0, (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth()));
+          babyContext = name ? `${name} (${ageMonths} meses)` : `bebé de ${ageMonths} meses`;
+          if (isBreastfeeding && ageMonths < 18) {
+            babyContext += '. Toma lactancia materna — los lácteos y el calcio están cubiertos en gran parte por la leche materna; no es necesario priorizar lácteos en el menú.';
+          } else if (isBreastfeeding) {
+            babyContext += '. Sigue con lactancia materna — considera incluir lácteos de forma habitual ya que la leche materna puede no cubrir todo el calcio necesario.';
+          }
+        } else if (name) {
+          babyContext = `${name} (~12 meses)`;
+        }
+      }
 
       const safeIngredients = sanitize(availableIngredients, 300);
       const safeRequired = Array.isArray(requiredIngredients)
@@ -284,7 +305,7 @@ Devuelve SOLO este JSON: { "alternative": "nombre del ingrediente" }`;
         ? `\nIngredientes PROHIBIDOS (NO los uses bajo ningún concepto en ninguna comida): ${safeVetoed.join(', ')}`
         : '';
 
-      userMessage = `Genera un menú completo para 7 días.
+      userMessage = `Genera un menú completo para 7 días para: ${babyContext}.
 ${ingredientsSection}${recurringSection}${fixedSection}${slotsSection}${seasonSection}${kpiSection}${vetoedSection}
 
 Historial de alimentos últimas semanas: ${foodHistory ? JSON.stringify(foodHistory).slice(0, 1000) : 'sin historial'}

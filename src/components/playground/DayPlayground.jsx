@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import { evaluateDay, suggestDinner, swapDinnerIngredient } from '../../lib/claude';
 
 const MEAL_TYPES = [
@@ -171,7 +173,7 @@ function DinnerResult({ data, apiKey }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function DayPlayground({ apiKey, hasAiAccess }) {
+export default function DayPlayground({ apiKey, hasAiAccess, householdId }) {
   const [mode, setMode] = useState('evaluate'); // 'evaluate' | 'dinner'
   const [meals, setMeals] = useState({});
   const [weeklyFish, setWeeklyFish] = useState(null);
@@ -179,6 +181,32 @@ export default function DayPlayground({ apiKey, hasAiAccess }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const saveTimerRef = useRef(null);
+
+  // Load persisted meals on mount
+  useEffect(() => {
+    if (!householdId) return;
+    const ref = doc(db, 'households', householdId, 'dayPlayground', 'state');
+    getDoc(ref).then(snap => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.date === today) setMeals(data.meals || {});
+      }
+    });
+  }, [householdId]);
+
+  // Debounced save on meals change
+  useEffect(() => {
+    if (!householdId) return;
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      const ref = doc(db, 'households', householdId, 'dayPlayground', 'state');
+      setDoc(ref, { date: today, meals });
+    }, 800);
+    return () => clearTimeout(saveTimerRef.current);
+  }, [meals, householdId]);
 
   const activeMeals = mode === 'evaluate' ? MEAL_TYPES : DINNER_MEALS;
   const hasSomeMeal = activeMeals.some(m => meals[m.id]?.trim());

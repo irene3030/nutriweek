@@ -52,6 +52,12 @@ const STEPS = [
     navigate: 'recipes',
   },
   {
+    selector: '[data-tour="baby-profile"]',
+    title: 'Perfil de tu bebé',
+    text: 'Añade el nombre, fecha de nacimiento y si toma lactancia. La IA usa esta info para adaptar las raciones y recomendaciones.',
+    navigate: 'profile',
+  },
+  {
     selector: '[data-tour="tab-profile"]',
     title: 'Configura tu perfil',
     text: 'Indica la edad del bebé, las franjas horarias que usáis y conecta tu API key de Claude. Todo esto personaliza cada generación.',

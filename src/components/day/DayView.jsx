@@ -146,6 +146,12 @@ export default function DayView({
       {/* Meal slots */}
       <main className="flex-1 overflow-y-auto px-4 py-4">
         <div className="space-y-3">
+          {dayData.cleared && meals.every(m => !m.baby) && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700 space-y-1">
+              <p className="font-semibold">Día sin planificar</p>
+              <p>Aunque comas fuera de casa, recuerda mantener el equilibrio nutricional: intenta incluir verdura, proteína de calidad (carne, pescado, legumbre o huevo) y algo de fruta.</p>
+            </div>
+          )}
           {meals.map((meal, mealIndex) => (
             <MealSlot
               key={`${dayName}-${meal.tipo}-${mealIndex}`}

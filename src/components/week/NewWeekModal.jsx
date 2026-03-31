@@ -161,8 +161,9 @@ function enforceSlots(result, mealSlots) {
   return { ...result, days };
 }
 
-export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds = [], foodHistory, savedRecipes, usualMeals = [], apiKey, hasAiAccess, kpiConfig, onUpdateKpiConfig }) {
+export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds = [], pastWeeks = [], foodHistory, savedRecipes, usualMeals = [], apiKey, hasAiAccess, kpiConfig, onUpdateKpiConfig, babyProfile = null }) {
   const [step, setStep] = useState('form');
+  const [copyFromWeekId, setCopyFromWeekId] = useState('');
   const [ingredients, setIngredients] = useState('');
   const [mondayDate, setMondayDate] = useState(getThisMonday());
   const [proposedWeek, setProposedWeek] = useState(null);
@@ -170,6 +171,8 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [showFixedMeals, setShowFixedMeals] = useState(false);
+  const [showAllUsualMeals, setShowAllUsualMeals] = useState(false);
+  const [showAllUsualMealsFixed, setShowAllUsualMealsFixed] = useState(false);
   const [fixedMeals, setFixedMeals] = useState([]);      // [{day, tipo, text}] day can be null
   const [newFixed, setNewFixed] = useState({ day: 'Lun', tipo: 'comida', text: '', anyDay: false });
   const [recurringMeals, setRecurringMeals] = useState([]); // string[]
@@ -263,6 +266,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
         kpiOverrides,
         season: getSeason(mondayDate),
         vetoedIngredients,
+        babyProfile,
         apiKey,
       });
       let proposed = enforceSlots(result, mealSlots);
@@ -430,6 +434,24 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
     }
   };
 
+  const handleCopyWeek = () => {
+    const sourceId = copyFromWeekId || pastWeeks[0]?.id;
+    const source = pastWeeks.find(w => w.id === sourceId);
+    if (!source) return;
+    const cleanDays = (source.days || []).map(day => ({
+      day: day.day,
+      meals: (day.meals || []).map(meal => ({
+        tipo: meal.tipo,
+        baby: meal.baby ?? '',
+        adult: meal.adult ?? '',
+        tags: meal.tags ?? [],
+        track: null,
+      })),
+    }));
+    onSave(mondayDate, weekLabel, cleanDays);
+    handleClose();
+  };
+
   const handleClose = () => {
     setStep('form');
     setIngredients('');
@@ -587,7 +609,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                   <p className="text-xs text-gray-400 mb-2">La IA la colocará en el día y franja más adecuados.</p>
                   {usualMeals.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-2">
-                      {usualMeals.map(m => {
+                      {(showAllUsualMeals ? usualMeals : usualMeals.slice(0, 3)).map(m => {
                         const alreadyAdded = recurringMeals.includes(m.name);
                         return (
                           <button
@@ -605,6 +627,15 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                           </button>
                         );
                       })}
+                      {usualMeals.length > 3 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllUsualMeals(v => !v)}
+                          className="text-xs px-2.5 py-1 rounded-full border border-dashed border-gray-300 text-gray-400 hover:border-brand-400 hover:text-brand-600 transition-colors"
+                        >
+                          {showAllUsualMeals ? 'Ver menos' : `+${usualMeals.length - 3} más…`}
+                        </button>
+                      )}
                     </div>
                   )}
                   <div className="flex gap-2 mb-2">
@@ -656,6 +687,33 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                           </button>
                         </div>
                       ))}
+                    </div>
+                  )}
+                  {usualMeals.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {(showAllUsualMealsFixed ? usualMeals : usualMeals.slice(0, 3)).map(m => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => setNewFixed(p => ({ ...p, text: m.name }))}
+                          className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                            newFixed.text === m.name
+                              ? 'bg-orange-100 text-orange-700 border-orange-300'
+                              : 'bg-white text-gray-600 border-gray-300 hover:border-orange-400 hover:text-orange-600'
+                          }`}
+                        >
+                          ⭐ {m.name}
+                        </button>
+                      ))}
+                      {usualMeals.length > 3 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllUsualMealsFixed(v => !v)}
+                          className="text-xs px-2.5 py-1 rounded-full border border-dashed border-gray-300 text-gray-400 hover:border-orange-400 hover:text-orange-600 transition-colors"
+                        >
+                          {showAllUsualMealsFixed ? 'Ver menos' : `+${usualMeals.length - 3} más…`}
+                        </button>
+                      )}
                     </div>
                   )}
                   <div className="flex gap-2 flex-wrap">
@@ -739,6 +797,28 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
           >
             O crear semana vacía sin IA
           </button>
+
+          {pastWeeks.length > 0 && (
+            <div className="flex items-center gap-2 pt-1">
+              <span className="text-sm text-gray-400 shrink-0">O copiar</span>
+              <select
+                value={copyFromWeekId || pastWeeks[0]?.id}
+                onChange={e => setCopyFromWeekId(e.target.value)}
+                className="flex-1 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-600 focus:outline-none focus:ring-1 focus:ring-brand-400 bg-white"
+              >
+                {pastWeeks.map(w => (
+                  <option key={w.id} value={w.id}>{w.label}</option>
+                ))}
+              </select>
+              <button
+                disabled={isDuplicate}
+                onClick={handleCopyWeek}
+                className="shrink-0 text-sm text-brand-600 hover:text-brand-800 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Copiar →
+              </button>
+            </div>
+          )}
         </div>
       )}
 

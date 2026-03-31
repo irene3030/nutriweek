@@ -95,6 +95,23 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
     bad:     'text-red-700 bg-red-50 border-red-200',
   };
 
+  // --- helpers ---
+  const DAY_ORDER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+  function futureDays(days) {
+    const mondayDate = weekDoc?.mondayDate;
+    if (!mondayDate) return days;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return days.filter(d => {
+      const idx = DAY_ORDER.indexOf(d.day);
+      if (idx === -1) return true;
+      const date = new Date(mondayDate);
+      date.setDate(date.getDate() + idx);
+      return date >= today;
+    });
+  }
+
   // --- fix handler ---
   const handleFix = async (kpiType) => {
     if (fixing === kpiType) { setFixing(null); setFixes(null); setError(null); return; }
@@ -129,7 +146,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
         ...activeCustomKPIs.map(k => `${k.name} ${kpis.customResults?.[k.id] ?? 0}/${config.targets[k.id] ?? k.target ?? 3} días`),
       ].filter(Boolean);
 
-      const result = await fixKPI({ kpiType, weekContext: weekDoc.days, kpiState, activeTipos, allKpiStates, apiKey });
+      const result = await fixKPI({ kpiType, weekContext: futureDays(weekDoc.days), kpiState, activeTipos, allKpiStates, apiKey });
       const validFixes = (result.fixes || []).filter(f => {
         if (!activeTipos.includes(f.tipo)) return false;
         const originalDay = weekDoc?.days?.find(d => d.day === f.day);
@@ -235,13 +252,16 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
 
   // Tooltip detail content for each KPI
   const ironDetail = (weekDoc?.days || []).flatMap(d =>
-    (d.meals || []).filter(m => m.baby && m.tags?.includes('iron')).map(m => `${d.day} · ${MEAL_LABELS[m.tipo]}`)
+    (d.meals || []).filter(m => m.baby && m.tags?.includes('iron')).map(m => `${m.baby} (${d.day} - ${MEAL_LABELS[m.tipo]})`)
   ).join('\n') || null;
   const fishDetail = (weekDoc?.days || []).flatMap(d =>
-    (d.meals || []).filter(m => m.baby && m.tags?.includes('oily_fish')).map(m => `${d.day} · ${MEAL_LABELS[m.tipo]}`)
+    (d.meals || []).filter(m => m.baby && m.tags?.includes('oily_fish')).map(m => `${m.baby} (${d.day} - ${MEAL_LABELS[m.tipo]})`)
   ).join('\n') || null;
   const legumeDetail = (weekDoc?.days || []).flatMap(d =>
-    (d.meals || []).filter(m => m.baby && m.tags?.includes('legume')).map(m => `${d.day} · ${MEAL_LABELS[m.tipo]}`)
+    (d.meals || []).filter(m => m.baby && m.tags?.includes('legume')).map(m => `${m.baby} (${d.day} - ${MEAL_LABELS[m.tipo]})`)
+  ).join('\n') || null;
+  const fruitDetail = (weekDoc?.days || []).flatMap(d =>
+    (d.meals || []).filter(m => m.baby && m.tags?.includes('fruit')).map(m => `${m.baby} (${d.day} - ${MEAL_LABELS[m.tipo]})`)
   ).join('\n') || null;
   const veggieDetail = kpis.veggieList.length > 0 ? kpis.veggieList.join(', ') : null;
 
@@ -308,6 +328,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
             <KPIPill key="fruit"
               icon="🍎" label="Fruta" value={`${kpis.fruitDays}/${fruitTarget}`} target={`≥${fruitTarget} días`}
               status={fruitStatus} statusColors={statusColors}
+              tooltip={fruitDetail}
               onFix={hasAiAccess ? () => handleFix('fruit') : null}
               fixing={fixing === 'fruit'} loading={loading && fixing === 'fruit'}
             />
@@ -628,10 +649,10 @@ function KPILibrary({ config, onSave, onClose }) {
                   </div>
                   <button
                     onClick={() => toggleKPI(k.id)}
-                    className={`shrink-0 w-10 h-6 rounded-full transition-colors relative overflow-hidden ${isActive ? 'bg-brand-600' : 'bg-gray-200'}`}
+                    className={`shrink-0 w-10 h-6 rounded-full transition-colors relative ${isActive ? 'bg-brand-600' : 'bg-gray-200'}`}
                     aria-label={isActive ? 'Desactivar' : 'Activar'}
                   >
-                    <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${isActive ? 'translate-x-5' : 'translate-x-1'}`} />
+                    <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${isActive ? 'translate-x-5' : 'translate-x-1'}`} />
                   </button>
                 </div>
               );
@@ -700,9 +721,9 @@ function KPILibrary({ config, onSave, onClose }) {
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => toggleKPI(k.id)}
-                        className={`w-10 h-6 rounded-full transition-colors relative overflow-hidden ${isActive ? 'bg-brand-600' : 'bg-gray-200'}`}
+                        className={`w-10 h-6 rounded-full transition-colors relative ${isActive ? 'bg-brand-600' : 'bg-gray-200'}`}
                       >
-                        <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${isActive ? 'translate-x-5' : 'translate-x-1'}`} />
+                        <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${isActive ? 'translate-x-5' : 'translate-x-1'}`} />
                       </button>
                       <button onClick={() => removeCustomKPI(k.id)} className="text-gray-300 hover:text-red-400 transition-colors" title="Eliminar">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

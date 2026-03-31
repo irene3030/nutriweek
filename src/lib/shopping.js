@@ -79,15 +79,20 @@ export function generateShoppingList(weekDoc, availableAtHome = '') {
     };
   }
 
-  const allIngredients = new Set();
+  // Map: ingredient → [{day, tipo, text}]
+  const ingredientUsages = new Map();
 
   for (const day of weekDoc.days) {
     if (!day.meals) continue;
     for (const meal of day.meals) {
-      const fromBaby = extractIngredients(meal.baby || '');
-      const fromAdult = extractIngredients(meal.adult || '');
-      for (const ing of [...fromBaby, ...fromAdult]) {
-        allIngredients.add(ing);
+      const mealText = [meal.baby, meal.adult].filter(Boolean).join(' / ');
+      const ingredients = [...new Set([
+        ...extractIngredients(meal.baby || ''),
+        ...extractIngredients(meal.adult || ''),
+      ])];
+      for (const ing of ingredients) {
+        if (!ingredientUsages.has(ing)) ingredientUsages.set(ing, []);
+        ingredientUsages.get(ing).push({ day: day.day, tipo: meal.tipo, text: mealText });
       }
     }
   }
@@ -108,24 +113,24 @@ export function generateShoppingList(weekDoc, availableAtHome = '') {
     despensa: [],
   };
 
-  for (const ingredient of allIngredients) {
+  for (const [ingredient, usages] of ingredientUsages) {
     const isAtHome = homeItems.some(
       (h) => ingredient.includes(h) || h.includes(ingredient)
     );
-
+    const item = { name: ingredient, usages };
     if (isAtHome) {
-      atHome.push(ingredient);
+      atHome.push(item);
     } else {
       const cat = categorize(ingredient);
-      shopping[cat].push(ingredient);
+      shopping[cat].push(item);
     }
   }
 
-  // Sort each category alphabetically
+  // Sort each category alphabetically by name
   for (const cat of Object.keys(shopping)) {
-    shopping[cat].sort();
+    shopping[cat].sort((a, b) => a.name.localeCompare(b.name));
   }
-  atHome.sort();
+  atHome.sort((a, b) => a.name.localeCompare(b.name));
 
   return { categories: shopping, atHome };
 }
@@ -150,7 +155,7 @@ export function formatShoppingListText(shoppingList, weekLabel = '') {
     if (items.length === 0) continue;
     lines.push(`${categoryEmojis[cat] || '•'} ${cat.toUpperCase()}`);
     for (const item of items) {
-      lines.push(`  • ${item}`);
+      lines.push(`  • ${item.name}`);
     }
     lines.push('');
   }
@@ -158,7 +163,7 @@ export function formatShoppingListText(shoppingList, weekLabel = '') {
   if (atHome.length > 0) {
     lines.push('✅ YA TIENES EN CASA');
     for (const item of atHome) {
-      lines.push(`  • ${item}`);
+      lines.push(`  • ${item.name}`);
     }
   }
 

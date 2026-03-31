@@ -30,6 +30,15 @@ const TAG_BAR_COLORS = {
   cereal: 'bg-amber-400',
 };
 
+function parseIngredients(text) {
+  if (!text) return [];
+  const parts = text
+    .split(/\s+con\s+|\s+y\s+|,/i)
+    .map(s => s.trim().toLowerCase())
+    .filter(s => s.length > 2 && s.length < 50);
+  return parts.length >= 2 ? parts : [];
+}
+
 function getBarColor(tags = []) {
   const priority = ['iron', 'fish', 'legume', 'egg', 'dairy', 'fruit', 'cereal'];
   for (const p of priority) {
@@ -56,7 +65,8 @@ export default function MealSlot({
   const [editing, setEditing] = useState(false);
   const [showTrack, setShowTrack] = useState(false);
 
-  const barColor = getBarColor(meal?.tags || []);
+  const effectiveTags = meal?.track?.tags ?? meal?.tags ?? [];
+  const barColor = getBarColor(effectiveTags);
   const hasContent = !!meal?.baby;
 
 
@@ -92,13 +102,25 @@ export default function MealSlot({
             <button
               onClick={() => setShowTrack(true)}
               className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
-                meal?.track?.done
+                meal?.track?.status === 'done'
+                  ? 'bg-green-50 border-green-300 text-green-700'
+                  : meal?.track?.status === 'partial'
+                  ? 'bg-orange-50 border-orange-300 text-orange-700'
+                  : meal?.track?.status === 'other'
+                  ? 'bg-blue-50 border-blue-300 text-blue-700'
+                  : meal?.track?.done
                   ? 'bg-green-50 border-green-300 text-green-700'
                   : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
               }`}
               title="Registrar seguimiento"
             >
-              {meal?.track?.done ? '✓ Comido' : '○ Registrar'}
+              {meal?.track?.status === 'done' || meal?.track?.done
+                ? '✓ Comido'
+                : meal?.track?.status === 'partial'
+                ? '◑ Parcial'
+                : meal?.track?.status === 'other'
+                ? '↔ Otra cosa'
+                : '○ Registrar'}
             </button>
             {/* Edit button */}
             <button
@@ -117,25 +139,55 @@ export default function MealSlot({
           <>
             {hasContent ? (
               <>
-                <p className="text-sm text-gray-800 leading-snug">{meal.baby}</p>
-                {meal?.tags && meal.tags.length > 0 && (() => {
-                  const displayTags = meal.tags.reduce((acc, tag) => {
-                    if (tag.startsWith('veggie:')) {
-                      if (!acc.some(t => t.startsWith('veggie:'))) acc.push(tag);
-                    } else if (!acc.includes(tag)) {
-                      acc.push(tag);
-                    }
-                    return acc;
-                  }, []);
+                {/* Planned meal — struck through if 'other' */}
+                <p className={`text-sm leading-snug ${
+                  meal?.track?.status === 'other' ? 'text-gray-400 line-through' : 'text-gray-800'
+                }`}>{meal.baby}</p>
+
+                {/* Actual eaten — 'other' status */}
+                {meal?.track?.status === 'other' && meal.track.altFood && (
+                  <p className="text-sm text-gray-800 leading-snug mt-1">
+                    <span className="text-[10px] font-semibold text-blue-500 uppercase tracking-wide mr-1">Comió</span>
+                    {meal.track.altFood}
+                  </p>
+                )}
+
+                {/* Ingredient breakdown — 'partial' with checklist */}
+                {meal?.track?.status === 'partial' && meal.track.checkedIngredients && (() => {
+                  const allIngs = parseIngredients(meal.baby || '');
+                  const checkedSet = new Set(meal.track.checkedIngredients);
+                  if (allIngs.length < 2) return null;
                   return (
                     <div className="flex flex-wrap gap-1 mt-1.5">
-                      {displayTags.map((tag) => (
-                        <TagChip key={tag} tag={tag} small />
+                      {allIngs.map(ing => (
+                        <span key={ing} className={`text-xs px-1.5 py-0.5 rounded-full ${
+                          checkedSet.has(ing)
+                            ? 'bg-orange-50 text-orange-700'
+                            : 'bg-gray-100 text-gray-400 line-through'
+                        }`}>{ing}</span>
                       ))}
                     </div>
                   );
                 })()}
-                {meal?.track?.note && (
+
+                {/* Extra food (any status) */}
+                {meal?.track?.extra && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    <span className="font-medium">También:</span> {meal.track.extra}
+                  </p>
+                )}
+
+                {/* Effective tags */}
+                {effectiveTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {effectiveTags.map((tag) => (
+                      <TagChip key={tag} tag={tag} small />
+                    ))}
+                  </div>
+                )}
+
+                {/* Legacy note (backwards compat) */}
+                {!meal?.track?.status && meal?.track?.note && (
                   <p className="text-xs text-gray-400 italic mt-1.5 border-t border-gray-100 pt-1.5">
                     "{meal.track.note}"
                   </p>
@@ -175,6 +227,7 @@ export default function MealSlot({
         meal={meal}
         dayName={dayName}
         onSave={handleTrackSave}
+        apiKey={apiKey}
       />
     </div>
   );
