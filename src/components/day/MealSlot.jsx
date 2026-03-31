@@ -114,12 +114,12 @@ export default function MealSlot({
               }`}
               title="Registrar seguimiento"
             >
-              {meal?.track?.status === 'done' || meal?.track?.done
-                ? '✓ Comido'
-                : meal?.track?.status === 'partial'
+              {meal?.track?.status === 'partial'
                 ? '◑ Parcial'
                 : meal?.track?.status === 'other'
                 ? '↔ Otra cosa'
+                : (meal?.track?.status === 'done' || meal?.track?.done)
+                ? '✓ Comido'
                 : '○ Registrar'}
             </button>
             {/* Edit button */}
