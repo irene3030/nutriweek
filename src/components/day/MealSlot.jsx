@@ -128,13 +128,25 @@ export default function MealSlot({
             <button
               onClick={() => setShowTrack(true)}
               className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
-                meal?.track?.done
+                meal?.track?.status === 'done'
+                  ? 'bg-green-50 border-green-300 text-green-700'
+                  : meal?.track?.status === 'partial'
+                  ? 'bg-orange-50 border-orange-300 text-orange-700'
+                  : meal?.track?.status === 'other'
+                  ? 'bg-blue-50 border-blue-300 text-blue-700'
+                  : meal?.track?.done
                   ? 'bg-green-50 border-green-300 text-green-700'
                   : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
               }`}
               title="Registrar seguimiento"
             >
-              {meal?.track?.done ? '✓ Comido' : '○ Registrar'}
+              {meal?.track?.status === 'done' || meal?.track?.done
+                ? '✓ Comido'
+                : meal?.track?.status === 'partial'
+                ? '◑ Parcial'
+                : meal?.track?.status === 'other'
+                ? '↔ Otra cosa'
+                : '○ Registrar'}
             </button>
             {/* Edit button */}
             <button
@@ -201,6 +213,7 @@ export default function MealSlot({
         meal={meal}
         dayName={dayName}
         onSave={handleTrackSave}
+        apiKey={apiKey}
       />
     </div>
   );
