@@ -32,6 +32,7 @@ export default function MealEditor({
   hasAiAccess,
   onSave,
   onCopy,
+  onSwap,
   onCancel,
 }) {
   const [baby, setBaby] = useState('');
@@ -53,6 +54,10 @@ export default function MealEditor({
   // Copy
   const [showCopy, setShowCopy]       = useState(false);
   const [copyTarget, setCopyTarget]   = useState({ day: DAYS[0], meal: MEAL_TYPES[0] });
+
+  // Swap
+  const [showSwap, setShowSwap]       = useState(false);
+  const [swapTarget, setSwapTarget]   = useState({ day: DAYS[0], meal: MEAL_TYPES[0] });
 
   useEffect(() => {
     if (meal) {
@@ -296,6 +301,49 @@ export default function MealEditor({
               className="text-xs px-3 py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
             >
               Copiar
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Intercambiar con otro slot */}
+      <div>
+        <button
+          onClick={() => setShowSwap((v) => !v)}
+          className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1.5"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+          </svg>
+          Intercambiar con otro slot
+        </button>
+        {showSwap && (
+          <div className="flex gap-2 mt-2 flex-wrap">
+            <select
+              value={swapTarget.day}
+              onChange={(e) => setSwapTarget((p) => ({ ...p, day: e.target.value }))}
+              className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none"
+            >
+              {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+            <select
+              value={swapTarget.meal}
+              onChange={(e) => setSwapTarget((p) => ({ ...p, meal: e.target.value }))}
+              className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none"
+            >
+              {MEAL_TYPES.map((m) => <option key={m} value={m}>{MEAL_LABELS[m]}</option>)}
+            </select>
+            <button
+              onClick={() => {
+                const targetDayData = (weekContext || []).find(d => d.day === swapTarget.day);
+                const targetMeal = targetDayData?.meals?.find(m => m.tipo === swapTarget.meal);
+                onSwap(swapTarget.day, swapTarget.meal, { baby, tags });
+                onSave({ baby: targetMeal?.baby || '', tags: targetMeal?.tags || [] });
+                setShowSwap(false);
+              }}
+              className="text-xs px-3 py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              Intercambiar
             </button>
           </div>
         )}

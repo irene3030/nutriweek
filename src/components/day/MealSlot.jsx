@@ -61,6 +61,7 @@ export default function MealSlot({
   onSave,
   onTrack,
   onCopy,
+  onSwap,
 }) {
   const [editing, setEditing] = useState(false);
   const [showTrack, setShowTrack] = useState(false);
@@ -82,6 +83,10 @@ export default function MealSlot({
 
   const handleCopy = (targetDay, targetMealType, data) => {
     onCopy(dayName, meal?.tipo, targetDay, targetMealType, data);
+  };
+
+  const handleSwap = (targetDay, targetMealType, data) => {
+    onSwap(dayName, meal?.tipo, targetDay, targetMealType, data);
   };
 
   return (
@@ -214,6 +219,7 @@ export default function MealSlot({
               hasAiAccess={hasAiAccess}
               onSave={handleSave}
               onCopy={handleCopy}
+              onSwap={handleSwap}
               onCancel={() => setEditing(false)}
             />
           </div>
