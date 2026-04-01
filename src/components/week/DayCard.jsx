@@ -9,6 +9,17 @@ const MEAL_LABELS = {
   cena: '🌙',
 };
 
+function effectiveText(meal) {
+  const t = meal.track;
+  if (!t?.status && !t?.done) return meal.baby;
+  if (t.status === 'other' && t.altFood) return t.altFood;
+  if (t.status === 'partial') {
+    if (t.checkedIngredients?.length) return t.checkedIngredients.join(', ');
+    if (t.extra) return t.extra;
+  }
+  return meal.baby;
+}
+
 function shortName(text) {
   if (!text) return '';
   if (text.length <= 22) return text;
@@ -104,7 +115,7 @@ export default function DayCard({ dayData, onClick, isToday, onClear }) {
             <span className="text-xs w-4">{MEAL_LABELS[meal.tipo] || '•'}</span>
             <div className="flex-1 min-w-0">
               {meal.baby ? (
-                <p className="text-xs text-gray-700 truncate">{shortName(meal.baby)}</p>
+                <p className="text-xs text-gray-700 truncate">{shortName(effectiveText(meal))}</p>
               ) : (
                 <div className="h-2.5 bg-gray-100 rounded w-3/4" />
               )}
