@@ -14,7 +14,11 @@ const KPI_DAY_META = {
 
 function computeDayContributions(dayData, kpiConfig) {
   if (!dayData?.meals || !kpiConfig) return [];
-  const meals = dayData.meals;
+  // Use effective tags: track.tags (real) when tracked, meal.tags (planned) otherwise
+  const meals = dayData.meals.map(m => ({
+    ...m,
+    tags: m.track?.tags ?? m.tags ?? [],
+  }));
   const active = kpiConfig.active || [];
   const result = [];
 
