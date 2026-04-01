@@ -12,6 +12,7 @@ import UsualMeals from './components/recipes/UsualMeals';
 import { FullPageSpinner } from './components/ui/LoadingSpinner';
 import InstallBanner from './components/ui/InstallBanner';
 import SpotlightTour from './components/ui/SpotlightTour';
+import Modal from './components/ui/Modal';
 import DayPlayground from './components/playground/DayPlayground';
 import {
   collection,
@@ -65,6 +66,7 @@ function AppContent() {
   const [householdDoc, setHouseholdDoc] = useState(null);
   const [recipesTab, setRecipesTab] = useState('usual');
   const [showTour, setShowTour] = useState(false);
+  const [showFFWelcome, setShowFFWelcome] = useState(false);
 
   const {
     weeks,
@@ -124,7 +126,7 @@ function AppContent() {
     if (!token) return;
     localStorage.removeItem('pendingInvite');
     redeemInvite(token, householdId)
-      .then(() => track('invite_redeemed'))
+      .then(() => { track('invite_redeemed'); setShowFFWelcome(true); })
       .catch(err => console.warn('Invite redemption failed:', err.message));
   }, [auth.userDoc?.householdId, !!householdDoc, householdDoc?.ffActivated]);
 
@@ -353,7 +355,7 @@ function AppContent() {
           )}
 
           {activeTab === 'profile' && (
-            <ProfileTab auth={auth} householdDoc={householdDoc} />
+            <ProfileTab auth={auth} householdDoc={householdDoc} onShowFFWelcome={() => setShowFFWelcome(true)} />
           )}
 
           {activeTab === 'day' && (
@@ -405,6 +407,28 @@ function AppContent() {
 
         {showTour && <SpotlightTour onComplete={handleTourComplete} onNavigate={setActiveTab} />}
 
+        <Modal isOpen={showFFWelcome} onClose={() => setShowFFWelcome(false)} title="¡Bienvenida a MealOps! 🎉" maxWidth="max-w-sm">
+          <div className="space-y-4 text-center pb-2">
+            <div className="text-5xl">🎁</div>
+            <p className="text-gray-700 text-sm leading-relaxed">
+              Te has unido con un <span className="font-semibold text-brand-700">código de invitación Friends &amp; Family</span>.
+            </p>
+            <div className="bg-brand-50 border border-brand-100 rounded-xl px-4 py-3">
+              <p className="text-brand-800 font-semibold text-base">30 llamadas gratuitas a la IA</p>
+              <p className="text-brand-600 text-xs mt-0.5">sin necesidad de API key propia</p>
+            </div>
+            <p className="text-gray-500 text-xs leading-relaxed">
+              Úsalas para generar menús semanales, obtener sugerencias de comida y analizar ingredientes. Cuando las agotes, puedes añadir tu propia API key de Anthropic en Perfil.
+            </p>
+            <button
+              onClick={() => setShowFFWelcome(false)}
+              className="w-full bg-brand-600 text-white rounded-xl py-3 font-medium hover:bg-brand-700 transition-colors"
+            >
+              ¡Empezar!
+            </button>
+          </div>
+        </Modal>
+
         {/* Bottom tab bar */}
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20 pb-[env(safe-area-inset-bottom)]">
           <div className="max-w-lg mx-auto flex">
@@ -434,7 +458,7 @@ function AppContent() {
   );
 }
 
-function ProfileTab({ auth, householdDoc }) {
+function ProfileTab({ auth, householdDoc, onShowFFWelcome }) {
   const [members, setMembers] = useState([]);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [apiKeySaved, setApiKeySaved] = useState(false);
@@ -920,6 +944,12 @@ function ProfileTab({ auth, householdDoc }) {
                 className="text-xs bg-indigo-500 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-600 transition-colors font-medium"
               >
                 🔦 Lanzar Spotlight Tour
+              </button>
+              <button
+                onClick={onShowFFWelcome}
+                className="text-xs bg-green-500 text-white px-3 py-1.5 rounded-lg hover:bg-green-600 transition-colors font-medium"
+              >
+                🎁 Ver modal bienvenida F&F
               </button>
             </div>
             <p className="text-xs text-amber-500 italic">Este bloque no aparece en producción.</p>

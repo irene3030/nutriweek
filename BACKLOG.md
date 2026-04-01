@@ -55,8 +55,10 @@ Una vez generado el plan de batch cooking, cada comida en la vista de día muest
 ### KPIs nutricionales — pendientes
 
 **Vigilar cantidad de proteína diaria**
-- Añadir control/visualización de la ingesta proteica diaria
-> Pendiente. Diferenciar por edad del bebé.
+- La cantidad de proteína recomendada varía según la edad del bebé (distinto en 6-9m, 9-12m, 12m+)
+- El KPI de proteína diaria debe ajustar su objetivo automáticamente en función de la edad calculada desde `households.baby.birthDate`
+- Mostrar control/visualización de la ingesta proteica diaria con target adaptado a la edad actual
+> Pendiente. Diferenciar por edad del bebé — el objetivo numérico (gramos o raciones) debe cambiar dinámicamente.
 
 **Nuevos KPIs en biblioteca** (aún no implementados)
 - Ratio proteína animal vs vegetal
