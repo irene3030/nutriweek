@@ -2,6 +2,11 @@
 
 ## Pendiente
 
+### TrackModal — eliminar "¿Comió algo más?" en opción "Otra cosa"
+En el modal de registrar comida, cuando el estado es "Comió otra cosa", eliminar el campo opcional "¿Comió algo más?". Solo es relevante el campo "¿Qué comió en su lugar?".
+
+---
+
 ### Vista semanal — comida registrada vs planificada (diseño pendiente)
 Cuando una comida tiene tracking, ¿qué se muestra en la celda del DayCard?
 Opciones a valorar:

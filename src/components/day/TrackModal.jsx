@@ -189,8 +189,8 @@ export default function TrackModal({ isOpen, onClose, meal, dayName, onSave, api
           </div>
         )}
 
-        {/* Extra food — all statuses (except partial without checklist which already used extra above) */}
-        {status && !(status === 'partial' && !hasChecklist) && (
+        {/* Extra food — done and partial only (not 'other') */}
+        {status && status !== 'other' && !(status === 'partial' && !hasChecklist) && (
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">
               ¿Comió algo más? <span className="font-normal">(opcional)</span>
