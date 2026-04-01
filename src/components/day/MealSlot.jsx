@@ -152,7 +152,7 @@ export default function MealSlot({
 
                 {/* Actual eaten — 'other' status */}
                 {meal?.track?.status === 'other' && meal.track.altFood && (
-                  <p className="text-sm text-gray-800 leading-snug mt-1">
+                  <p className="text-sm text-gray-500 leading-snug mt-1">
                     <span className="font-medium">Comió:</span> {meal.track.altFood}
                   </p>
                 )}
@@ -177,7 +177,7 @@ export default function MealSlot({
 
                 {/* Extra food (any status) */}
                 {meal?.track?.extra && (
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-sm text-gray-500 mt-1">
                     <span className="font-medium">También:</span> {meal.track.extra}
                   </p>
                 )}
