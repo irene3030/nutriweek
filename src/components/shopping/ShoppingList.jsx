@@ -173,7 +173,7 @@ export default function ShoppingList({ weekDoc, householdId }) {
                           {u.day} · {MEAL_LABELS[u.tipo] ?? u.tipo}
                         </span>
                         {u.text && (
-                          <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-800 text-white text-[10px] rounded-lg whitespace-nowrap opacity-0 group-hover/pill:opacity-100 transition-opacity z-20 max-w-[180px] text-center leading-snug">
+                          <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-800 text-white text-[10px] rounded-lg opacity-0 group-hover/pill:opacity-100 transition-opacity z-20 w-max max-w-[240px] text-center leading-snug">
                             {u.text}
                             <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
                           </span>
@@ -207,7 +207,7 @@ export default function ShoppingList({ weekDoc, householdId }) {
                         {u.day} · {MEAL_LABELS[u.tipo] ?? u.tipo}
                       </span>
                       {u.text && (
-                        <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-800 text-white text-[10px] rounded-lg whitespace-nowrap opacity-0 group-hover/pill:opacity-100 transition-opacity z-20 max-w-[180px] text-center leading-snug">
+                        <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-800 text-white text-[10px] rounded-lg opacity-0 group-hover/pill:opacity-100 transition-opacity z-20 w-max max-w-[240px] text-center leading-snug">
                           {u.text}
                           <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
                         </span>
