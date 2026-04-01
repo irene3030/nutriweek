@@ -47,6 +47,12 @@ Items implementados en `dev` pendientes de revisión visual antes de merge.
 
 ## 9b. Compartir menú con texto completo *(en curso)*
 
+## KPIs — frecuencia diaria/semanal
+- Hierro y Fruta ahora usan frecuencia **diaria** por defecto (antes semanal): el pill muestra `X/7 días` con objetivo `≥1/día`
+- KPIs custom: nuevo selector "Por semana / Por día" al crear y al editar
+- Bug corregido: `getCustomStatus` (no definida) → `getStatusWithQuality`
+- **Revisar:** que los pills de Hierro y Fruta muestran bien el nuevo formato; que crear un KPI custom con frecuencia diaria funciona y el pill se actualiza correctamente
+
 ## Tu bebé — perfil del bebé
 - Nombre, fecha de nacimiento (con edad en meses calculada al momento), toggle de lactancia materna
 - Guardado en `households.baby`, pasado al prompt de generación de semana

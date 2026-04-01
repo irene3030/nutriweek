@@ -15,7 +15,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
     active: kpiConfig?.active ?? DEFAULT_KPI_CONFIG.active,
     targets: kpiConfig?.targets ?? {},
     qualities: kpiConfig?.qualities ?? {},
-    frequencies: kpiConfig?.frequencies ?? {},
+    frequencies: { ...DEFAULT_KPI_CONFIG.frequencies, ...(kpiConfig?.frequencies ?? {}) },
     custom: kpiConfig?.custom ?? [],
   };
 
@@ -350,14 +350,27 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
 
         {/* Custom KPI pills */}
         {activeCustomKPIs.map(k => {
-          const val = kpis.customResults?.[k.id] ?? 0;
           const tgt = config.targets[k.id] ?? k.target ?? 3;
           const quality = k.quality || 'mínimo';
-          const st = getCustomStatus(val, tgt, quality);
-          const targetLabel = quality === 'máximo' ? `≤${tgt} días` : quality === 'exacto' ? `=${tgt} días` : `≥${tgt} días`;
+          const freq = k.frequency || 'semanal';
+          const qualPrefix = quality === 'máximo' ? '≤' : quality === 'exacto' ? '=' : '≥';
+          let val, valueLabel, targetLabel, st;
+          if (freq === 'diario') {
+            const dc = dailyCompliance[k.id];
+            const perDayTgt = config.targets[k.id] ?? k.target ?? 1;
+            val = dc?.compliant ?? 0;
+            valueLabel = dc ? `${dc.compliant}/${dc.total} días` : '0/0 días';
+            targetLabel = `${qualPrefix}${perDayTgt}/día`;
+            st = dc ? getDailyStatus(dc.compliant, dc.total) : null;
+          } else {
+            val = kpis.customResults?.[k.id] ?? 0;
+            valueLabel = `${val}/${tgt}`;
+            targetLabel = quality === 'máximo' ? `≤${tgt} días` : quality === 'exacto' ? `=${tgt} días` : `≥${tgt} días`;
+            st = getStatusWithQuality(val, tgt, quality);
+          }
           return (
             <KPIPill key={k.id}
-              icon="⭐" label={k.name} value={`${val}/${tgt}`} target={targetLabel}
+              icon="⭐" label={k.name} value={valueLabel} target={targetLabel}
               status={st} statusColors={statusColors}
               onFix={hasAiAccess && st !== null && quality === 'mínimo' ? () => handleFix(k.id) : null}
               fixing={fixing === k.id} loading={loading && fixing === k.id}
@@ -539,6 +552,7 @@ function KPILibrary({ config, onSave, onClose }) {
   const [editingTarget, setEditingTarget] = useState(null);
   const [targetInput, setTargetInput] = useState('');
   const [customQuality, setCustomQuality] = useState('mínimo');
+  const [customFrequency, setCustomFrequency] = useState('semanal');
   const [editingCustomId, setEditingCustomId] = useState(null);
 
   const isDirty = JSON.stringify(draft) !== JSON.stringify(config);
@@ -563,10 +577,10 @@ function KPILibrary({ config, onSave, onClose }) {
     const id = `custom_${Date.now()}`;
     setDraft(d => ({
       ...d,
-      custom: [...d.custom, { id, name: customName.trim(), query: customQuery.trim(), target: parseInt(customTarget, 10) || 3, quality: customQuality }],
+      custom: [...d.custom, { id, name: customName.trim(), query: customQuery.trim(), target: parseInt(customTarget, 10) || 3, quality: customQuality, frequency: customFrequency }],
       active: [...d.active, id],
     }));
-    setCustomName(''); setCustomQuery(''); setCustomTarget('3'); setCustomQuality('mínimo');
+    setCustomName(''); setCustomQuery(''); setCustomTarget('3'); setCustomQuality('mínimo'); setCustomFrequency('semanal');
     setShowAddCustom(false);
   };
 
@@ -699,20 +713,34 @@ function KPILibrary({ config, onSave, onClose }) {
                             )}
                           </div>
                           {isEditingCard ? (
-                            <div className="flex gap-1">
-                              {['mínimo', 'máximo', 'exacto'].map(q => (
-                                <button
-                                  key={q} type="button"
-                                  onClick={() => { updateCustomKPI(k.id, { quality: q }); setEditingCustomId(null); }}
-                                  className={`flex-1 text-xs py-1 rounded-lg border transition-colors ${currentQuality === q ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300'}`}
-                                >
-                                  {q === 'mínimo' ? '≥ mín' : q === 'máximo' ? '≤ máx' : '= exacto'}
-                                </button>
-                              ))}
+                            <div className="space-y-1.5">
+                              <div className="flex gap-1">
+                                {['mínimo', 'máximo', 'exacto'].map(q => (
+                                  <button
+                                    key={q} type="button"
+                                    onClick={() => updateCustomKPI(k.id, { quality: q })}
+                                    className={`flex-1 text-xs py-1 rounded-lg border transition-colors ${currentQuality === q ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300'}`}
+                                  >
+                                    {q === 'mínimo' ? '≥ mín' : q === 'máximo' ? '≤ máx' : '= exacto'}
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="flex gap-1">
+                                {[['semanal', 'Por semana'], ['diario', 'Por día']].map(([val, lbl]) => (
+                                  <button
+                                    key={val} type="button"
+                                    onClick={() => updateCustomKPI(k.id, { frequency: val })}
+                                    className={`flex-1 text-xs py-1 rounded-lg border transition-colors ${(k.frequency || 'semanal') === val ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300'}`}
+                                  >
+                                    {lbl}
+                                  </button>
+                                ))}
+                              </div>
+                              <button onClick={() => setEditingCustomId(null)} className="text-xs text-brand-600 font-medium">✓ Listo</button>
                             </div>
                           ) : (
                             <button onClick={() => setEditingCustomId(k.id)} className="text-xs text-gray-400 hover:text-brand-600 transition-colors">
-                              tipo: {currentQuality === 'mínimo' ? '≥ mínimo' : currentQuality === 'máximo' ? '≤ máximo' : '= exacto'} ✎
+                              tipo: {currentQuality === 'mínimo' ? '≥ mínimo' : currentQuality === 'máximo' ? '≤ máximo' : '= exacto'} · {(k.frequency || 'semanal') === 'diario' ? 'por día' : 'por semana'} ✎
                             </button>
                           )}
                         </div>
@@ -783,9 +811,25 @@ function KPILibrary({ config, onSave, onClose }) {
                 </div>
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Objetivo (días/semana)</label>
+                <label className="text-xs text-gray-500 mb-1 block">Frecuencia</label>
+                <div className="flex gap-1">
+                  {[['semanal', 'Por semana'], ['diario', 'Por día']].map(([val, lbl]) => (
+                    <button
+                      key={val} type="button"
+                      onClick={() => setCustomFrequency(val)}
+                      className={`flex-1 text-xs py-1.5 rounded-lg border transition-colors ${customFrequency === val ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300'}`}
+                    >
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">
+                  {customFrequency === 'diario' ? 'Objetivo (veces/día)' : 'Objetivo (días/semana)'}
+                </label>
                 <input
-                  type="number" min={1} max={7} value={customTarget} onChange={e => setCustomTarget(e.target.value)}
+                  type="number" min={1} max={customFrequency === 'diario' ? 5 : 7} value={customTarget} onChange={e => setCustomTarget(e.target.value)}
                   className="w-20 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white"
                 />
               </div>

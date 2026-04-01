@@ -70,6 +70,7 @@ export const KPI_CATALOG = [
 export const DEFAULT_KPI_CONFIG = {
   active: ['iron', 'fish', 'veggie', 'legume'],
   targets: {},
+  frequencies: { iron: 'diario', fruit: 'diario' },
   custom: [],
 };
 
