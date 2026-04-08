@@ -2,13 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { evaluateDay, suggestDinner, swapDinnerIngredient } from '../../lib/claude';
+import { Sunrise, Apple, Utensils, Coffee, Moon, Search, RotateCcw, AlertTriangle, Check, Fish, X } from 'lucide-react';
 
 const MEAL_TYPES = [
-  { id: 'desayuno', label: 'Desayuno', emoji: '☀️' },
-  { id: 'snack', label: 'Snack AM', emoji: '🍎' },
-  { id: 'comida', label: 'Comida', emoji: '🍽️' },
-  { id: 'merienda', label: 'Merienda', emoji: '🍪' },
-  { id: 'cena', label: 'Cena', emoji: '🌙' },
+  { id: 'desayuno', label: 'Desayuno', Icon: Sunrise },
+  { id: 'snack', label: 'Snack AM', Icon: Apple },
+  { id: 'comida', label: 'Comida', Icon: Utensils },
+  { id: 'merienda', label: 'Merienda', Icon: Coffee },
+  { id: 'cena', label: 'Cena', Icon: Moon },
 ];
 
 const DINNER_MEALS = MEAL_TYPES.filter(m => m.id !== 'cena');
@@ -35,7 +36,7 @@ function EvaluateResult({ data }) {
         <div className="space-y-1.5">
           {data.positives.map((p, i) => (
             <div key={i} className="flex items-start gap-2 text-sm text-green-700">
-              <span className="shrink-0 mt-0.5">✓</span>
+              <Check className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{p}</span>
             </div>
           ))}
@@ -47,7 +48,7 @@ function EvaluateResult({ data }) {
           <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide">Falta en este día</p>
           {data.missing_daily.map((m, i) => (
             <div key={i}>
-              <p className="text-sm font-medium text-orange-700">⚠ {m.nutrient}</p>
+              <p className="text-sm font-medium text-orange-700 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5 shrink-0" /> {m.nutrient}</p>
               <p className="text-xs text-gray-500 leading-relaxed mt-0.5">{m.reason}</p>
             </div>
           ))}
@@ -60,7 +61,7 @@ function EvaluateResult({ data }) {
           {data.missing_weekly.map((m, i) => (
             <div key={i}>
               <div className="flex items-center gap-2">
-                <p className="text-sm font-medium text-blue-700">ℹ {m.nutrient}</p>
+                <p className="text-sm font-medium text-blue-700">i {m.nutrient}</p>
                 {m.frequency && (
                   <span className="text-[10px] bg-blue-50 text-blue-500 px-1.5 py-0.5 rounded-full">{m.frequency}</span>
                 )}
@@ -73,7 +74,7 @@ function EvaluateResult({ data }) {
 
       {allGood && (
         <div className="flex items-center gap-2 text-sm text-green-700 border-t border-gray-100 pt-3">
-          <span>🎉</span>
+          <Check className="w-4 h-4 shrink-0" />
           <span>¡Día completo nutricionalmente!</span>
         </div>
       )}
@@ -128,7 +129,7 @@ function DinnerResult({ data, apiKey }) {
       {/* Ingredients as pills */}
       {ingredients.length > 0 && (
         <div className="pt-1">
-          <p className="text-xs text-gray-400 mb-2">Toca un ingrediente para ver por qué está. Usa ↺ para cambiarlo, ✕ para quitarlo.</p>
+          <p className="text-xs text-gray-400 mb-2">Toca un ingrediente para ver por qué está. Usa el icono de recarga para cambiarlo, o la X para quitarlo.</p>
           <div className="flex flex-wrap gap-2">
             {ingredients.map((ing, i) => (
               <div key={i} className="flex flex-col">
@@ -147,14 +148,14 @@ function DinnerResult({ data, apiKey }) {
                   >
                     {swappingIdx === i
                       ? <span className="inline-block w-2.5 h-2.5 border border-gray-300 border-t-brand-500 rounded-full animate-spin" />
-                      : '↺'}
+                      : <RotateCcw className="w-3 h-3" />}
                   </button>
                   <button
                     onClick={() => removeIngredient(i)}
                     className="text-gray-300 hover:text-red-400 transition-colors text-[10px] leading-none ml-0.5"
                     title="Quitar ingrediente"
                   >
-                    ✕
+                    <X className="w-3 h-3" />
                   </button>
                 </div>
                 {expandedIdx === i && ing.why && (
@@ -253,8 +254,8 @@ export default function DayPlayground({ apiKey, hasAiAccess, householdId }) {
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
             {[
-              { id: 'evaluate', label: '🔍 Evaluar mi día' },
-              { id: 'dinner', label: '🌙 ¿Qué ceno?' },
+              { id: 'evaluate', label: <span className="flex items-center gap-1 justify-center"><Search className="w-3.5 h-3.5" /> Evaluar mi día</span> },
+              { id: 'dinner', label: <span className="flex items-center gap-1 justify-center"><Moon className="w-3.5 h-3.5" /> ¿Qué ceno?</span> },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -282,7 +283,7 @@ export default function DayPlayground({ apiKey, hasAiAccess, householdId }) {
         {/* Meal inputs */}
         {activeMeals.map(m => (
           <div key={m.id} className="bg-white rounded-xl border border-gray-100 px-4 py-3 flex items-center gap-3">
-            <span className="text-lg shrink-0">{m.emoji}</span>
+            <m.Icon className="w-5 h-5 text-gray-400 shrink-0" />
             <div className="flex-1">
               <p className="text-xs font-medium text-gray-500 mb-0.5">{m.label}</p>
               <input
@@ -301,7 +302,7 @@ export default function DayPlayground({ apiKey, hasAiAccess, householdId }) {
           <div className="bg-white rounded-xl border border-gray-100 px-4 py-3 space-y-3">
             <p className="text-xs font-medium text-gray-500">Contexto semanal <span className="font-normal text-gray-400">(opcional)</span></p>
             <div className="flex items-center justify-between gap-4">
-              <span className="text-sm text-gray-700">🐟 Pescado graso esta semana</span>
+              <span className="text-sm text-gray-700 flex items-center gap-1"><Fish className="w-4 h-4 text-blue-400" /> Pescado graso esta semana</span>
               <div className="flex gap-1">
                 {WEEKLY_OPTIONS.map(opt => (
                   <button
@@ -320,7 +321,7 @@ export default function DayPlayground({ apiKey, hasAiAccess, householdId }) {
               </div>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <span className="text-sm text-gray-700">🟢 Legumbres esta semana</span>
+              <span className="text-sm text-gray-700 flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-500 inline-block shrink-0" /> Legumbres esta semana</span>
               <div className="flex gap-1">
                 {WEEKLY_OPTIONS.map(opt => (
                   <button
@@ -377,9 +378,9 @@ export default function DayPlayground({ apiKey, hasAiAccess, householdId }) {
             {loading ? (
               <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Analizando...</>
             ) : mode === 'evaluate' ? (
-              result ? '↺ Re-evaluar' : '🔍 Evaluar día'
+              result ? <><RotateCcw className="w-4 h-4" /> Re-evaluar</> : <><Search className="w-4 h-4" /> Evaluar día</>
             ) : (
-              result ? '↺ Nueva propuesta' : '🌙 Proponer cena'
+              result ? <><RotateCcw className="w-4 h-4" /> Nueva propuesta</> : <><Moon className="w-4 h-4" /> Proponer cena</>
             )}
           </button>
         </div>

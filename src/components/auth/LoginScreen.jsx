@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import Logo from '../ui/Logo';
+import { CalendarDays, Bot, BarChart2, ShoppingCart } from 'lucide-react';
 
 export default function LoginScreen() {
   const { signInWithGoogle } = useAuth();
@@ -34,13 +35,13 @@ export default function LoginScreen() {
         {/* Feature list */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6 space-y-3">
           {[
-            { icon: '🗓️', text: 'Menú semanal para bebé y familia' },
-            { icon: '🤖', text: 'Generación con IA (Claude)' },
-            { icon: '📊', text: 'KPIs nutricionales automáticos' },
-            { icon: '🛒', text: 'Lista de la compra integrada' },
-          ].map(({ icon, text }) => (
+            { Icon: CalendarDays, text: 'Menú semanal para bebé y familia' },
+            { Icon: Bot, text: 'Generación con IA (Claude)' },
+            { Icon: BarChart2, text: 'KPIs nutricionales automáticos' },
+            { Icon: ShoppingCart, text: 'Lista de la compra integrada' },
+          ].map(({ Icon, text }) => (
             <div key={text} className="flex items-center gap-3">
-              <span className="text-xl">{icon}</span>
+              <Icon className="w-5 h-5 text-brand-600 shrink-0" />
               <span className="text-sm text-gray-700">{text}</span>
             </div>
           ))}

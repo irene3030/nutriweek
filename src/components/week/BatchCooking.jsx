@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { generateBatchCooking, generateBatchCookingOptimized } from '../../lib/claude';
 import { track } from '../../lib/analytics';
+import { ChefHat, Timer, CalendarDays, Check, Sparkles, RotateCcw } from 'lucide-react';
 
 const DAY_ORDER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
@@ -184,7 +185,7 @@ export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate })
           className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
         >
           <div className="flex items-center gap-2">
-            <span className="text-base">🍳</span>
+            <ChefHat className="w-4 h-4 text-gray-500" />
             <span className="text-sm font-semibold text-gray-800">Batch cooking</span>
             {totalCount > 0 && (
               <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
@@ -206,7 +207,7 @@ export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate })
             <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
               {[
                 { id: 'simple', label: 'Por ingrediente' },
-                { id: 'optimized', label: '⏱ Por tiempo' },
+                { id: 'optimized', label: <span className="flex items-center gap-1"><Timer className="w-3.5 h-3.5" />Por tiempo</span> },
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -260,7 +261,7 @@ export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate })
                             <div className="flex items-center gap-2 mb-2">
                               <span className="text-sm">{section.emoji}</span>
                               <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{section.title}</span>
-                              {sectionDone === tasks.length && tasks.length > 0 && <span className="text-xs text-green-600">✓</span>}
+                              {sectionDone === tasks.length && tasks.length > 0 && <Check className="w-3.5 h-3.5 text-green-600" />}
                             </div>
                             <ul className="space-y-2 pl-1">
                               {tasks.map(task => (
@@ -350,7 +351,7 @@ export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate })
                   </div>
 
                   <GenerateButton loading={loading} hasAiAccess={hasAiAccess} onClick={handleGenerateOptimized}
-                    label="✨ Generar plan optimizado" />
+                    label={<><Sparkles className="w-3.5 h-3.5" /> Generar plan optimizado</>} />
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -367,7 +368,7 @@ export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate })
                         {/* Session header */}
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-gray-800">📅 {session.day}</span>
+                            <span className="flex items-center gap-1 text-sm font-semibold text-gray-800"><CalendarDays className="w-3.5 h-3.5 text-gray-400" /> {session.day}</span>
                             <span className="text-xs text-gray-400">{formatDuration(session.duration)} disponibles</span>
                           </div>
                           <div className="flex items-center gap-1.5">
@@ -375,7 +376,7 @@ export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate })
                               <span className="text-xs text-gray-400">~{formatDuration(totalTime)} activos</span>
                             )}
                             {sessionDone === sessionTasks.length && sessionTasks.length > 0 && (
-                              <span className="text-xs font-medium text-green-600">✓</span>
+                              <Check className="w-3.5 h-3.5 text-green-600" />
                             )}
                           </div>
                         </div>
@@ -413,8 +414,7 @@ export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate })
                     );
                   })}
 
-                  <RegenerateButton loading={loading} hasAiAccess={hasAiAccess} onClick={handleGenerateOptimized}
-                    label="↺ Regenerar" />
+                  <RegenerateButton loading={loading} hasAiAccess={hasAiAccess} onClick={handleGenerateOptimized} />
                 </div>
               )
             )}
@@ -427,7 +427,8 @@ export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate })
 
 // ─── Shared buttons ───────────────────────────────────────────────────────────
 
-function GenerateButton({ loading, hasAiAccess, onClick, label = '✨ Generar plan' }) {
+function GenerateButton({ loading, hasAiAccess, onClick, label = null }) {
+  const defaultLabel = <><Sparkles className="w-3.5 h-3.5" /> Generar plan</>;
   return (
     <button
       onClick={onClick}
@@ -437,12 +438,13 @@ function GenerateButton({ loading, hasAiAccess, onClick, label = '✨ Generar pl
     >
       {loading
         ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
-        : label}
+        : (label ?? defaultLabel)}
     </button>
   );
 }
 
-function RegenerateButton({ loading, hasAiAccess, onClick, label = '↺ Regenerar' }) {
+function RegenerateButton({ loading, hasAiAccess, onClick, label = null }) {
+  const defaultLabel = <><RotateCcw className="w-3 h-3" /> Regenerar</>;
   return (
     <button
       onClick={onClick}
@@ -452,7 +454,7 @@ function RegenerateButton({ loading, hasAiAccess, onClick, label = '↺ Regenera
     >
       {loading
         ? <><div className="w-3 h-3 border border-gray-300 border-t-brand-500 rounded-full animate-spin" /> Regenerando...</>
-        : label}
+        : (label ?? defaultLabel)}
     </button>
   );
 }

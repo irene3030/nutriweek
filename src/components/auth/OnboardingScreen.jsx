@@ -4,6 +4,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { useHousehold } from '../../hooks/useHousehold';
+import { PartyPopper, Home, Link } from 'lucide-react';
 
 export default function OnboardingScreen() {
   const { user, refreshUserDoc, signOut } = useAuth();
@@ -47,7 +48,7 @@ export default function OnboardingScreen() {
       <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-orange-50 flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <div className="text-5xl mb-3">🎉</div>
+            <div className="flex justify-center mb-3"><PartyPopper className="w-12 h-12 text-brand-500" /></div>
             <h2 className="text-2xl font-bold text-gray-900">¡Familia creada!</h2>
             <p className="text-gray-500 mt-2 text-sm">Comparte este código con tu familia para que se unan</p>
           </div>
@@ -110,8 +111,8 @@ export default function OnboardingScreen() {
               className="w-full bg-white border-2 border-brand-200 rounded-2xl p-5 text-left hover:border-brand-400 hover:shadow-md transition-all group"
             >
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-brand-100 rounded-xl flex items-center justify-center text-2xl group-hover:bg-brand-200 transition-colors">
-                  🏠
+                <div className="w-12 h-12 bg-brand-100 rounded-xl flex items-center justify-center group-hover:bg-brand-200 transition-colors">
+                  <Home className="w-6 h-6 text-brand-600" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">Crear mi familia</h3>
@@ -125,8 +126,8 @@ export default function OnboardingScreen() {
               className="w-full bg-white border-2 border-orange-200 rounded-2xl p-5 text-left hover:border-orange-400 hover:shadow-md transition-all group"
             >
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center text-2xl group-hover:bg-orange-200 transition-colors">
-                  🔗
+                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center group-hover:bg-orange-200 transition-colors">
+                  <Link className="w-6 h-6 text-orange-600" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">Unirme a una familia</h3>

@@ -5,16 +5,17 @@ import MenuLoadingAnimation from '../ui/MenuLoadingAnimation';
 import { generateWeekMenu, regenerateDay, suggestIngredients, suggestIngredientAlternative } from '../../lib/claude';
 import { track } from '../../lib/analytics';
 import { computeAdaptiveTargets, KPI_CATALOG, DEFAULT_KPI_CONFIG } from '../../lib/kpis';
+import { Beef, Fish, Bean, Leaf, Cherry, Wheat, GlassWater, Sparkles, Zap, ShoppingCart, Star } from 'lucide-react';
 
 const CATEGORY_META = {
-  proteína: { label: 'Proteínas', emoji: '🥩' },
-  pescado:  { label: 'Pescado',   emoji: '🐟' },
-  legumbre: { label: 'Legumbres', emoji: '🫘' },
-  verdura:  { label: 'Verduras',  emoji: '🥦' },
-  fruta:    { label: 'Frutas',    emoji: '🍓' },
-  cereal:   { label: 'Cereales',  emoji: '🌾' },
-  lácteo:   { label: 'Lácteos',   emoji: '🥛' },
-  huevo:    { label: 'Huevos',    emoji: '🥚' },
+  proteína: { label: 'Proteínas', Icon: Beef },
+  pescado:  { label: 'Pescado',   Icon: Fish },
+  legumbre: { label: 'Legumbres', Icon: Bean },
+  verdura:  { label: 'Verduras',  Icon: Leaf },
+  fruta:    { label: 'Frutas',    Icon: Cherry },
+  cereal:   { label: 'Cereales',  Icon: Wheat },
+  lácteo:   { label: 'Lácteos',   Icon: GlassWater },
+  huevo:    { label: 'Huevos',    Icon: null },
 };
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -480,7 +481,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
               className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-sm font-medium text-gray-700"
             >
               <span>
-                📌 Fijar comidas
+                Fijar comidas
                 {(fixedMeals.length + recurringMeals.length) > 0 && (
                   <span className="ml-1.5 text-xs bg-brand-600 text-white rounded-full px-1.5 py-0.5">
                     {fixedMeals.length + recurringMeals.length}
@@ -516,7 +517,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                                 : 'bg-white text-gray-600 border-gray-300 hover:border-brand-400 hover:text-brand-600'
                             }`}
                           >
-                            ⭐ {m.name}
+                            <Star className="w-3 h-3 inline mr-0.5" />{m.name}
                           </button>
                         );
                       })}
@@ -595,7 +596,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                               : 'bg-white text-gray-600 border-gray-300 hover:border-orange-400 hover:text-orange-600'
                           }`}
                         >
-                          ⭐ {m.name}
+                          <Star className="w-3 h-3 inline mr-0.5" />{m.name}
                         </button>
                       ))}
                       {usualMeals.length > 3 && (
@@ -665,7 +666,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
               title={!hasAiAccess ? 'Necesitas una API key o un código Friends & Family para usar la IA' : undefined}
               className="flex-1 bg-brand-600 text-white rounded-xl py-3 font-medium hover:bg-brand-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span>✨</span>
+              <Sparkles className="w-4 h-4" />
               Generar con IA
             </button>
             {!hasAiAccess && (
@@ -727,7 +728,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
               onClick={() => handleGenerateDirect()}
               className="flex flex-col items-center gap-2 p-5 border-2 border-gray-200 rounded-2xl hover:border-brand-400 hover:bg-brand-50 transition-colors text-left"
             >
-              <span className="text-3xl">⚡</span>
+              <Zap className="w-8 h-8 text-brand-500" />
               <div>
                 <p className="font-semibold text-gray-800 text-sm">Generar directamente</p>
                 <p className="text-xs text-gray-500 mt-0.5">Claude elige los ingredientes y crea el menú completo.</p>
@@ -737,7 +738,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
               onClick={handleReviewIngredients}
               className="flex flex-col items-center gap-2 p-5 border-2 border-gray-200 rounded-2xl hover:border-brand-400 hover:bg-brand-50 transition-colors text-left"
             >
-              <span className="text-3xl">🛒</span>
+              <ShoppingCart className="w-8 h-8 text-brand-500" />
               <div>
                 <p className="font-semibold text-gray-800 text-sm">Revisar ingredientes primero</p>
                 <p className="text-xs text-gray-500 mt-0.5">Ve y edita la lista antes de generar. Elimina o sustituye lo que no tengas.</p>
@@ -782,8 +783,8 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                   if (!items.length) return null;
                   return (
                     <div key={cat}>
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                        {meta.emoji} {meta.label}
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                        {meta.Icon && <meta.Icon className="w-3.5 h-3.5" />} {meta.label}
                       </p>
                       <div className="space-y-1.5">
                         {items.map(item => (
@@ -883,7 +884,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                     disabled={ingredientsList.filter(i => !i.removed).length === 0}
                     className="flex-1 bg-brand-600 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-50"
                   >
-                    ✨ Generar menú
+                    <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4" /> Generar menú</span>
                   </button>
                 </div>
               </div>
@@ -985,7 +986,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
               className="flex-1 bg-brand-600 text-white rounded-xl py-3 font-medium hover:bg-brand-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
             >
               {saving && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-              {saving ? 'Guardando...' : '💾 Guardar semana'}
+              {saving ? 'Guardando...' : 'Guardar semana'}
             </button>
           </div>
         </div>
@@ -1085,7 +1086,7 @@ function KPIPreview({ kpiConfig, mealSlots, includeWeekend }) {
               const target = config.targets[k.id] ?? k.target ?? 3;
               return (
                 <div key={k.id} className="flex items-center gap-2">
-                  <span className="text-sm">⭐</span>
+                  <Star className="w-4 h-4 text-gray-500" />
                   <span className="text-xs text-gray-700">{k.name}</span>
                   <span className="text-xs text-brand-700 font-medium">≥{target} días</span>
                 </div>

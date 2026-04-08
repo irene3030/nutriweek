@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Baby } from 'lucide-react';
 
 const MESSAGES = [
   'Eligiendo verduritas nutritivas...',
@@ -10,7 +11,7 @@ const MESSAGES = [
   'Revisando variedad de colores...',
 ];
 
-const FOODS = ['🥦', '🥕', '🍳', '🫐', '🥑', '🍎', '🥚', '🍠'];
+const FOOD_COLORS = ['#22c55e', '#f97316', '#eab308', '#8b5cf6', '#84cc16', '#ef4444', '#06b6d4', '#f59e0b'];
 
 export default function MenuLoadingAnimation() {
   const [msgIndex, setMsgIndex] = useState(0);
@@ -67,24 +68,26 @@ export default function MenuLoadingAnimation() {
           <div className="absolute inset-0 rounded-full border border-dashed border-brand-200 opacity-60" />
 
           {/* Baby in center */}
-          <span className="baby-bob text-5xl select-none">👶</span>
+          <span className="baby-bob flex items-center justify-center select-none text-brand-500">
+            <Baby className="w-12 h-12" />
+          </span>
 
-          {/* Orbiting food emojis */}
-          {FOODS.map((food, i) => (
+          {/* Orbiting food dots */}
+          {FOOD_COLORS.map((color, i) => (
             <span
-              key={food}
+              key={i}
               className="food-orbit"
               style={{
-                '--start': `${i * (360 / FOODS.length)}deg`,
+                '--start': `${i * (360 / FOOD_COLORS.length)}deg`,
                 '--dur': `${3.5 + (i % 3) * 0.4}s`,
                 top: '50%',
                 left: '50%',
                 marginTop: '-14px',
                 marginLeft: '-14px',
-                animationDelay: `${-i * (3.5 / FOODS.length)}s`,
+                animationDelay: `${-i * (3.5 / FOOD_COLORS.length)}s`,
               }}
             >
-              {food}
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: color, display: 'block' }} />
             </span>
           ))}
         </div>

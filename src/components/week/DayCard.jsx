@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useKPIs } from '../../hooks/useKPIs';
+import { Sunrise, Apple, Utensils, Coffee, Moon, Trash2, Check } from 'lucide-react';
 
-const MEAL_LABELS = {
-  desayuno: '☀️',
-  snack: '🍎',
-  comida: '🍽️',
-  merienda: '🧃',
-  cena: '🌙',
+const MEAL_ICONS = {
+  desayuno: Sunrise,
+  snack: Apple,
+  comida: Utensils,
+  merienda: Coffee,
+  cena: Moon,
 };
 
 function shortName(text) {
@@ -69,8 +70,8 @@ export default function DayCard({ dayData, onClick, isToday, onClear }) {
         <span className="font-semibold text-sm">{day}</span>
         <div className="flex items-center gap-1.5">
           {trackedMeals.length > 0 && (
-            <span className={`text-xs ${isToday ? 'text-brand-200' : 'text-gray-400'}`}>
-              ✓ {trackedMeals.length}
+            <span className={`text-xs flex items-center gap-0.5 ${isToday ? 'text-brand-200' : 'text-gray-400'}`}>
+              <Check className="w-3 h-3 inline" /> {trackedMeals.length}
             </span>
           )}
           <div className="relative" ref={menuRef}>
@@ -87,9 +88,9 @@ export default function DayCard({ dayData, onClick, isToday, onClear }) {
               <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1 min-w-[140px]">
                 <button
                   onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onClear?.(); }}
-                  className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 transition-colors"
+                  className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 transition-colors flex items-center gap-1.5"
                 >
-                  🗑 Eliminar comidas
+                  <Trash2 className="w-3.5 h-3.5" /> Eliminar comidas
                 </button>
               </div>
             )}
@@ -99,21 +100,26 @@ export default function DayCard({ dayData, onClick, isToday, onClear }) {
 
       {/* Meal dots */}
       <div className="px-3 py-2 space-y-1">
-        {meals && meals.map((meal) => (
-          <div key={meal.tipo} className="flex items-center gap-1.5">
-            <span className="text-xs w-4">{MEAL_LABELS[meal.tipo] || '•'}</span>
-            <div className="flex-1 min-w-0">
-              {meal.baby ? (
-                <p className="text-xs text-gray-700 truncate">{shortName(meal.baby)}</p>
-              ) : (
-                <div className="h-2.5 bg-gray-100 rounded w-3/4" />
+        {meals && meals.map((meal) => {
+          const MealIcon = MEAL_ICONS[meal.tipo];
+          return (
+            <div key={meal.tipo} className="flex items-center gap-1.5">
+              <span className="w-4 flex items-center justify-center text-gray-400">
+                {MealIcon ? <MealIcon className="w-3 h-3" /> : <span className="text-xs">•</span>}
+              </span>
+              <div className="flex-1 min-w-0">
+                {meal.baby ? (
+                  <p className="text-xs text-gray-700 truncate">{shortName(meal.baby)}</p>
+                ) : (
+                  <div className="h-2.5 bg-gray-100 rounded w-3/4" />
+                )}
+              </div>
+              {meal.track?.done && (
+                <Check className="w-3 h-3 text-green-500 shrink-0" />
               )}
             </div>
-            {meal.track?.done && (
-              <span className="text-green-500 text-xs">✓</span>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* KPI indicators */}

@@ -5,6 +5,7 @@ import TagChip from '../ui/TagChip';
 import MealEditor from './MealEditor';
 import TrackModal from './TrackModal';
 import { track } from '../../lib/analytics';
+import { Sunrise, Apple, Utensils, Coffee, Moon, Check, Circle, ArrowLeftRight } from 'lucide-react';
 
 const MEAL_LABELS = {
   desayuno: 'Desayuno',
@@ -15,11 +16,11 @@ const MEAL_LABELS = {
 };
 
 const MEAL_ICONS = {
-  desayuno: '☀️',
-  snack: '🍎',
-  comida: '🍽️',
-  merienda: '🧃',
-  cena: '🌙',
+  desayuno: Sunrise,
+  snack: Apple,
+  comida: Utensils,
+  merienda: Coffee,
+  cena: Moon,
 };
 
 const TAG_BAR_COLORS = {
@@ -130,7 +131,7 @@ export default function MealSlot({
         {/* Header */}
         <div className="flex items-center justify-between mb-1">
           <span className="text-xs font-semibold text-gray-500 flex items-center gap-1">
-            <span>{MEAL_ICONS[meal?.tipo]}</span>
+            {MEAL_ICONS[meal?.tipo] && (() => { const Icon = MEAL_ICONS[meal.tipo]; return <Icon className="w-3.5 h-3.5" />; })()}
             {MEAL_LABELS[meal?.tipo]}
           </span>
           <div className="flex items-center gap-1">
@@ -151,12 +152,12 @@ export default function MealSlot({
               title="Registrar seguimiento"
             >
               {meal?.track?.status === 'done' || meal?.track?.done
-                ? '✓ Comido'
+                ? <><Check className="w-3 h-3 inline mr-0.5" />Comido</>
                 : meal?.track?.status === 'partial'
-                ? '◑ Parcial'
+                ? <><Circle className="w-3 h-3 inline mr-0.5 opacity-50" />Parcial</>
                 : meal?.track?.status === 'other'
-                ? '↔ Otra cosa'
-                : '○ Registrar'}
+                ? <><ArrowLeftRight className="w-3 h-3 inline mr-0.5" />Otra cosa</>
+                : <><Circle className="w-3 h-3 inline mr-0.5" />Registrar</>}
             </button>
             {/* Edit button */}
             <button
@@ -213,12 +214,21 @@ export default function MealSlot({
                   </p>
                 )}
 
-                {/* Effective tags */}
+                {/* Effective tags — deduplicate veggie:* into a single pill */}
                 {effectiveTags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1.5">
-                    {effectiveTags.map((tag) => (
-                      <TagChip key={tag} tag={tag} small />
-                    ))}
+                    {effectiveTags
+                      .reduce((acc, tag) => {
+                        if (tag.startsWith('veggie:') || tag === 'veggie') {
+                          if (!acc.includes('veggie')) acc.push('veggie');
+                        } else if (!acc.includes(tag)) {
+                          acc.push(tag);
+                        }
+                        return acc;
+                      }, [])
+                      .map((tag) => (
+                        <TagChip key={tag} tag={tag} small />
+                      ))}
                   </div>
                 )}
 

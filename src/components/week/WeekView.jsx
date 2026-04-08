@@ -7,6 +7,7 @@ import NewWeekModal from './NewWeekModal';
 import QuickMealModal from './QuickMealModal';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import ShoppingList from '../shopping/ShoppingList';
+import { Zap, ShoppingCart, Sparkles, Calendar, ClipboardList, Check } from 'lucide-react';
 
 const DAY_ORDER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
@@ -15,7 +16,7 @@ function getTodayDayName() {
   return days[new Date().getDay()];
 }
 
-const MEAL_EMOJIS = { desayuno: '☀️', snack: '🍎', comida: '🍽️', merienda: '🍪', cena: '🌙' };
+const MEAL_LABELS_EXPORT = { desayuno: 'Desayuno', snack: 'Snack', comida: 'Comida', merienda: 'Merienda', cena: 'Cena' };
 const MEAL_ORDER = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
 
 export default function WeekView({
@@ -69,14 +70,14 @@ export default function WeekView({
     const sorted = [...currentWeek.days].sort(
       (a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day)
     );
-    let text = `📅 *${currentWeek.label || 'Menú semanal'}*\n`;
+    let text = `*${currentWeek.label || 'Menú semanal'}*\n`;
     for (const day of sorted) {
       text += `\n*${day.day}*\n`;
       for (const tipo of MEAL_ORDER) {
         const meal = day.meals?.find(m => m.tipo === tipo);
         if (meal?.baby) {
           const label = simple ? shortName(meal.baby) : meal.baby;
-          text += `${MEAL_EMOJIS[tipo]} ${label}\n`;
+          text += `${MEAL_LABELS_EXPORT[tipo] || tipo}: ${label}\n`;
         }
       }
     }
@@ -138,7 +139,7 @@ export default function WeekView({
                 onClick={() => setShowQuickMeal(true)}
                 className="flex items-center gap-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 shadow-sm px-4 py-2 rounded-xl transition-colors"
               >
-                ⚡ Generar idea de comida
+                <Zap className="w-4 h-4" /> Generar idea de comida
               </button>
             </div>
 
@@ -171,7 +172,7 @@ export default function WeekView({
                   className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-base">🛒</span>
+                    <ShoppingCart className="w-4 h-4 text-gray-500" />
                     <span className="text-sm font-semibold text-gray-800">Lista de la compra</span>
                   </div>
                   <svg className={`w-4 h-4 text-gray-400 transition-transform ${showShopping ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,7 +189,7 @@ export default function WeekView({
           </>
         ) : (
           <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
-            <div className="text-6xl mb-4">📅</div>
+            <div className="mb-4"><Calendar className="w-16 h-16 text-gray-300 mx-auto" /></div>
             <h2 className="text-xl font-semibold text-gray-800 mb-2">Sin semanas planificadas</h2>
             <p className="text-gray-500 text-sm mb-6">
               Crea tu primera semana con IA o en blanco para empezar a planificar.
@@ -197,7 +198,7 @@ export default function WeekView({
               onClick={() => setShowNewWeekModal(true)}
               className="flex items-center gap-2 bg-brand-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-brand-700 transition-colors"
             >
-              <span>✨</span>
+              <Sparkles className="w-4 h-4" />
               Crear primera semana
             </button>
           </div>
@@ -233,7 +234,7 @@ export default function WeekView({
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-gray-900">Compartir semana</h2>
-              <button onClick={() => { setShowExport(false); setExportCopied(false); }} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+              <button onClick={() => { setShowExport(false); setExportCopied(false); }} className="text-gray-400 hover:text-gray-600"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
             {/* Simple / Detallado toggle */}
             <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5">
@@ -257,7 +258,7 @@ export default function WeekView({
               onClick={handleCopyExport}
               className="w-full bg-brand-600 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-brand-700 transition-colors"
             >
-              {exportCopied ? '✓ Copiado' : '📋 Copiar para WhatsApp'}
+              {exportCopied ? <><Check className="w-4 h-4 inline mr-1" />Copiado</> : <><ClipboardList className="w-4 h-4 inline mr-1" />Copiar para WhatsApp</>}
             </button>
           </div>
         </div>

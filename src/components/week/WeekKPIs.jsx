@@ -3,6 +3,7 @@ import { useKPIs } from '../../hooks/useKPIs';
 import { computeAdaptiveTargets, KPI_CATALOG, DEFAULT_KPI_CONFIG } from '../../lib/kpis';
 import { fixKPI } from '../../lib/claude';
 import { track } from '../../lib/analytics';
+import { Droplets, Fish, Leaf, Bean, Apple, RefreshCw, Star, AlertTriangle, Sparkles, X, Check } from 'lucide-react';
 
 const MEAL_LABELS = {
   desayuno: 'Desayuno', snack: 'Snack', comida: 'Comida', merienda: 'Merienda', cena: 'Cena',
@@ -158,17 +159,17 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
     const impacts = [];
 
     const TAG_KPI = [
-      { tag: 'iron',   id: 'iron',   icon: '🩸' },
-      { tag: 'oily_fish', id: 'fish', icon: '🐟' },
-      { tag: 'legume', id: 'legume', icon: '🟢' },
-      { tag: 'fruit',  id: 'fruit',  icon: '🍎' },
+      { tag: 'iron',   id: 'iron',   iconKey: 'iron' },
+      { tag: 'oily_fish', id: 'fish', iconKey: 'fish' },
+      { tag: 'legume', id: 'legume', iconKey: 'legume' },
+      { tag: 'fruit',  id: 'fruit',  iconKey: 'fruit' },
     ];
-    for (const { tag, id, icon } of TAG_KPI) {
+    for (const { tag, id, iconKey } of TAG_KPI) {
       if (!config.active.includes(id)) continue;
       const had = origTags.includes(tag);
       const has = newTags.includes(tag);
-      if (had && !has) impacts.push({ icon, delta: -1 });
-      if (!had && has) impacts.push({ icon, delta: +1 });
+      if (had && !has) impacts.push({ iconKey, delta: -1 });
+      if (!had && has) impacts.push({ iconKey, delta: +1 });
     }
 
     if (config.active.includes('veggie')) {
@@ -178,7 +179,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
       let delta = 0;
       for (const v of newVeggies)  if (!origVeggies.has(v) && !weekVeggies.has(v)) delta++;
       for (const v of origVeggies) if (!newVeggies.has(v)) delta--;
-      if (delta !== 0) impacts.push({ icon: '🥦', delta });
+      if (delta !== 0) impacts.push({ iconKey: 'veggie', delta });
     }
 
     for (const k of config.custom) {
@@ -186,30 +187,31 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
       const q = k.query.toLowerCase().trim();
       const had = (originalMeal.baby || '').toLowerCase().includes(q);
       const has = (fix.baby || '').toLowerCase().includes(q);
-      if (had && !has) impacts.push({ icon: '⭐', delta: -1 });
-      if (!had && has) impacts.push({ icon: '⭐', delta: +1 });
+      if (had && !has) impacts.push({ iconKey: 'custom', delta: -1 });
+      if (!had && has) impacts.push({ iconKey: 'custom', delta: +1 });
     }
 
     return { impacts, originalText: originalMeal.baby || null };
   };
 
-  const KPI_ICON_NAMES = { '🩸': 'Hierro', '🐟': 'Pescado', '🟢': 'Legumbres', '🍎': 'Fruta', '🥦': 'Verduras', '⭐': 'KPI personalizado' };
+  const KPI_ICON_NAMES = { iron: 'Hierro', fish: 'Pescado', legume: 'Legumbres', fruit: 'Fruta', veggie: 'Verduras', custom: 'KPI personalizado' };
+  const KPI_ICON_COMPONENTS = { iron: Droplets, fish: Fish, legume: Bean, fruit: Apple, veggie: Leaf, custom: Star };
 
   const getConflictSummary = (fixes) => {
     if (!fixes?.length) return null;
     const totals = {};
     for (const fix of fixes) {
       const { impacts } = computeFixImpact(fix);
-      for (const { icon, delta } of impacts) {
-        totals[icon] = (totals[icon] || 0) + delta;
+      for (const { iconKey, delta } of impacts) {
+        totals[iconKey] = (totals[iconKey] || 0) + delta;
       }
     }
     const worsens = Object.entries(totals)
       .filter(([, d]) => d < 0)
-      .map(([icon, delta]) => ({ icon, name: KPI_ICON_NAMES[icon] || icon, delta }));
+      .map(([iconKey, delta]) => ({ iconKey, name: KPI_ICON_NAMES[iconKey] || iconKey, delta }));
     const improvements = Object.entries(totals)
       .filter(([, d]) => d > 0)
-      .map(([icon, delta]) => ({ icon, name: KPI_ICON_NAMES[icon] || icon, delta }));
+      .map(([iconKey, delta]) => ({ iconKey, name: KPI_ICON_NAMES[iconKey] || iconKey, delta }));
     if (!worsens.length) return null;
     return { worsens, improvements };
   };
@@ -256,7 +258,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
         {activeCatalogKPIs.map(k => {
           if (k.id === 'iron') return (
             <KPIPill key="iron"
-              icon="🩸" label="Hierro" value={`${kpis.ironDays}/${ironTarget ?? '–'}`} target={ironTarget ? `≥${ironTarget} días` : '–'}
+              IconComponent={Droplets} label="Hierro" value={`${kpis.ironDays}/${ironTarget ?? '–'}`} target={ironTarget ? `≥${ironTarget} días` : '–'}
               status={ironStatus} statusColors={statusColors}
               disabled={ironStatus === null}
               disabledTooltip="Solo aplica cuando el menú tiene comidas principales (comida o cena)"
@@ -267,7 +269,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
           );
           if (k.id === 'fish') return (
             <KPIPill key="fish"
-              icon="🐟" label="Pesc. graso" value={`${kpis.fishDays}/${fishTarget ?? '–'}`} target={fishTarget ? `≥${fishTarget} días` : '–'}
+              IconComponent={Fish} label="Pesc. graso" value={`${kpis.fishDays}/${fishTarget ?? '–'}`} target={fishTarget ? `≥${fishTarget} días` : '–'}
               status={fishStatus} statusColors={statusColors}
               disabled={fishStatus === null}
               disabledTooltip="Solo aplica cuando el menú tiene comidas principales (comida o cena)"
@@ -278,7 +280,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
           );
           if (k.id === 'veggie') return (
             <KPIPill key="veggie"
-              icon="🥦" label="Verduras" value={`${kpis.distinctVeggies} distintas`} target={`≥${veggieTarget} tipos`}
+              IconComponent={Leaf} label="Verduras" value={`${kpis.distinctVeggies} distintas`} target={`≥${veggieTarget} tipos`}
               status={veggieStatus} statusColors={statusColors}
               tooltip={veggieDetail}
               onFix={hasAiAccess ? () => handleFix('veggie') : null}
@@ -287,7 +289,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
           );
           if (k.id === 'legume') return (
             <KPIPill key="legume"
-              icon="🟢" label="Legumbres" value={`${kpis.legumedDays}/${legumeTarget}`} target={`≥${legumeTarget} días`}
+              IconComponent={Bean} label="Legumbres" value={`${kpis.legumedDays}/${legumeTarget}`} target={`≥${legumeTarget} días`}
               status={legumeStatus} statusColors={statusColors}
               tooltip={legumeDetail}
               onFix={hasAiAccess ? () => handleFix('legume') : null}
@@ -296,7 +298,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
           );
           if (k.id === 'fruit') return (
             <KPIPill key="fruit"
-              icon="🍎" label="Fruta" value={`${kpis.fruitDays}/${fruitTarget}`} target={`≥${fruitTarget} días`}
+              IconComponent={Apple} label="Fruta" value={`${kpis.fruitDays}/${fruitTarget}`} target={`≥${fruitTarget} días`}
               status={fruitStatus} statusColors={statusColors}
               tooltip={fruitDetail}
               onFix={hasAiAccess ? () => handleFix('fruit') : null}
@@ -308,7 +310,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
             const rotStatus = alertCount === 0 ? 'good' : 'warning';
             return (
               <KPIPill key="protein_rotation"
-                icon="🔄" label="Rotación" value={alertCount === 0 ? 'OK' : `${alertCount} alerta${alertCount > 1 ? 's' : ''}`} target="sin repetir >2 días"
+                IconComponent={RefreshCw} label="Rotación" value={alertCount === 0 ? 'OK' : `${alertCount} alerta${alertCount > 1 ? 's' : ''}`} target="sin repetir >2 días"
                 status={rotStatus} statusColors={statusColors}
                 onFix={hasAiAccess && alertCount > 0 ? () => handleFix('protein_rotation') : null}
                 fixing={fixing === 'protein_rotation'} loading={loading && fixing === 'protein_rotation'}
@@ -327,7 +329,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
           const targetLabel = quality === 'máximo' ? `≤${tgt} días` : quality === 'exacto' ? `=${tgt} días` : `≥${tgt} días`;
           return (
             <KPIPill key={k.id}
-              icon="⭐" label={k.name} value={`${val}/${tgt}`} target={targetLabel}
+              IconComponent={Star} label={k.name} value={`${val}/${tgt}`} target={targetLabel}
               status={st} statusColors={statusColors}
               onFix={hasAiAccess && st !== null && quality === 'mínimo' ? () => handleFix(k.id) : null}
               fixing={fixing === k.id} loading={loading && fixing === k.id}
@@ -354,8 +356,8 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
       {config.active.includes('protein_rotation') && kpis.consecutiveAlerts.length > 0 && (
         <div className="space-y-1">
           {kpis.consecutiveAlerts.map((alert, i) => (
-            <p key={i} className="text-xs text-amber-600">
-              ⚠ {PROTEIN_LABELS[alert.protein] || alert.protein} aparece {alert.count} días seguidos desde {alert.startDay}
+            <p key={i} className="text-xs text-amber-600 flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3 shrink-0" /> {PROTEIN_LABELS[alert.protein] || alert.protein} aparece {alert.count} días seguidos desde {alert.startDay}
             </p>
           ))}
         </div>
@@ -394,11 +396,14 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
                       <p className="text-gray-700 leading-snug">→ {fix.baby}</p>
                       {impacts.length > 0 && (
                         <div className="flex flex-wrap gap-1 pt-0.5">
-                          {impacts.map((imp, j) => (
-                            <span key={j} className={`font-medium px-1.5 py-0.5 rounded ${imp.delta > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                              {imp.icon} {imp.delta > 0 ? '+1' : '-1'}
-                            </span>
-                          ))}
+                          {impacts.map((imp, j) => {
+                            const ImpIcon = KPI_ICON_COMPONENTS[imp.iconKey];
+                            return (
+                              <span key={j} className={`inline-flex items-center gap-0.5 font-medium px-1.5 py-0.5 rounded ${imp.delta > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                {ImpIcon && <ImpIcon className="w-3 h-3" />} {imp.delta > 0 ? '+1' : '-1'}
+                              </span>
+                            );
+                          })}
                         </div>
                       )}
                     </li>
@@ -407,13 +412,13 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
               </ul>
               {conflictSummary && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 space-y-0.5">
-                  <p className="text-xs font-medium text-amber-700">⚠ Conflicto entre KPIs</p>
-                  <p className="text-xs text-amber-600">
-                    {conflictSummary.improvements.map(i => `${i.icon} +${i.delta}`).join(' ')}
-                    {conflictSummary.improvements.length > 0 ? ' mejora' : ''}
-                    {conflictSummary.improvements.length > 0 && conflictSummary.worsens.length > 0 ? ', pero ' : ''}
-                    {conflictSummary.worsens.map(w => `${w.icon} ${w.delta}`).join(' ')}
-                    {conflictSummary.worsens.length > 0 ? ' empeora' : ''}
+                  <p className="text-xs font-medium text-amber-700 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Conflicto entre KPIs</p>
+                  <p className="text-xs text-amber-600 flex items-center flex-wrap gap-0.5">
+                    {conflictSummary.improvements.map((i, idx) => { const IC = KPI_ICON_COMPONENTS[i.iconKey]; return <span key={idx} className="inline-flex items-center gap-0.5">{IC && <IC className="w-3 h-3" />} +{i.delta}</span>; })}
+                    {conflictSummary.improvements.length > 0 ? <span> mejora</span> : null}
+                    {conflictSummary.improvements.length > 0 && conflictSummary.worsens.length > 0 ? <span>, pero </span> : null}
+                    {conflictSummary.worsens.map((w, idx) => { const IC = KPI_ICON_COMPONENTS[w.iconKey]; return <span key={idx} className="inline-flex items-center gap-0.5">{IC && <IC className="w-3 h-3" />} {w.delta}</span>; })}
+                    {conflictSummary.worsens.length > 0 ? <span> empeora</span> : null}
                   </p>
                   <p className="text-xs text-amber-500">Puedes aplicar igualmente si lo consideras prioritario.</p>
                 </div>
@@ -449,12 +454,12 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
 
 // ─── KPI Pill ───────────────────────────────────────────────────────────────
 
-function KPIPill({ icon, label, value, target, status, statusColors, onFix, fixing, loading, disabled, disabledTooltip, tooltip }) {
+function KPIPill({ IconComponent, label, value, target, status, statusColors, onFix, fixing, loading, disabled, disabledTooltip, tooltip }) {
   if (disabled) {
     return (
       <div className="relative group">
         <div className="flex items-center gap-1.5 border rounded-full px-3 py-1.5 text-gray-400 bg-gray-50 border-gray-200 opacity-50 cursor-default">
-          <span className="text-sm">{icon}</span>
+          {IconComponent && <IconComponent className="w-3.5 h-3.5" />}
           <span className="text-xs font-semibold">{label}</span>
         </div>
         {disabledTooltip && (
@@ -470,17 +475,17 @@ function KPIPill({ icon, label, value, target, status, statusColors, onFix, fixi
   return (
     <div className="relative group">
       <div className={`flex items-center gap-1.5 border rounded-full px-3 py-1.5 ${statusColors[status]}`}>
-        <span className="text-sm">{icon}</span>
+        {IconComponent && <IconComponent className="w-3.5 h-3.5" />}
         <span className="text-xs font-semibold">{label}</span>
         <span className="text-xs font-bold">{value}</span>
         <span className="text-xs opacity-60">({target})</span>
         {canFix && (
           <button
             onClick={onFix}
-            className={`ml-0.5 text-xs transition-opacity ${fixing ? 'opacity-60' : 'hover:opacity-80'}`}
+            className={`ml-0.5 flex items-center transition-opacity ${fixing ? 'opacity-60' : 'hover:opacity-80'}`}
             title="Corregir con IA"
           >
-            {loading ? '...' : fixing ? '✕' : '✨'}
+            {loading ? '...' : fixing ? <X className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
           </button>
         )}
       </div>
@@ -495,6 +500,8 @@ function KPIPill({ icon, label, value, target, status, statusColors, onFix, fixi
 }
 
 // ─── KPI Library ─────────────────────────────────────────────────────────────
+
+const CATALOG_ICON_MAP = { iron: Droplets, fish: Fish, veggie: Leaf, legume: Bean, fruit: Apple, protein_rotation: RefreshCw };
 
 function KPILibrary({ config, onSave, onClose }) {
   const [draft, setDraft] = useState(() => ({
@@ -586,7 +593,7 @@ function KPILibrary({ config, onSave, onClose }) {
 
               return (
                 <div key={k.id} className={`flex items-start gap-3 p-3 rounded-xl border transition-colors ${isActive ? 'bg-brand-50 border-brand-200' : 'bg-gray-50 border-gray-100'}`}>
-                  <span className="text-xl mt-0.5">{k.icon}</span>
+                  <span className="mt-0.5 text-gray-500">{CATALOG_ICON_MAP[k.id] && (() => { const CatIcon = CATALOG_ICON_MAP[k.id]; return <CatIcon className="w-5 h-5" />; })()}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800">{k.label}</p>
                     <p className="text-xs text-gray-400 leading-snug">{k.description}</p>
@@ -604,7 +611,7 @@ function KPILibrary({ config, onSave, onClose }) {
                               onKeyDown={e => { if (e.key === 'Enter') commitTarget(k.id); if (e.key === 'Escape') setEditingTarget(null); }}
                             />
                             <span className="text-xs text-gray-500">{k.unit}</span>
-                            <button onClick={() => commitTarget(k.id)} className="text-xs text-brand-600 font-medium hover:text-brand-700">✓</button>
+                            <button onClick={() => commitTarget(k.id)} className="text-xs text-brand-600 font-medium hover:text-brand-700"><Check className="w-3 h-3" /></button>
                           </div>
                         ) : (
                           <button
@@ -641,7 +648,7 @@ function KPILibrary({ config, onSave, onClose }) {
                 const currentQuality = k.quality || 'mínimo';
                 return (
                   <div key={k.id} className={`flex items-start gap-3 p-3 rounded-xl border transition-colors ${isActive ? 'bg-brand-50 border-brand-200' : 'bg-gray-50 border-gray-100'}`}>
-                    <span className="text-xl mt-0.5">⭐</span>
+                    <span className="mt-0.5 text-gray-500"><Star className="w-5 h-5" /></span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-800">{k.name}</p>
                       <p className="text-xs text-gray-400">busca: "{k.query}"</p>
@@ -660,7 +667,7 @@ function KPILibrary({ config, onSave, onClose }) {
                                   onKeyDown={e => { if (e.key === 'Enter') commitTarget(k.id); if (e.key === 'Escape') setEditingTarget(null); }}
                                 />
                                 <span className="text-xs text-gray-500">días</span>
-                                <button onClick={() => commitTarget(k.id)} className="text-xs text-brand-600 font-medium hover:text-brand-700">✓</button>
+                                <button onClick={() => commitTarget(k.id)} className="text-xs text-brand-600 font-medium hover:text-brand-700"><Check className="w-3 h-3" /></button>
                               </div>
                             ) : (
                               <button onClick={() => { setEditingTarget(k.id); setTargetInput(String(currentTarget)); }} className="text-xs text-brand-600 font-medium hover:underline">
@@ -682,7 +689,7 @@ function KPILibrary({ config, onSave, onClose }) {
                             </div>
                           ) : (
                             <button onClick={() => setEditingCustomId(k.id)} className="text-xs text-gray-400 hover:text-brand-600 transition-colors">
-                              tipo: {currentQuality === 'mínimo' ? '≥ mínimo' : currentQuality === 'máximo' ? '≤ máximo' : '= exacto'} ✎
+                              tipo: {currentQuality === 'mínimo' ? '≥ mínimo' : currentQuality === 'máximo' ? '≤ máximo' : '= exacto'} (editar)
                             </button>
                           )}
                         </div>

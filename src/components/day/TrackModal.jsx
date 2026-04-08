@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import { detectTags } from '../../lib/claude';
+import { Check, Circle, ArrowLeftRight } from 'lucide-react';
 
 const MEAL_TYPE_LABELS = {
   desayuno: 'Desayuno',
@@ -121,9 +122,9 @@ export default function TrackModal({ isOpen, onClose, meal, dayName, onSave, api
           <p className="text-sm font-medium text-gray-700 mb-2">¿Qué pasó?</p>
           <div className="space-y-2">
             {[
-              { id: 'done',    icon: '✓', label: 'Se lo comió todo',  active: 'border-green-400 bg-green-50 text-green-700' },
-              { id: 'partial', icon: '◑', label: 'Comido parcial',    active: 'border-orange-400 bg-orange-50 text-orange-700' },
-              { id: 'other',   icon: '↔', label: 'Comió otra cosa',   active: 'border-blue-400 bg-blue-50 text-blue-700' },
+              { id: 'done',    Icon: Check,           label: 'Se lo comió todo',  active: 'border-green-400 bg-green-50 text-green-700' },
+              { id: 'partial', Icon: Circle,           label: 'Comido parcial',    active: 'border-orange-400 bg-orange-50 text-orange-700', iconClass: 'opacity-50' },
+              { id: 'other',   Icon: ArrowLeftRight,   label: 'Comió otra cosa',   active: 'border-blue-400 bg-blue-50 text-blue-700' },
             ].map(opt => (
               <button
                 key={opt.id}
@@ -132,7 +133,7 @@ export default function TrackModal({ isOpen, onClose, meal, dayName, onSave, api
                   status === opt.id ? opt.active : 'border-gray-200 text-gray-500 hover:border-gray-300'
                 }`}
               >
-                <span className="text-base w-5 text-center">{opt.icon}</span>
+                <opt.Icon className={`w-5 h-5 shrink-0 ${opt.iconClass || ''}`} />
                 {opt.label}
               </button>
             ))}

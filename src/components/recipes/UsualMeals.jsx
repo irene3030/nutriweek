@@ -3,18 +3,28 @@ import {
   collection, onSnapshot, addDoc, deleteDoc, doc, query, orderBy,
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { ALL_TAGS } from '../ui/TagChip';
+import TagChip, { ALL_TAGS, getTagConfig, TAG_CONFIG } from '../ui/TagChip';
 import { analyzeMealPhoto, detectTags } from '../../lib/claude';
+import { Droplets, Fish, Bean, GlassWater, Cherry, Wheat, Leaf, Baby, User as UserIcon, X, Sparkles, Check } from 'lucide-react';
 
-const TAG_LABELS = {
-  iron: '🩸 Hierro', fish: '🐟 Pescado', legume: '🟢 Legumbre',
-  egg: '🟡 Huevo', dairy: '🥛 Lácteo', fruit: '🍓 Fruta',
-  cereal: '🌾 Cereal', veggie: '🥦 Verdura',
+const TAG_ICONS = {
+  iron: Droplets, fish: Fish, legume: Bean,
+  egg: null, dairy: GlassWater, fruit: Cherry,
+  cereal: Wheat, veggie: Leaf,
+};
+
+const TAG_LABEL_TEXTS = {
+  iron: 'Hierro', fish: 'Pescado', legume: 'Legumbre',
+  egg: 'Huevo', dairy: 'Lácteo', fruit: 'Fruta',
+  cereal: 'Cereal', veggie: 'Verdura',
 };
 
 function tagLabel(tag) {
-  if (tag === 'veggie' || tag.startsWith('veggie:')) return TAG_LABELS['veggie'];
-  return TAG_LABELS[tag] || tag;
+  const key = (tag === 'veggie' || tag.startsWith('veggie:')) ? 'veggie' : tag;
+  const IconComp = TAG_ICONS[key];
+  const text = TAG_LABEL_TEXTS[key] || tag;
+  if (IconComp) return <span className="inline-flex items-center gap-0.5"><IconComp className="w-3 h-3" />{text}</span>;
+  return text;
 }
 
 function resizeImage(file) {
@@ -213,15 +223,11 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-800 truncate">{meal.name}</p>
-              {meal.baby && <p className="text-xs text-gray-500 truncate">👶 {meal.baby}</p>}
-              {meal.adult && <p className="text-xs text-gray-400 truncate">🧑 {meal.adult}</p>}
+              {meal.baby && <p className="text-xs text-gray-500 truncate flex items-center gap-0.5"><Baby className="w-3 h-3 shrink-0" /> {meal.baby}</p>}
+              {meal.adult && <p className="text-xs text-gray-400 truncate flex items-center gap-0.5"><UserIcon className="w-3 h-3 shrink-0" /> {meal.adult}</p>}
               {meal.tags?.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1.5">
-                  {meal.tags.map(t => (
-                    <span key={t} className="text-xs bg-brand-50 text-brand-700 border border-brand-100 rounded-full px-2 py-0.5">
-                      {tagLabel(t)}
-                    </span>
-                  ))}
+                  {meal.tags.map(t => <TagChip key={t} tag={t} small />)}
                 </div>
               )}
             </div>
@@ -238,7 +244,7 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
                 onClick={() => handleDelete(meal.id)}
                 className="text-xs text-gray-300 hover:text-red-500 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
               >
-                ✕
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -271,7 +277,7 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
                       Analizando foto...
                     </div>
                   ) : detected ? (
-                    <p className="text-sm text-green-700 font-medium">✓ Campos rellenados automáticamente</p>
+                    <p className="text-sm text-green-700 font-medium flex items-center gap-0.5"><Check className="w-3.5 h-3.5" /> Campos rellenados automáticamente</p>
                   ) : (
                     <p className="text-sm text-gray-500">Vista previa</p>
                   )}
@@ -350,7 +356,7 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
                 >
                   {detecting
                     ? <><div className="w-3 h-3 border border-brand-400 border-t-transparent rounded-full animate-spin" /> Detectando...</>
-                    : '✨ Detectar automáticamente'
+                    : <><Sparkles className="w-3 h-3 inline mr-0.5" />Detectar automáticamente</>
                   }
                 </button>
               )}
@@ -359,22 +365,26 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
               <p className="text-xs text-amber-600 mb-1.5">{detectError}</p>
             )}
             <div className="flex flex-wrap gap-1.5">
-              {[...ALL_TAGS, 'veggie'].map(tag => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => toggleTag(tag)}
-                  className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                    (tag === 'veggie'
-                      ? form.tags.some(t => t === 'veggie' || t.startsWith('veggie:'))
-                      : form.tags.includes(tag))
-                      ? 'bg-brand-600 text-white border-brand-600'
-                      : 'bg-white text-gray-600 border-gray-300 hover:border-brand-400'
-                  }`}
-                >
-                  {TAG_LABELS[tag] || tag}
-                </button>
-              ))}
+              {[...ALL_TAGS, 'veggie'].map(tag => {
+                const isSelected = tag === 'veggie'
+                  ? form.tags.some(t => t === 'veggie' || t.startsWith('veggie:'))
+                  : form.tags.includes(tag);
+                const cfg = getTagConfig(tag);
+                const IconComp = TAG_ICONS[tag === 'veggie' || tag.startsWith('veggie:') ? 'veggie' : tag];
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => toggleTag(tag)}
+                    className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-medium transition-all ${
+                      isSelected ? cfg.color : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    {IconComp && <IconComp className="w-3 h-3" />}
+                    {TAG_LABEL_TEXTS[tag] || tag}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

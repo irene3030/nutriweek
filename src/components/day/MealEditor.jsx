@@ -3,6 +3,7 @@ import TagChip, { ALL_TAGS } from '../ui/TagChip';
 import RecipeSearch, { saveRecipe } from '../recipes/RecipeSearch';
 import { suggestMeal } from '../../lib/claude';
 import { track } from '../../lib/analytics';
+import { Droplets, Fish, Bean, Leaf, Cherry, Wheat, Sparkles, Check } from 'lucide-react';
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const MEAL_TYPES = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
@@ -15,12 +16,12 @@ const MEAL_LABELS = {
 };
 
 const REGEN_REQUIREMENTS = [
-  { id: 'hierro',        label: '🩸 Hierro' },
-  { id: 'pescado graso', label: '🐟 Pescado' },
-  { id: 'legumbre',      label: '🟢 Legumbre' },
-  { id: 'verdura',       label: '🥦 Verdura' },
-  { id: 'huevo',         label: '🟡 Huevo' },
-  { id: 'fruta',         label: '🍓 Fruta' },
+  { id: 'hierro',        label: 'Hierro',   Icon: Droplets },
+  { id: 'pescado graso', label: 'Pescado',  Icon: Fish },
+  { id: 'legumbre',      label: 'Legumbre', Icon: Bean },
+  { id: 'verdura',       label: 'Verdura',  Icon: Leaf },
+  { id: 'huevo',         label: 'Huevo',    Icon: null },
+  { id: 'fruta',         label: 'Fruta',    Icon: Cherry },
 ];
 
 export default function MealEditor({
@@ -170,7 +171,7 @@ export default function MealEditor({
             onClick={() => setShowRegen((v) => !v)}
             className="text-xs text-brand-600 hover:text-brand-700 flex items-center gap-1.5 font-medium"
           >
-            <span>✨</span>
+            <Sparkles className="w-3.5 h-3.5" />
             {showRegen ? 'Ocultar regenerar' : 'Regenerar con IA'}
           </button>
           {showRegen && (
@@ -188,13 +189,13 @@ export default function MealEditor({
                     key={r.id}
                     type="button"
                     onClick={() => toggleRegenReq(r.id)}
-                    className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+                    className={`text-xs px-2 py-0.5 rounded-full border transition-colors flex items-center gap-0.5 ${
                       regenRequirements.includes(r.id)
                         ? 'bg-brand-600 text-white border-brand-600'
                         : 'bg-white text-gray-500 border-gray-200 hover:border-brand-400'
                     }`}
                   >
-                    {r.label}
+                    {r.Icon && <r.Icon className="w-3 h-3" />}{r.label}
                   </button>
                 ))}
               </div>
@@ -206,7 +207,7 @@ export default function MealEditor({
               >
                 {regenerating
                   ? <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Regenerando...</>
-                  : '✨ Regenerar'}
+                  : <><Sparkles className="w-3 h-3 inline mr-0.5" />Regenerar</>}
               </button>
             </div>
           )}
@@ -242,7 +243,7 @@ export default function MealEditor({
           </svg>
           Guardar como receta
         </button>
-        {savedRecipeMsg && <p className="text-xs text-green-600 mt-1">✓ Receta guardada</p>}
+        {savedRecipeMsg && <p className="text-xs text-green-600 mt-1 flex items-center gap-0.5"><Check className="w-3 h-3" /> Receta guardada</p>}
         {showSaveRecipe && (
           <div className="flex gap-2 mt-2">
             <input

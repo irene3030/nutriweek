@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AuthContext, useAuth, useAuthProvider } from './hooks/useAuth';
+import { Star, User as UserIcon, Lightbulb, Check, Baby } from 'lucide-react';
 import { setPreCallHook, validateFFCode } from './lib/claude';
 import { identify, resetIdentity, track } from './lib/analytics';
 import { useWeek } from './hooks/useWeek';
@@ -296,7 +297,7 @@ function AppContent() {
             <div className="min-h-screen">
               <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
                 <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-2">
-                  <span className="text-xl">⭐</span>
+                  <Star className="w-5 h-5 text-brand-500" />
                   <h1 className="text-lg font-bold text-gray-900">Comidas habituales</h1>
                 </div>
               </header>
@@ -500,7 +501,7 @@ function ProfileTab({ auth, householdDoc }) {
     <div className="min-h-screen">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-2">
-          <span className="text-xl">👤</span>
+          <UserIcon className="w-5 h-5 text-gray-600" />
           <h1 className="text-lg font-bold text-gray-900">Perfil</h1>
         </div>
       </header>
@@ -570,7 +571,7 @@ function ProfileTab({ auth, householdDoc }) {
                 onClick={handleSaveBaby}
                 className="w-full bg-brand-600 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-brand-700 transition-colors"
               >
-                {babySaved ? '✓ Guardado' : 'Guardar'}
+                {babySaved ? <><Check className="w-3.5 h-3.5 inline mr-0.5" />Guardado</> : 'Guardar'}
               </button>
             </div>
           </div>
@@ -622,7 +623,7 @@ function ProfileTab({ auth, householdDoc }) {
 
           {/* Cost estimate */}
           <div className="bg-brand-50 border border-brand-100 rounded-xl p-3 space-y-1">
-            <p className="text-xs font-semibold text-brand-700">💡 ¿Cuánto cuesta?</p>
+            <p className="text-xs font-semibold text-brand-700 flex items-center gap-1"><Lightbulb className="w-3.5 h-3.5" /> ¿Cuánto cuesta?</p>
             <p className="text-xs text-brand-800 leading-relaxed">
               La app usa Claude Haiku, el modelo más económico de Anthropic.
               Generar una semana completa cuesta aproximadamente <strong>$0,01</strong>.
@@ -675,7 +676,7 @@ function ProfileTab({ auth, householdDoc }) {
                 disabled={apiKeySaving || !apiKeyInput.trim()}
                 className="bg-brand-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-50 shrink-0"
               >
-                {apiKeySaved ? '✓ Guardada' : apiKeySaving ? '...' : 'Guardar'}
+                {apiKeySaved ? <><Check className="w-3.5 h-3.5 inline mr-0.5" />Guardada</> : apiKeySaving ? '...' : 'Guardar'}
               </button>
             </div>
             {apiKeyInput && !apiKeyInput.startsWith('sk-ant-') && (
@@ -709,7 +710,7 @@ function ProfileTab({ auth, householdDoc }) {
                   onClick={handleSaveLimit}
                   className="bg-gray-800 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-900 transition-colors"
                 >
-                  {limitSaved ? '✓' : 'Guardar'}
+                  {limitSaved ? <><Check className="w-3.5 h-3.5 inline mr-0.5" />Listo</> : 'Guardar'}
                 </button>
               </div>
               <p className="text-xs text-gray-400 mt-1">
@@ -723,7 +724,7 @@ function ProfileTab({ auth, householdDoc }) {
         {householdDoc && (
           <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
             <div>
-              <h3 className="font-semibold text-gray-800 mb-1">🎁 Código Friends & Family</h3>
+              <h3 className="font-semibold text-gray-800 mb-1">Código Friends &amp; Family</h3>
               <p className="text-xs text-gray-500 leading-relaxed">
                 Si tienes un código de invitación, actívalo para obtener 30 llamadas gratuitas sin necesidad de API key propia.
               </p>
@@ -732,7 +733,7 @@ function ProfileTab({ auth, householdDoc }) {
             {householdDoc.ffActivated ? (
               <div className="space-y-2">
                 <div className="flex items-center justify-between bg-brand-50 rounded-xl px-4 py-3">
-                  <span className="text-sm text-brand-800 font-medium">✓ Código activado</span>
+                  <span className="text-sm text-brand-800 font-medium flex items-center gap-0.5"><Check className="w-3.5 h-3.5" /> Código activado</span>
                   <span className={`text-sm font-semibold ${(householdDoc.freeCallsUsed || 0) >= 30 ? 'text-red-600' : 'text-brand-700'}`}>
                     {householdDoc.freeCallsUsed || 0} / 30 llamadas usadas
                   </span>
@@ -770,17 +771,17 @@ function ProfileTab({ auth, householdDoc }) {
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
           <h3 className="font-semibold text-gray-800 mb-3">Sobre MealOps</h3>
           <div className="space-y-1 text-sm text-gray-500">
-            <p>🥄 Planificador BLW para bebés ~12 meses</p>
-            <p>🤖 Generación de menús con Claude AI</p>
-            <p>📊 KPIs nutricionales automáticos</p>
-            <p>🛒 Lista de la compra integrada</p>
+            <p>Planificador BLW para bebés ~12 meses</p>
+            <p>Generación de menús con Claude AI</p>
+            <p>KPIs nutricionales automáticos</p>
+            <p>Lista de la compra integrada</p>
           </div>
         </div>
 
         {/* Dev-only testing panel */}
         {import.meta.env.DEV && import.meta.env.VITE_SHOW_DEV_PANEL === 'true' && householdDoc && (
           <div className="border-2 border-dashed border-amber-300 rounded-2xl p-4 space-y-3 bg-amber-50">
-            <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">🛠 Panel de testing (solo dev)</p>
+            <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">Panel de testing (solo dev)</p>
             <p className="text-xs text-amber-600">Simula el estado de un usuario nuevo sin API key ni código F&F activado.</p>
             <div className="flex flex-wrap gap-2">
               <button

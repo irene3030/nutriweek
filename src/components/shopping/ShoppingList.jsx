@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { generateShoppingList, formatShoppingListText } from '../../lib/shopping';
+import { Beef, Leaf, Apple, ShoppingCart, ClipboardList, Check, CheckCircle2 } from 'lucide-react';
 
 const MEAL_LABELS = {
   desayuno: 'Desayuno',
@@ -11,11 +12,11 @@ const MEAL_LABELS = {
   cena: 'Cena',
 };
 
-const CATEGORY_ICONS = {
-  'proteína animal': '🥩',
-  verdura: '🥦',
-  fruta: '🍎',
-  despensa: '🫙',
+const CATEGORY_ICON_COMPONENTS = {
+  'proteína animal': Beef,
+  verdura: Leaf,
+  fruta: Apple,
+  despensa: null,
 };
 
 const CATEGORY_COLORS = {
@@ -87,7 +88,7 @@ export default function ShoppingList({ weekDoc, householdId }) {
   if (!weekDoc) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-6 text-center text-gray-400">
-        <span className="text-4xl mb-3">🛒</span>
+        <ShoppingCart className="w-10 h-10 mb-3" />
         <p>Selecciona una semana para ver la lista de la compra.</p>
       </div>
     );
@@ -106,16 +107,16 @@ export default function ShoppingList({ weekDoc, householdId }) {
           {checkedCount > 0 && (
             <button
               onClick={uncheckAll}
-              className="text-xs text-gray-500 hover:text-gray-700"
+              className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-0.5"
             >
-              Limpiar ✓
+              Limpiar <Check className="w-3 h-3" />
             </button>
           )}
           <button
             onClick={handleExport}
             className="flex items-center gap-1.5 text-sm font-medium text-brand-700 bg-brand-50 border border-brand-200 rounded-xl px-3 py-2 hover:bg-brand-100 transition-colors"
           >
-            {copied ? '✓ Copiado' : '📋 Copiar texto'}
+            {copied ? <><Check className="w-3.5 h-3.5 inline mr-0.5" />Copiado</> : <><ClipboardList className="w-3.5 h-3.5 inline mr-0.5" />Copiar texto</>}
           </button>
         </div>
       </div>
@@ -143,7 +144,7 @@ export default function ShoppingList({ weekDoc, householdId }) {
         return (
           <div key={cat} className={`border rounded-xl overflow-hidden ${CATEGORY_COLORS[cat]}`}>
             <div className="flex items-center gap-2 px-4 py-2.5 border-b border-inherit">
-              <span className="text-lg">{CATEGORY_ICONS[cat]}</span>
+              {CATEGORY_ICON_COMPONENTS[cat] && (() => { const CatIcon = CATEGORY_ICON_COMPONENTS[cat]; return <CatIcon className="w-4 h-4 text-gray-500" />; })()}
               <h3 className="font-semibold text-sm text-gray-700 capitalize">{cat}</h3>
               <span className="text-xs text-gray-400 ml-auto">
                 {remaining.length}/{items.length}
@@ -196,13 +197,13 @@ export default function ShoppingList({ weekDoc, householdId }) {
       {shoppingList.atHome.length > 0 && (
         <div className="border border-green-200 rounded-xl overflow-hidden bg-green-50">
           <div className="flex items-center gap-2 px-4 py-2.5 border-b border-green-200">
-            <span className="text-lg">✅</span>
+            <CheckCircle2 className="w-4 h-4 text-green-600" />
             <h3 className="font-semibold text-sm text-gray-700">Ya tienes en casa</h3>
           </div>
           <div className="bg-white divide-y divide-gray-50">
             {shoppingList.atHome.map((item) => (
               <div key={item.name} className="px-4 py-2.5 flex items-start gap-3 opacity-60">
-                <span className="w-4 h-4 flex items-center justify-center text-green-500 text-xs mt-0.5 shrink-0">✓</span>
+                <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <span className="text-sm capitalize text-gray-500">{item.name}</span>
                   {item.usages?.length > 0 && (
@@ -231,7 +232,7 @@ export default function ShoppingList({ weekDoc, householdId }) {
 
       {totalItems === 0 && shoppingList.atHome.length === 0 && (
         <div className="text-center py-12 text-gray-400">
-          <span className="text-4xl block mb-3">🛒</span>
+          <ShoppingCart className="w-10 h-10 mx-auto mb-3" />
           <p className="text-sm">No se detectaron ingredientes en el menú.</p>
           <p className="text-xs mt-1">Asegúrate de que el menú tenga texto con ingredientes reconocibles.</p>
         </div>

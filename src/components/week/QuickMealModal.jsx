@@ -2,14 +2,15 @@ import { useState } from 'react';
 import Modal from '../ui/Modal';
 import { quickMeal } from '../../lib/claude';
 import { track } from '../../lib/analytics';
+import { Zap, Leaf, Check, ClipboardList, CalendarDays, RotateCcw, Sparkles } from 'lucide-react';
 
 const REQUIREMENTS = [
-  { id: 'hierro', label: '🟠 Hierro' },
-  { id: 'pescado graso', label: '🔵 Pescado graso' },
-  { id: 'legumbre', label: '🟢 Legumbre' },
-  { id: 'verdura', label: '🥦 Verdura' },
-  { id: 'huevo', label: '🟡 Huevo' },
-  { id: 'fruta', label: '🍓 Fruta' },
+  { id: 'hierro', label: 'Hierro' },
+  { id: 'pescado graso', label: 'Pescado graso' },
+  { id: 'legumbre', label: 'Legumbre' },
+  { id: 'verdura', label: 'Verdura' },
+  { id: 'huevo', label: 'Huevo' },
+  { id: 'fruta', label: 'Fruta' },
 ];
 
 const DAY_ORDER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -81,7 +82,7 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, hasAiAccess, c
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="⚡ Comida rápida para bebé" maxWidth="max-w-md">
+    <Modal isOpen={isOpen} onClose={handleClose} title={<span className="flex items-center gap-1.5"><Zap className="w-4 h-4" /> Comida rápida para bebé</span>} maxWidth="max-w-md">
       <div className="space-y-4">
         {/* Ingredients */}
         <div>
@@ -127,8 +128,8 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, hasAiAccess, c
           </label>
           <div className="flex gap-2">
             {[
-              { value: 15, label: '⚡ < 15 min' },
-              { value: 30, label: '🕐 < 30 min' },
+              { value: 15, label: '< 15 min', Icon: Zap },
+              { value: 30, label: '< 30 min' },
             ].map(opt => (
               <button
                 key={opt.value}
@@ -140,7 +141,7 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, hasAiAccess, c
                     : 'bg-white text-gray-600 border-gray-300 hover:border-brand-400'
                 }`}
               >
-                {opt.label}
+                {opt.Icon ? <span className="flex items-center gap-1"><opt.Icon className="w-3 h-3" />{opt.label}</span> : opt.label}
               </button>
             ))}
           </div>
@@ -162,7 +163,7 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, hasAiAccess, c
               <div className="flex flex-wrap gap-1 pt-1">
                 {result.tags.map(tag => (
                   <span key={tag} className="text-xs bg-white border border-brand-200 text-brand-700 rounded-full px-2 py-0.5">
-                    {tag.startsWith('veggie:') ? '🥦 Verdura' : tag}
+                    {tag.startsWith('veggie:') ? <span className="flex items-center gap-0.5"><Leaf className="w-3 h-3" /> Verdura</span> : tag}
                   </span>
                 ))}
               </div>
@@ -172,14 +173,14 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, hasAiAccess, c
                 onClick={handleCopy}
                 className="flex items-center gap-1.5 text-xs text-brand-600 hover:text-brand-800 font-medium transition-colors"
               >
-                {copied ? '✓ Copiado' : '📋 Copiar'}
+                {copied ? <><Check className="w-3.5 h-3.5 inline mr-0.5" />Copiado</> : <><ClipboardList className="w-3.5 h-3.5 inline mr-0.5" />Copiar</>}
               </button>
               {currentWeek && onAddToWeek && (
                 <button
                   onClick={() => setShowAddToWeek(v => !v)}
                   className="flex items-center gap-1.5 text-xs text-brand-600 hover:text-brand-800 font-medium transition-colors"
                 >
-                  {addedConfirm ? '✓ Añadida' : '📅 Incluir en semana'}
+                  {addedConfirm ? <><Check className="w-3.5 h-3.5 inline mr-0.5" />Añadida</> : <><CalendarDays className="w-3.5 h-3.5 inline mr-0.5" />Incluir en semana</>}
                 </button>
               )}
             </div>
@@ -248,7 +249,7 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, hasAiAccess, c
           >
             {loading
               ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generando...</>
-              : result ? '↺ Regenerar' : '✨ Generar'
+              : result ? <><RotateCcw className="w-4 h-4" /> Regenerar</> : <><Sparkles className="w-4 h-4" /> Generar</>
             }
           </button>
         </div>

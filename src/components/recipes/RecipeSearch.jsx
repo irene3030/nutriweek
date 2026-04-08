@@ -9,6 +9,7 @@ import {
   orderBy,
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { X } from 'lucide-react';
 
 export default function RecipeSearch({ householdId, onSelect }) {
   const [recipes, setRecipes]         = useState([]);
@@ -97,7 +98,7 @@ export default function RecipeSearch({ householdId, onSelect }) {
                   onClick={() => handleDelete(item)}
                   className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
                 >
-                  ✕
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
