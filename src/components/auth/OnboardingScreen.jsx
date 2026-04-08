@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Logo from '../ui/Logo';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../hooks/useAuth';
@@ -97,9 +98,7 @@ export default function OnboardingScreen() {
       <div className="w-full max-w-sm">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-600 rounded-2xl shadow-lg mb-4">
-            <span className="text-3xl">🥄</span>
-          </div>
+          <Logo variant="full" className="w-20 h-20 mx-auto block mb-4" />
           <h1 className="text-2xl font-bold text-gray-900">¡Bienvenido/a!</h1>
           <p className="text-gray-500 mt-2 text-sm">¿Cómo quieres empezar?</p>
         </div>

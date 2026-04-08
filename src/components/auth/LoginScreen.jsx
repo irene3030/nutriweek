@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import Logo from '../ui/Logo';
 
 export default function LoginScreen() {
   const { signInWithGoogle } = useAuth();
@@ -20,17 +21,12 @@ export default function LoginScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-orange-50 flex flex-col items-center justify-center p-6">
-      {/* Decorative circles */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-brand-100 rounded-full -translate-y-1/2 translate-x-1/2 opacity-50" />
-      <div className="absolute bottom-0 left-0 w-48 h-48 bg-orange-100 rounded-full translate-y-1/2 -translate-x-1/2 opacity-50" />
+    <div className="min-h-screen flex flex-col items-center justify-center p-6">
 
       <div className="relative w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-brand-600 rounded-2xl shadow-lg mb-4">
-            <span className="text-4xl">🥄</span>
-          </div>
+          <Logo variant="full" className="w-40 h-40 mx-auto block mb-4" />
           <h1 className="text-3xl font-bold text-gray-900">MealOps</h1>
           <p className="text-gray-500 mt-2 text-sm">Planificador de alimentación BLW</p>
         </div>

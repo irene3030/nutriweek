@@ -95,7 +95,7 @@ export default function WeekView({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" label="Cargando semanas..." />
       </div>
     );
@@ -108,7 +108,7 @@ export default function WeekView({
     : [];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <WeekHeader
         weekDoc={currentWeek}
         currentWeekIndex={currentWeekIndex}

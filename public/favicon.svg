@@ -1,4 +1,50 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="48" fill="#16a34a"/>
-  <text x="50" y="68" font-size="55" text-anchor="middle" fill="white">🥄</text>
+  <!-- Background rounded square -->
+  <rect width="100" height="100" rx="20" fill="#1A406B"/>
+
+  <!-- Blueprint dimension lines (cyan) -->
+  <!-- Vertical right: full height lid-to-base -->
+  <line x1="85" y1="27" x2="85" y2="78" stroke="#7EB8D4" stroke-width="0.8"/>
+  <line x1="82" y1="27" x2="88" y2="27" stroke="#7EB8D4" stroke-width="0.8"/>
+  <line x1="82" y1="78" x2="88" y2="78" stroke="#7EB8D4" stroke-width="0.8"/>
+  <!-- Mid tick at lid/body junction -->
+  <line x1="83" y1="47" x2="87" y2="47" stroke="#7EB8D4" stroke-width="0.8"/>
+  <!-- Arrow heads vertical -->
+  <polygon points="84,30 85,27 86,30" fill="#7EB8D4"/>
+  <polygon points="84,75 85,78 86,75" fill="#7EB8D4"/>
+
+  <!-- Horizontal bottom: full width -->
+  <line x1="14" y1="84" x2="86" y2="84" stroke="#7EB8D4" stroke-width="0.8"/>
+  <line x1="14" y1="81" x2="14" y2="87" stroke="#7EB8D4" stroke-width="0.8"/>
+  <line x1="86" y1="81" x2="86" y2="87" stroke="#7EB8D4" stroke-width="0.8"/>
+  <!-- Arrow heads horizontal -->
+  <polygon points="17,83 14,84 17,85" fill="#7EB8D4"/>
+  <polygon points="83,83 86,84 83,85" fill="#7EB8D4"/>
+
+  <!-- Pot lid dome -->
+  <path d="M31 47 Q31 35 50 32 Q69 35 69 47"
+        fill="none" stroke="white" stroke-width="2.2"
+        stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Lid shine -->
+  <path d="M37 42 Q43 37 52 36"
+        fill="none" stroke="white" stroke-width="1" stroke-linecap="round" opacity="0.5"/>
+
+  <!-- Knob stem + circle -->
+  <line x1="50" y1="32" x2="50" y2="28" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="50" cy="25" r="3.2" fill="none" stroke="white" stroke-width="1.8"/>
+
+  <!-- Pot body -->
+  <path d="M31 47 L31 75 Q31 79 35 79 L65 79 Q69 79 69 75 L69 47"
+        fill="none" stroke="white" stroke-width="2.2"
+        stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- Left handle -->
+  <path d="M31 52 Q21 51 21 58 Q21 64 31 63"
+        fill="none" stroke="white" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Right handle -->
+  <path d="M69 52 Q79 51 79 58 Q79 64 69 63"
+        fill="none" stroke="white" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

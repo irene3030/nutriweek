@@ -257,7 +257,7 @@ function AppContent() {
   const drawerOpen = selectedDayIndex !== null && currentWeek;
 
   return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="min-h-screen flex flex-col">
         {/* Main content */}
         <div className="flex-1 pb-16" style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))' }}>
           {activeTab === 'week' && (
@@ -293,7 +293,7 @@ function AppContent() {
           )}
 
           {activeTab === 'recipes' && (
-            <div className="min-h-screen bg-gray-50">
+            <div className="min-h-screen">
               <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
                 <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-2">
                   <span className="text-xl">⭐</span>
@@ -497,7 +497,7 @@ function ProfileTab({ auth, householdDoc }) {
   const callLimit = householdDoc?.aiCallLimit || null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-2">
           <span className="text-xl">👤</span>

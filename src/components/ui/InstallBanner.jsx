@@ -37,7 +37,7 @@ export default function InstallBanner() {
   return (
     <div className="fixed bottom-16 left-0 right-0 z-50 px-4 pb-2">
       <div className="max-w-lg mx-auto bg-white border border-brand-200 rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
-        <span className="text-2xl shrink-0">🥄</span>
+        <img src="/favicon.svg" alt="MealOps" className="w-8 h-8 shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-800">Instala MealOps</p>
           <p className="text-xs text-gray-500">Accede rápido desde tu pantalla de inicio</p>

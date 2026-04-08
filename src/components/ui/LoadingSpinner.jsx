@@ -19,7 +19,7 @@ export default function LoadingSpinner({ size = 'md', className = '', label = 'C
 
 export function FullPageSpinner({ label = 'Cargando...' }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center">
       <LoadingSpinner size="lg" label={label} />
     </div>
   );

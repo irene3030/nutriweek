@@ -248,7 +248,7 @@ export default function DayPlayground({ apiKey, hasAiAccess, householdId }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex gap-1 bg-gray-100 rounded-xl p-1">

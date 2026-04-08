@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import Logo from '../ui/Logo';
 
 export default function WeekHeader({
   weekDoc,
@@ -50,7 +51,7 @@ export default function WeekHeader({
         {/* Top row: logo + actions */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🥄</span>
+            <Logo variant="full" className="w-11 h-11" />
             <span className="font-bold text-brand-700 text-lg">MealOps</span>
             {saving && (
               <span className="text-xs text-gray-400 flex items-center gap-1">

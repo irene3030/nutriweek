@@ -9,7 +9,13 @@
   }
 
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply text-gray-900;
+    background-color: #FDFCF5;
+    background-image:
+      linear-gradient(to right,  rgba(229,233,240,0.30) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(229,233,240,0.30) 1px, transparent 1px);
+    background-size: 20px 20px;
+    background-attachment: fixed;
     overscroll-behavior: none;
   }
 
@@ -37,7 +43,7 @@ button, a, input, textarea, select {
 
 /* Focus ring for accessibility */
 :focus-visible {
-  outline: 2px solid #16a34a;
+  outline: 2px solid #00BFFF;
   outline-offset: 2px;
 }
 
@@ -73,6 +79,49 @@ input[type="url"],
 textarea,
 select {
   font-size: max(16px, 1em);
+}
+
+/* ── Blueprint: botones caldero — outline offset en hover, sin cambio de brillo ── */
+button[class*="bg-caldero"]:hover,
+button[class*="bg-caldero"]:focus-visible {
+  outline: 2px solid #00BFFF;
+  outline-offset: 3px;
+  filter: none;
+}
+
+/* ── Blueprint: datos numéricos / técnicos ── */
+.data-value {
+  font-family: 'JetBrains Mono', 'Space Mono', 'Courier New', monospace;
+  color: #00BFFF;
+  font-size: 0.85em;
+  letter-spacing: 0.02em;
+}
+
+/* ── Blueprint: corner marks — imagen sujeta en tablero de dibujo ── */
+.corner-mark {
+  position: relative;
+}
+.corner-mark::before,
+.corner-mark::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: #00BFFF;
+  border-style: solid;
+  opacity: 0.55;
+  z-index: 1;
+  pointer-events: none;
+}
+.corner-mark::before {
+  top: -3px;
+  left: -3px;
+  border-width: 2px 0 0 2px;
+}
+.corner-mark::after {
+  bottom: -3px;
+  right: -3px;
+  border-width: 0 2px 2px 0;
 }
 
 /* Day drawer slide-in animation */
