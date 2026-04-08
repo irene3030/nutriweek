@@ -1,4 +1,14 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { PostHog } from 'posthog-node';
+
+const posthog = process.env.POSTHOG_KEY
+  ? new PostHog(process.env.POSTHOG_KEY, {
+      host: 'https://eu.i.posthog.com',
+      flushAt: 1,
+      flushInterval: 0,
+      enableExceptionAutocapture: true,
+    })
+  : null;
 
 const SYSTEM_PROMPT = `Eres un asistente de nutrición infantil especializado en BLW (Baby-Led Weaning).
 Planificas comidas para un bebé de ~12 meses y su familia (los adultos comen lo mismo, añadiendo sal y condimentos ellos mismos).
@@ -54,7 +64,7 @@ function corsHeaders(requestOrigin) {
     : ALLOWED_ORIGINS[0];
   return {
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, X-POSTHOG-DISTINCT-ID',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Vary': 'Origin',
   };
@@ -75,6 +85,8 @@ export const handler = async (event) => {
       body: JSON.stringify({ error: 'Method not allowed' }),
     };
   }
+
+  const distinctId = event.headers?.['x-posthog-distinct-id'] || null;
 
   try {
     const body = JSON.parse(event.body);
@@ -184,7 +196,7 @@ El alternativo debe ser de la misma categoría nutricional (${safeCategory}), f�
 Devuelve SOLO este JSON: { "alternative": "nombre del ingrediente" }`;
 
     } else if (type === 'generate_week') {
-      const { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, babyProfile } = payload;
+      const { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, kpiOverrides, season, vetoedIngredients, babyProfile } = payload;
 
       // Build baby context from profile
       let babyContext = 'bebé de ~12 meses';
@@ -210,6 +222,9 @@ Devuelve SOLO este JSON: { "alternative": "nombre del ingrediente" }`;
       const safeIngredients = sanitize(availableIngredients, 300);
       const safeRequired = Array.isArray(requiredIngredients)
         ? requiredIngredients.map(i => sanitize(i, 100)).filter(Boolean)
+        : [];
+      const safeVetoed = Array.isArray(vetoedIngredients)
+        ? vetoedIngredients.map(v => sanitize(typeof v === 'string' ? v : v?.name, 100)).filter(Boolean)
         : [];
       const safeFixedMeals = Array.isArray(fixedMeals)
         ? fixedMeals.map(m => ({
@@ -254,8 +269,44 @@ Devuelve SOLO este JSON: { "alternative": "nombre del ingrediente" }`;
         return s;
       })() : '';
 
+      const SEASON_INGREDIENTS = {
+        primavera: 'espárragos, guisantes, fresas, alcachofas, habas, espinacas, rábanos, cerezas',
+        verano:    'tomate, pimiento, calabacín, berenjena, pepino, sandía, melocotón, maíz, judías verdes',
+        otoño:     'calabaza, setas, uvas, peras, manzanas, boniato, coles, brócoli, granada',
+        invierno:  'naranja, mandarina, coliflor, puerro, col, acelga, kiwi, cardo, chirivía',
+      };
+      const SEASON_NAMES = { primavera: 'primavera', verano: 'verano', otoño: 'otoño', invierno: 'invierno' };
+      const safeSeason = SEASON_NAMES[season] ?? null;
+      const seasonSection = safeSeason
+        ? `\nTemporada: ${safeSeason}. Prioriza ingredientes de temporada: ${SEASON_INGREDIENTS[safeSeason]}. Úsalos cuando encaje nutricionalmente, sin forzarlo.`
+        : '';
+
+      const KPI_DESCRIPTIONS = {
+        iron:   (t) => `Hierro en al menos ${t} días (carne roja, legumbre o pescado azul)`,
+        fish:   (t) => `Pescado azul en al menos ${t} días`,
+        veggie: (t) => `Mínimo ${t} verduras distintas a lo largo de la semana`,
+        legume: (t) => `Legumbres en al menos ${t} días`,
+        fruit:  (t) => `Fruta en al menos ${t} días`,
+      };
+      const kpiSection = (() => {
+        if (!kpiOverrides || typeof kpiOverrides !== 'object') return '';
+        const lines = Object.entries(kpiOverrides)
+          .filter(([, v]) => v && v.active)
+          .map(([id, v]) => {
+            const target = Math.min(7, Math.max(1, Number(v.target) || 1));
+            const desc = KPI_DESCRIPTIONS[id];
+            return desc ? `- ${desc(target)}` : null;
+          })
+          .filter(Boolean);
+        return lines.length > 0 ? `\nObjetivos nutricionales para esta semana (respétalos):\n${lines.join('\n')}` : '';
+      })();
+
+      const vetoedSection = safeVetoed.length > 0
+        ? `\nIngredientes PROHIBIDOS (NO los uses bajo ningún concepto en ninguna comida): ${safeVetoed.join(', ')}`
+        : '';
+
       userMessage = `Genera un menú completo para 7 días para: ${babyContext}.
-${ingredientsSection}${recurringSection}${fixedSection}${slotsSection}
+${ingredientsSection}${recurringSection}${fixedSection}${slotsSection}${seasonSection}${kpiSection}${vetoedSection}
 
 Historial de alimentos últimas semanas: ${foodHistory ? JSON.stringify(foodHistory).slice(0, 1000) : 'sin historial'}
 
@@ -472,6 +523,7 @@ IMPORTANTE:
 - Solo incluye preparaciones que requieren cocción u otra técnica activa (cocer, hornear, saltear, preparar masa, etc.). NO incluyas alimentos que se consumen directamente sin preparar (yogur, fruta fresca entera, queso, pan de molde, leche, etc.).
 - En el campo "days" indica el array de días de la semana (Lun, Mar, Mié, Jue, Vie, Sáb, Dom) en que se usará esa preparación.
 - En el campo "text" NO menciones los días; solo la tarea y cantidad aproximada.
+- En el campo "days_fresh" indica cuántos días aguanta la preparación en nevera (número entero, ej: lentejas cocidas=4, pollo horneado=3, arroz cocido=3, verdura salteada=3, pescado=2, masa/rebozado=1).
 
 Devuelve SOLO este JSON:
 {"sections": [
@@ -480,8 +532,8 @@ Devuelve SOLO este JSON:
     "emoji": "🟢",
     "title": "Legumbres",
     "tasks": [
-      {"id": "t1", "text": "Cocer lentejas (200g)", "days": ["Lun", "Jue"]},
-      {"id": "t2", "text": "Cocer garbanzos (150g)", "days": ["Mié"]}
+      {"id": "t1", "text": "Cocer lentejas (200g)", "days": ["Lun", "Jue"], "days_fresh": 4},
+      {"id": "t2", "text": "Cocer garbanzos (150g)", "days": ["Mié"], "days_fresh": 4}
     ]
   },
   ...
@@ -518,6 +570,7 @@ INSTRUCCIONES:
 4. Solo incluye preparaciones que requieren técnica activa (cocer, hornear, saltear, preparar masa…). NO incluyas alimentos que se consumen sin preparar (yogur, fruta, queso, etc.).
 5. En "days" indica los días en que se usará cada preparación.
 6. Etiqueta cada pack por técnica: 🔥 Fuego, 🫙 Horno, 🔪 Prep (cortar/triturar), ❄️ En frío.
+7. En el campo "days_fresh" de cada tarea indica cuántos días aguanta en nevera (ej: lentejas cocidas=4, pollo horneado=3, arroz cocido=3, verdura salteada=3, pescado=2, masa/rebozado=1).
 
 Devuelve SOLO este JSON:
 {"sessions": [
@@ -531,8 +584,8 @@ Devuelve SOLO este JSON:
         "label": "🔥 Fuego",
         "parallel": false,
         "tasks": [
-          {"id": "t1", "text": "Cocer lentejas (200g)", "time": 20, "days": ["Mié", "Jue"]},
-          {"id": "t2", "text": "Cocer garbanzos (150g)", "time": 25, "days": ["Lun", "Mar"]}
+          {"id": "t1", "text": "Cocer lentejas (200g)", "time": 20, "days": ["Mié", "Jue"], "days_fresh": 4},
+          {"id": "t2", "text": "Cocer garbanzos (150g)", "time": 25, "days": ["Lun", "Mar"], "days_fresh": 4}
         ]
       },
       {
@@ -540,7 +593,7 @@ Devuelve SOLO este JSON:
         "label": "🔪 Mientras tanto: prep",
         "parallel": true,
         "tasks": [
-          {"id": "t3", "text": "Picar y reservar brócoli y zanahoria", "time": 10, "days": ["Lun", "Mar", "Mié"]}
+          {"id": "t3", "text": "Picar y reservar brócoli y zanahoria", "time": 10, "days": ["Lun", "Mar", "Mié"], "days_fresh": 3}
         ]
       }
     ]
@@ -752,6 +805,20 @@ Si no puedes identificar el plato, devuelve name:"" y tags:[].`,
       };
     }
 
+    if (posthog && distinctId) {
+      posthog.capture({
+        distinctId,
+        event: 'ai_call_completed',
+        properties: {
+          call_type: type,
+          model: message.model,
+          input_tokens: message.usage?.input_tokens,
+          output_tokens: message.usage?.output_tokens,
+        },
+      });
+      await posthog.shutdown();
+    }
+
     return {
       statusCode: 200,
       headers: { ...cors, 'Content-Type': 'application/json' },
@@ -759,6 +826,21 @@ Si no puedes identificar el plato, devuelve name:"" y tags:[].`,
     };
   } catch (err) {
     console.error('Claude function error:', err);
+
+    if (posthog && distinctId) {
+      let callType = 'unknown';
+      try { callType = JSON.parse(event.body).type || 'unknown'; } catch { /* ignore */ }
+      posthog.capture({
+        distinctId,
+        event: 'ai_call_failed',
+        properties: {
+          call_type: callType,
+          error_type: err.constructor?.name || 'Error',
+        },
+      });
+      await posthog.shutdown();
+    }
+
     return {
       statusCode: 500,
       headers: { ...cors, 'Content-Type': 'application/json' },

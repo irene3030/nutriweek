@@ -5,47 +5,67 @@ const PADDING = 10;
 const STEPS = [
   {
     selector: '[data-tour="tab-week"]',
-    title: 'Tu menú semanal',
-    text: 'Aquí ves el menú de la semana. Pulsa + para crear tu primera semana con IA.',
+    title: 'Tu menú de la semana',
+    text: 'El centro de todo. Aquí tienes el menú completo de la semana, generado y adaptado a tu familia. Pulsa + para crear tu primera semana.',
   },
   {
     selector: '[data-tour="new-week-btn"]',
-    title: 'Generar con IA',
-    text: 'Claude genera un menú completo de 7 días adaptado a la edad de tu bebé y los KPIs nutricionales.',
+    title: 'Genera el menú con IA',
+    text: 'Dile qué ingredientes tienes, cuántos días quieres planificar y qué objetivos nutricionales importan esta semana. Claude construye un menú equilibrado en segundos.',
   },
   {
     selector: '[data-tour="kpi-pills"]',
-    title: 'Objetivos nutricionales',
-    text: 'Hierro, pescado azul, legumbres… la app cuenta cuántas veces aparecen en la semana y te avisa si falta algo.',
+    title: 'Nutrición bajo control',
+    text: 'De un vistazo ves si el menú cubre hierro, pescado azul, legumbres, fruta y verduras. Si algo falla, la IA puede corregirlo automáticamente.',
   },
   {
-    selector: '[data-tour="shopping-toggle"]',
-    title: 'Lista de la compra',
-    text: 'Se genera automáticamente a partir del menú. Marca lo que ya tienes en casa y copia el resto al portapapeles.',
+    selector: '[data-tour="quick-meal-btn"]',
+    title: '¿No sabes qué cocinar hoy?',
+    text: 'Dile a la IA lo que tienes en la nevera y te propone una comida en segundos, adaptada al bebé y al adulto.',
+  },
+  {
+    selector: '[data-tour="batch-cooking-btn"]',
+    title: 'Cocina una vez, come toda la semana',
+    text: 'La app agrupa las preparaciones del menú para que cocines de forma eficiente: qué hacer primero, qué se puede hacer en paralelo y cuánto aguarda cada cosa. ⚠️ En mejora continua.',
+  },
+  {
+    selector: '[data-tour="shopping-btn"]',
+    title: 'Lista de la compra automática',
+    text: 'Se genera sola a partir del menú. Solo tienes que ir marcando lo que ya tienes o lo que compras. Sin olvidar nada.',
   },
   {
     selector: '[data-tour="tab-day"]',
-    title: 'Vista de día',
-    text: 'Pulsa cualquier día del menú para ver sus comidas al detalle. Desde aquí también puedes registrar qué comió realmente tu bebé.',
+    title: 'El detalle de cada día',
+    text: 'Entra en cualquier día para ver cada franja horaria, registrar cómo fue la comida y recibir una sugerencia de cena adaptada a lo que ya ha comido el bebé ese día.',
+    navigate: 'day',
   },
   {
     selector: '[data-tour="tab-recipes"]',
     title: 'Tus comidas habituales',
-    text: 'Guarda las comidas que ya le gustan a tu bebé para incluirlas rápido en futuros menús.',
+    text: 'Aquí guardas las comidas que ya conoces y funcionan en casa. La IA las tiene en cuenta al generar el menú para no proponer siempre lo mismo.',
+    navigate: 'recipes',
+  },
+  {
+    selector: '[data-tour="add-meal-btn"]',
+    title: 'Añade una comida en segundos',
+    text: 'Escribe el nombre o sube una foto del plato. La IA identifica los ingredientes y etiqueta automáticamente su valor nutricional: hierro, proteína, verdura...',
+    navigate: 'recipes',
   },
   {
     selector: '[data-tour="baby-profile"]',
     title: 'Perfil de tu bebé',
     text: 'Añade el nombre, fecha de nacimiento y si toma lactancia. La IA usa esta info para adaptar las raciones y recomendaciones.',
+    navigate: 'profile',
   },
   {
     selector: '[data-tour="tab-profile"]',
-    title: 'Configura la IA',
-    text: 'Para usar la IA necesitas añadir tu API key de Claude o un código de invitación.',
+    title: 'Configura tu perfil',
+    text: 'Indica la edad del bebé, las franjas horarias que usáis y conecta tu API key de Claude. Todo esto personaliza cada generación.',
+    navigate: 'profile',
   },
 ];
 
-export default function SpotlightTour({ onComplete }) {
+export default function SpotlightTour({ onComplete, onNavigate }) {
   const [step, setStep] = useState(0);
   const [rect, setRect] = useState(null);
   const [winSize, setWinSize] = useState({ w: window.innerWidth, h: window.innerHeight });
@@ -65,6 +85,9 @@ export default function SpotlightTour({ onComplete }) {
   }, [currentStep.selector]);
 
   useEffect(() => {
+    if (currentStep.navigate && onNavigate) {
+      onNavigate(currentStep.navigate);
+    }
     // Small delay so the DOM settles after tab navigation
     const t = setTimeout(measure, 80);
     window.addEventListener('resize', measure);
@@ -72,7 +95,7 @@ export default function SpotlightTour({ onComplete }) {
       clearTimeout(t);
       window.removeEventListener('resize', measure);
     };
-  }, [measure]);
+  }, [measure, currentStep.navigate, onNavigate]);
 
   const handleNext = () => {
     if (step < STEPS.length - 1) {

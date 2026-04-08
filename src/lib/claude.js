@@ -1,3 +1,5 @@
+import { track, getDistinctId } from './analytics';
+
 const API_URL = '/api/claude';
 
 // Module-level pre-call hook — set from App.jsx to check limits and track usage.
@@ -13,9 +15,14 @@ async function callClaude(type, payload, apiKey) {
   } else if (!apiKey) {
     throw new Error('NO_API_KEY');
   }
+
+  const headers = { 'Content-Type': 'application/json' };
+  const distinctId = getDistinctId();
+  if (distinctId) headers['X-POSTHOG-DISTINCT-ID'] = distinctId;
+
   const response = await fetch(API_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     // Only send apiKey when present; server falls back to its own key for free quota calls
     body: JSON.stringify({ type, payload, ...(apiKey ? { apiKey } : {}) }),
   });
@@ -29,8 +36,10 @@ async function callClaude(type, payload, apiKey) {
   return data.result;
 }
 
-export async function generateWeekMenu({ availableIngredients = '', fixedMeals = [], recurringMeals = [], mealSlots = null, foodHistory = [], savedRecipes = [], requiredIngredients = null, babyProfile = null, apiKey } = {}) {
-  return callClaude('generate_week', { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, babyProfile }, apiKey);
+export async function generateWeekMenu({ availableIngredients = '', fixedMeals = [], recurringMeals = [], mealSlots = null, foodHistory = [], savedRecipes = [], requiredIngredients = null, kpiOverrides = null, season = null, vetoedIngredients = null, babyProfile = null, apiKey } = {}) {
+  const result = await callClaude('generate_week', { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, kpiOverrides, season, vetoedIngredients, babyProfile }, apiKey);
+  track('ai_week_generated');
+  return result;
 }
 
 export async function suggestIngredients({ foodHistory = [], availableIngredients = '', mealSlots = null, apiKey } = {}) {
@@ -42,7 +51,9 @@ export async function suggestIngredientAlternative({ ingredient, category, exist
 }
 
 export async function regenerateDay({ dayName, weekContext = [], availableIngredients = '', fixedMeals = [], apiKey }) {
-  return callClaude('regenerate_day', { dayName, weekContext, availableIngredients, fixedMeals }, apiKey);
+  const result = await callClaude('regenerate_day', { dayName, weekContext, availableIngredients, fixedMeals }, apiKey);
+  track('ai_day_regenerated');
+  return result;
 }
 
 export async function suggestMeal({ dayName, mealType, weekContext = [], ingredients = '', requirements = [], apiKey }) {
@@ -50,7 +61,9 @@ export async function suggestMeal({ dayName, mealType, weekContext = [], ingredi
 }
 
 export async function quickMeal({ ingredients = '', requirements = [], prepTime = null, apiKey }) {
-  return callClaude('quick_meal', { ingredients, requirements, prepTime }, apiKey);
+  const result = await callClaude('quick_meal', { ingredients, requirements, prepTime }, apiKey);
+  track('ai_meal_suggested');
+  return result;
 }
 
 export async function evaluateDay({ meals, apiKey }) {
@@ -74,11 +87,15 @@ export async function analyzeMealPhoto({ imageBase64, mimeType = 'image/jpeg', a
 }
 
 export async function generateBatchCooking({ weekMenu, apiKey }) {
-  return callClaude('batch_cooking', { weekMenu }, apiKey);
+  const result = await callClaude('batch_cooking', { weekMenu }, apiKey);
+  track('ai_batch_cooking_generated');
+  return result;
 }
 
 export async function generateBatchCookingOptimized({ weekMenu, timeSessions, apiKey }) {
-  return callClaude('batch_cooking_optimized', { weekMenu, timeSessions }, apiKey);
+  const result = await callClaude('batch_cooking_optimized', { weekMenu, timeSessions }, apiKey);
+  track('ai_batch_cooking_generated');
+  return result;
 }
 
 export async function fixKPI({ kpiType, weekContext, kpiState, activeTipos, allKpiStates, apiKey }) {

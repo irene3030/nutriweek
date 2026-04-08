@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { AuthContext, useAuth, useAuthProvider } from './hooks/useAuth';
 import { Star, User as UserIcon, Lightbulb, Check, Baby } from 'lucide-react';
 import { setPreCallHook, validateFFCode } from './lib/claude';
+import { createInvite, buildInviteUrl, redeemInvite } from './lib/invites';
 import { identify, resetIdentity, track } from './lib/analytics';
 import { useWeek } from './hooks/useWeek';
 import LoginScreen from './components/auth/LoginScreen';
@@ -12,6 +13,7 @@ import UsualMeals from './components/recipes/UsualMeals';
 import { FullPageSpinner } from './components/ui/LoadingSpinner';
 import InstallBanner from './components/ui/InstallBanner';
 import SpotlightTour from './components/ui/SpotlightTour';
+import Modal from './components/ui/Modal';
 import DayPlayground from './components/playground/DayPlayground';
 import {
   collection,
@@ -65,6 +67,7 @@ function AppContent() {
   const [householdDoc, setHouseholdDoc] = useState(null);
   const [recipesTab, setRecipesTab] = useState('usual');
   const [showTour, setShowTour] = useState(false);
+  const [showFFWelcome, setShowFFWelcome] = useState(false);
 
   const {
     weeks,
@@ -82,6 +85,7 @@ function AppContent() {
     updateBatchCooking,
     trackMeal,
     copyMeal,
+    swapMeals,
     applyMealFixes,
     clearDay,
   } = useWeek(auth.userDoc?.householdId);
@@ -104,6 +108,28 @@ function AppContent() {
       household_id: auth.userDoc?.householdId,
     });
   }, [auth.user?.uid, !!householdDoc?.anthropicApiKey, !!householdDoc?.ffActivated]);
+
+  // Capture invite token from URL on mount and store for post-login redemption
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('invite');
+    if (token) {
+      localStorage.setItem('pendingInvite', token);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
+  // Redeem pending invite once the user is logged in and household is loaded
+  useEffect(() => {
+    const householdId = auth.userDoc?.householdId;
+    if (!householdId || !householdDoc || householdDoc.ffActivated) return;
+    const token = localStorage.getItem('pendingInvite');
+    if (!token) return;
+    localStorage.removeItem('pendingInvite');
+    redeemInvite(token, householdId)
+      .then(() => { track('invite_redeemed'); setShowFFWelcome(true); })
+      .catch(err => console.warn('Invite redemption failed:', err.message));
+  }, [auth.userDoc?.householdId, !!householdDoc, householdDoc?.ffActivated]);
 
   // Show spotlight tour for users who haven't completed it
   useEffect(() => {
@@ -234,6 +260,17 @@ function AppContent() {
 
   const handleNewWeek = async (mondayDate, label, daysData) => {
     await createWeek(mondayDate, label, daysData);
+    track('week_created', { generated_with_ai: !!daysData });
+  };
+
+  const handleDeleteWeek = async (weekId) => {
+    await deleteWeek(weekId);
+    track('week_deleted');
+  };
+
+  const handleApplyFixes = async (fixes) => {
+    await applyMealFixes(currentWeek.id, fixes);
+    track('ai_kpi_fix_applied', { fix_count: fixes.length });
   };
 
   const handleAddMealToSlot = (dayName, tipo, mealData) => {
@@ -241,9 +278,13 @@ function AppContent() {
     const dayIdx = currentWeek.days.findIndex(d => d.day === dayName);
     if (dayIdx === -1) return;
     const day = currentWeek.days[dayIdx];
-    const mealIdx = day.meals?.findIndex(m => m.tipo === tipo);
-    if (mealIdx === undefined || mealIdx === -1) return;
-    updateMeal(currentWeek.id, dayIdx, mealIdx, mealData);
+    const mealIdx = day.meals?.findIndex(m => m.tipo === tipo) ?? -1;
+    if (mealIdx !== -1) {
+      updateMeal(currentWeek.id, dayIdx, mealIdx, mealData);
+    } else {
+      const newMeals = [...(day.meals || []), { tipo, ...mealData }];
+      updateDayMeals(currentWeek.id, dayIdx, newMeals);
+    }
   };
 
   // Render loading state
@@ -271,12 +312,12 @@ function AppContent() {
               onGoToPrevious={goToPreviousWeek}
               onGoToNext={goToNextWeek}
               onNewWeek={handleNewWeek}
-              onDeleteWeek={deleteWeek}
+              onDeleteWeek={handleDeleteWeek}
               onUpdateLabel={updateWeekLabel}
               onDayClick={handleDayClick}
               onAddMealToSlot={handleAddMealToSlot}
               onUpdateBatchCooking={updateBatchCooking}
-              onApplyFixes={(fixes) => applyMealFixes(currentWeek.id, fixes)}
+              onApplyFixes={handleApplyFixes}
               onClearDay={(dayName) => clearDay(currentWeek.id, dayName)}
               foodHistory={foodHistory}
               savedRecipes={savedRecipes}
@@ -315,7 +356,7 @@ function AppContent() {
           )}
 
           {activeTab === 'profile' && (
-            <ProfileTab auth={auth} householdDoc={householdDoc} />
+            <ProfileTab auth={auth} householdDoc={householdDoc} onShowFFWelcome={() => setShowFFWelcome(true)} />
           )}
 
           {activeTab === 'day' && (
@@ -347,11 +388,15 @@ function AppContent() {
                   !!householdApiKey ||
                   (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)
                 }
+                kpiConfig={householdDoc?.kpiConfig}
                 onBack={handleBackFromDay}
                 onSaveMeal={(weekId, dIdx, mIdx, data) => updateMeal(weekId, dIdx, mIdx, data)}
                 onTrackMeal={(weekId, dIdx, mIdx, trackData) => trackMeal(weekId, dIdx, mIdx, trackData)}
                 onCopyMeal={(weekId, srcDayIdx, srcMealIdx, tgtDayIdx, tgtMealIdx) =>
                   copyMeal(weekId, srcDayIdx, srcMealIdx, tgtDayIdx, tgtMealIdx)
+                }
+                onSwapMeals={(weekId, dIdx1, mIdx1, dIdx2, mIdx2) =>
+                  swapMeals(weekId, dIdx1, mIdx1, dIdx2, mIdx2)
                 }
                 onReorderMeals={(weekId, dIdx, newMeals) => updateDayMeals(weekId, dIdx, newMeals)}
               />
@@ -361,7 +406,29 @@ function AppContent() {
 
         <InstallBanner />
 
-        {showTour && <SpotlightTour onComplete={handleTourComplete} />}
+        {showTour && <SpotlightTour onComplete={handleTourComplete} onNavigate={setActiveTab} />}
+
+        <Modal isOpen={showFFWelcome} onClose={() => setShowFFWelcome(false)} title="¡Bienvenida a MealOps! 🎉" maxWidth="max-w-sm">
+          <div className="space-y-4 text-center pb-2">
+            <div className="text-5xl">🎁</div>
+            <p className="text-gray-700 text-sm leading-relaxed">
+              Te has unido con un <span className="font-semibold text-brand-700">código de invitación Friends &amp; Family</span>.
+            </p>
+            <div className="bg-brand-50 border border-brand-100 rounded-xl px-4 py-3">
+              <p className="text-brand-800 font-semibold text-base">30 llamadas gratuitas a la IA</p>
+              <p className="text-brand-600 text-xs mt-0.5">sin necesidad de API key propia</p>
+            </div>
+            <p className="text-gray-500 text-xs leading-relaxed">
+              Úsalas para generar menús semanales, obtener sugerencias de comida y analizar ingredientes. Cuando las agotes, puedes añadir tu propia API key de Anthropic en Perfil.
+            </p>
+            <button
+              onClick={() => setShowFFWelcome(false)}
+              className="w-full bg-brand-600 text-white rounded-xl py-3 font-medium hover:bg-brand-700 transition-colors"
+            >
+              ¡Empezar!
+            </button>
+          </div>
+        </Modal>
 
         {/* Bottom tab bar */}
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20 pb-[env(safe-area-inset-bottom)]">
@@ -392,7 +459,7 @@ function AppContent() {
   );
 }
 
-function ProfileTab({ auth, householdDoc }) {
+function ProfileTab({ auth, householdDoc, onShowFFWelcome }) {
   const [members, setMembers] = useState([]);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [apiKeySaved, setApiKeySaved] = useState(false);
@@ -403,6 +470,9 @@ function ProfileTab({ auth, householdDoc }) {
   const [ffCodeInput, setFfCodeInput] = useState('');
   const [ffLoading, setFfLoading] = useState(false);
   const [ffError, setFfError] = useState('');
+  const [inviteUrl, setInviteUrl] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
   const [babyName, setBabyName] = useState('');
   const [babyBirthDate, setBabyBirthDate] = useState('');
   const [babyIsBreastfeeding, setBabyIsBreastfeeding] = useState(false);
@@ -475,6 +545,24 @@ function ProfileTab({ auth, householdDoc }) {
       setFfError(err.message || 'Error activando el código.');
     } finally {
       setFfLoading(false);
+    }
+  };
+
+  const handleCreateInvite = async () => {
+    if (!householdId) return;
+    setInviteLoading(true);
+    try {
+      const token = await createInvite(householdId);
+      const url = buildInviteUrl(token);
+      setInviteUrl(url);
+      await navigator.clipboard.writeText(url);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 3000);
+      track('invite_created');
+    } catch (err) {
+      alert('Error generando el enlace: ' + err.message);
+    } finally {
+      setInviteLoading(false);
     }
   };
 
@@ -731,7 +819,7 @@ function ProfileTab({ auth, householdDoc }) {
             </div>
 
             {householdDoc.ffActivated ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between bg-brand-50 rounded-xl px-4 py-3">
                   <span className="text-sm text-brand-800 font-medium flex items-center gap-0.5"><Check className="w-3.5 h-3.5" /> Código activado</span>
                   <span className={`text-sm font-semibold ${(householdDoc.freeCallsUsed || 0) >= 30 ? 'text-red-600' : 'text-brand-700'}`}>
@@ -740,6 +828,32 @@ function ProfileTab({ auth, householdDoc }) {
                 </div>
                 {(householdDoc.freeCallsUsed || 0) >= 30 && (
                   <p className="text-xs text-amber-600">Has agotado las llamadas gratuitas. Añade tu API key para continuar.</p>
+                )}
+                {auth.user?.uid === import.meta.env.VITE_OWNER_UID && (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-500">Invita a alguien generando un enlace de un solo uso. Al abrirlo, se activará automáticamente su acceso.</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleCreateInvite}
+                      disabled={inviteLoading}
+                      className="bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-50 shrink-0"
+                    >
+                      {inviteLoading ? '...' : '🔗 Generar enlace'}
+                    </button>
+                    {inviteUrl && (
+                      <button
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(inviteUrl);
+                          setInviteCopied(true);
+                          setTimeout(() => setInviteCopied(false), 3000);
+                        }}
+                        className="flex-1 text-left text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 truncate hover:bg-gray-100 transition-colors"
+                      >
+                        {inviteCopied ? '✓ Copiado' : inviteUrl}
+                      </button>
+                    )}
+                  </div>
+                </div>
                 )}
               </div>
             ) : (
@@ -822,6 +936,21 @@ function ProfileTab({ auth, householdDoc }) {
                 className="text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 transition-colors font-medium"
               >
                 Simular F&F agotado (30/30)
+              </button>
+              <button
+                onClick={async () => {
+                  await updateDoc(doc(db, 'users', auth.user.uid), { tourCompleted: false });
+                  setShowTour(true);
+                }}
+                className="text-xs bg-indigo-500 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-600 transition-colors font-medium"
+              >
+                🔦 Lanzar Spotlight Tour
+              </button>
+              <button
+                onClick={onShowFFWelcome}
+                className="text-xs bg-green-500 text-white px-3 py-1.5 rounded-lg hover:bg-green-600 transition-colors font-medium"
+              >
+                🎁 Ver modal bienvenida F&F
               </button>
             </div>
             <p className="text-xs text-amber-500 italic">Este bloque no aparece en producción.</p>

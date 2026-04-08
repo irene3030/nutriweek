@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useKPIs } from '../../hooks/useKPIs';
-import { computeAdaptiveTargets, KPI_CATALOG, DEFAULT_KPI_CONFIG } from '../../lib/kpis';
+import { computeAdaptiveTargets, calculateDailyCompliance, KPI_CATALOG, DEFAULT_KPI_CONFIG } from '../../lib/kpis';
 import { fixKPI } from '../../lib/claude';
 import { track } from '../../lib/analytics';
 import { Droplets, Fish, Leaf, Bean, Apple, RefreshCw, Star, AlertTriangle, Sparkles, X, Check } from 'lucide-react';
@@ -15,11 +15,14 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
   const config = {
     active: kpiConfig?.active ?? DEFAULT_KPI_CONFIG.active,
     targets: kpiConfig?.targets ?? {},
+    qualities: kpiConfig?.qualities ?? {},
+    frequencies: { ...DEFAULT_KPI_CONFIG.frequencies, ...(kpiConfig?.frequencies ?? {}) },
     custom: kpiConfig?.custom ?? [],
   };
 
   const kpis = useKPIs(weekDoc, config.custom);
   const { ironTarget, fishTarget, veggieTarget, legumeTarget, isAdapted } = computeAdaptiveTargets(weekDoc, config.targets);
+  const dailyCompliance = useMemo(() => calculateDailyCompliance(weekDoc, config), [weekDoc, config]);
 
   const [fixing, setFixing] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -28,15 +31,8 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
   const [showLibrary, setShowLibrary] = useState(false);
 
   // --- status helpers ---
-  function getStatus(value, target) {
-    if (target === null) return null;
-    if (value >= target) return 'good';
-    if (value >= Math.ceil(target * 0.6)) return 'warning';
-    return 'bad';
-  }
-
-  function getCustomStatus(value, target, quality) {
-    if (target === null) return null;
+  function getStatusWithQuality(value, target, quality = 'mínimo') {
+    if (target === null || target === undefined) return null;
     if (quality === 'máximo') {
       if (value <= target) return 'good';
       if (value <= Math.round(target * 1.4)) return 'warning';
@@ -47,18 +43,52 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
       if (Math.abs(value - target) <= 1) return 'warning';
       return 'bad';
     }
-    // mínimo (default)
     if (value >= target) return 'good';
     if (value >= Math.ceil(target * 0.6)) return 'warning';
     return 'bad';
   }
 
-  const ironStatus = getStatus(kpis.ironDays, ironTarget);
-  const fishStatus = getStatus(kpis.fishDays, fishTarget);
-  const veggieStatus = getStatus(kpis.distinctVeggies, veggieTarget);
-  const legumeStatus = getStatus(kpis.legumedDays, legumeTarget);
+  function getDailyStatus(compliant, total) {
+    if (!total) return null;
+    if (compliant >= total) return 'good';
+    if (compliant >= Math.ceil(total * 0.6)) return 'warning';
+    return 'bad';
+  }
+
+  function getCatalogStatus(id, weeklyValue, weeklyTarget) {
+    const freq = config.frequencies[id] || 'semanal';
+    if (freq === 'diario') {
+      const dc = dailyCompliance[id];
+      return dc ? getDailyStatus(dc.compliant, dc.total) : null;
+    }
+    return getStatusWithQuality(weeklyValue, weeklyTarget, config.qualities[id] ?? 'mínimo');
+  }
+
+  function getPillValueTarget(id, weeklyValue, weeklyTarget, weeklyUnit = 'días') {
+    const freq = config.frequencies[id] || 'semanal';
+    const quality = config.qualities[id] ?? 'mínimo';
+    const qualPrefix = quality === 'máximo' ? '≤' : quality === 'exacto' ? '=' : '≥';
+    if (freq === 'diario') {
+      const dc = dailyCompliance[id];
+      const perDayTgt = config.targets[id] ?? 1;
+      return {
+        value: dc ? `${dc.compliant}/${dc.total} días` : '0/0 días',
+        target: `${qualPrefix}${perDayTgt}/día`,
+      };
+    }
+    return {
+      value: `${weeklyValue}/${weeklyTarget ?? '–'}`,
+      target: `${qualPrefix}${weeklyTarget ?? '–'} ${weeklyUnit}`,
+    };
+  }
+
   const fruitTarget = config.targets.fruit ?? 5;
-  const fruitStatus = getStatus(kpis.fruitDays, fruitTarget);
+
+  const ironStatus = getCatalogStatus('iron', kpis.ironDays, ironTarget);
+  const fishStatus = getCatalogStatus('fish', kpis.fishDays, fishTarget);
+  const veggieStatus = getCatalogStatus('veggie', kpis.distinctVeggies, veggieTarget);
+  const legumeStatus = getCatalogStatus('legume', kpis.legumedDays, legumeTarget);
+  const fruitStatus = getCatalogStatus('fruit', kpis.fruitDays, fruitTarget);
 
   const statusColors = {
     good:    'text-green-700 bg-green-50 border-green-200',
@@ -322,14 +352,27 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
 
         {/* Custom KPI pills */}
         {activeCustomKPIs.map(k => {
-          const val = kpis.customResults?.[k.id] ?? 0;
           const tgt = config.targets[k.id] ?? k.target ?? 3;
           const quality = k.quality || 'mínimo';
-          const st = getCustomStatus(val, tgt, quality);
-          const targetLabel = quality === 'máximo' ? `≤${tgt} días` : quality === 'exacto' ? `=${tgt} días` : `≥${tgt} días`;
+          const freq = k.frequency || 'semanal';
+          const qualPrefix = quality === 'máximo' ? '≤' : quality === 'exacto' ? '=' : '≥';
+          let val, valueLabel, targetLabel, st;
+          if (freq === 'diario') {
+            const dc = dailyCompliance[k.id];
+            const perDayTgt = config.targets[k.id] ?? k.target ?? 1;
+            val = dc?.compliant ?? 0;
+            valueLabel = dc ? `${dc.compliant}/${dc.total} días` : '0/0 días';
+            targetLabel = `${qualPrefix}${perDayTgt}/día`;
+            st = dc ? getDailyStatus(dc.compliant, dc.total) : null;
+          } else {
+            val = kpis.customResults?.[k.id] ?? 0;
+            valueLabel = `${val}/${tgt}`;
+            targetLabel = quality === 'máximo' ? `≤${tgt} días` : quality === 'exacto' ? `=${tgt} días` : `≥${tgt} días`;
+            st = getStatusWithQuality(val, tgt, quality);
+          }
           return (
             <KPIPill key={k.id}
-              IconComponent={Star} label={k.name} value={`${val}/${tgt}`} target={targetLabel}
+              IconComponent={Star} label={k.name} value={valueLabel} target={targetLabel}
               status={st} statusColors={statusColors}
               onFix={hasAiAccess && st !== null && quality === 'mínimo' ? () => handleFix(k.id) : null}
               fixing={fixing === k.id} loading={loading && fixing === k.id}
@@ -516,6 +559,7 @@ function KPILibrary({ config, onSave, onClose }) {
   const [editingTarget, setEditingTarget] = useState(null);
   const [targetInput, setTargetInput] = useState('');
   const [customQuality, setCustomQuality] = useState('mínimo');
+  const [customFrequency, setCustomFrequency] = useState('semanal');
   const [editingCustomId, setEditingCustomId] = useState(null);
 
   const isDirty = JSON.stringify(draft) !== JSON.stringify(config);
@@ -540,10 +584,10 @@ function KPILibrary({ config, onSave, onClose }) {
     const id = `custom_${Date.now()}`;
     setDraft(d => ({
       ...d,
-      custom: [...d.custom, { id, name: customName.trim(), query: customQuery.trim(), target: parseInt(customTarget, 10) || 3, quality: customQuality }],
+      custom: [...d.custom, { id, name: customName.trim(), query: customQuery.trim(), target: parseInt(customTarget, 10) || 3, quality: customQuality, frequency: customFrequency }],
       active: [...d.active, id],
     }));
-    setCustomName(''); setCustomQuery(''); setCustomTarget('3'); setCustomQuality('mínimo');
+    setCustomName(''); setCustomQuery(''); setCustomTarget('3'); setCustomQuality('mínimo'); setCustomFrequency('semanal');
     setShowAddCustom(false);
   };
 
@@ -676,20 +720,34 @@ function KPILibrary({ config, onSave, onClose }) {
                             )}
                           </div>
                           {isEditingCard ? (
-                            <div className="flex gap-1">
-                              {['mínimo', 'máximo', 'exacto'].map(q => (
-                                <button
-                                  key={q} type="button"
-                                  onClick={() => { updateCustomKPI(k.id, { quality: q }); setEditingCustomId(null); }}
-                                  className={`flex-1 text-xs py-1 rounded-lg border transition-colors ${currentQuality === q ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300'}`}
-                                >
-                                  {q === 'mínimo' ? '≥ mín' : q === 'máximo' ? '≤ máx' : '= exacto'}
-                                </button>
-                              ))}
+                            <div className="space-y-1.5">
+                              <div className="flex gap-1">
+                                {['mínimo', 'máximo', 'exacto'].map(q => (
+                                  <button
+                                    key={q} type="button"
+                                    onClick={() => updateCustomKPI(k.id, { quality: q })}
+                                    className={`flex-1 text-xs py-1 rounded-lg border transition-colors ${currentQuality === q ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300'}`}
+                                  >
+                                    {q === 'mínimo' ? '≥ mín' : q === 'máximo' ? '≤ máx' : '= exacto'}
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="flex gap-1">
+                                {[['semanal', 'Por semana'], ['diario', 'Por día']].map(([val, lbl]) => (
+                                  <button
+                                    key={val} type="button"
+                                    onClick={() => updateCustomKPI(k.id, { frequency: val })}
+                                    className={`flex-1 text-xs py-1 rounded-lg border transition-colors ${(k.frequency || 'semanal') === val ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300'}`}
+                                  >
+                                    {lbl}
+                                  </button>
+                                ))}
+                              </div>
+                              <button onClick={() => setEditingCustomId(null)} className="text-xs text-brand-600 font-medium">✓ Listo</button>
                             </div>
                           ) : (
                             <button onClick={() => setEditingCustomId(k.id)} className="text-xs text-gray-400 hover:text-brand-600 transition-colors">
-                              tipo: {currentQuality === 'mínimo' ? '≥ mínimo' : currentQuality === 'máximo' ? '≤ máximo' : '= exacto'} (editar)
+                              tipo: {currentQuality === 'mínimo' ? '≥ mínimo' : currentQuality === 'máximo' ? '≤ máximo' : '= exacto'} · {(k.frequency || 'semanal') === 'diario' ? 'por día' : 'por semana'} (editar)
                             </button>
                           )}
                         </div>
@@ -760,9 +818,25 @@ function KPILibrary({ config, onSave, onClose }) {
                 </div>
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Objetivo (días/semana)</label>
+                <label className="text-xs text-gray-500 mb-1 block">Frecuencia</label>
+                <div className="flex gap-1">
+                  {[['semanal', 'Por semana'], ['diario', 'Por día']].map(([val, lbl]) => (
+                    <button
+                      key={val} type="button"
+                      onClick={() => setCustomFrequency(val)}
+                      className={`flex-1 text-xs py-1.5 rounded-lg border transition-colors ${customFrequency === val ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300'}`}
+                    >
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">
+                  {customFrequency === 'diario' ? 'Objetivo (veces/día)' : 'Objetivo (días/semana)'}
+                </label>
                 <input
-                  type="number" min={1} max={7} value={customTarget} onChange={e => setCustomTarget(e.target.value)}
+                  type="number" min={1} max={customFrequency === 'diario' ? 5 : 7} value={customTarget} onChange={e => setCustomTarget(e.target.value)}
                   className="w-20 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white"
                 />
               </div>

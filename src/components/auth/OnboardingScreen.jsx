@@ -5,6 +5,7 @@ import { db } from '../../lib/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { useHousehold } from '../../hooks/useHousehold';
 import { PartyPopper, Home, Link } from 'lucide-react';
+import { track } from '../../lib/analytics';
 
 export default function OnboardingScreen() {
   const { user, refreshUserDoc, signOut } = useAuth();
@@ -19,6 +20,7 @@ export default function OnboardingScreen() {
     try {
       const info = await createHousehold();
       setCreatedInfo(info);
+      track('household_created');
     } catch (err) {
       console.error(err);
     }
@@ -32,6 +34,7 @@ export default function OnboardingScreen() {
     }
     try {
       await joinHousehold(inviteCode.trim());
+      track('household_joined');
     } catch (err) {
       setJoinError(err.message);
     }

@@ -28,3 +28,9 @@ export function track(event, properties = {}) {
   if (!key) return;
   posthog.capture(event, properties);
 }
+
+/** Returns the PostHog distinct ID for client-to-server correlation. */
+export function getDistinctId() {
+  if (!key) return null;
+  return posthog.get_distinct_id();
+}

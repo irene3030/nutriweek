@@ -70,6 +70,7 @@ export const KPI_CATALOG = [
 export const DEFAULT_KPI_CONFIG = {
   active: ['iron', 'fish', 'veggie', 'legume'],
   targets: {},
+  frequencies: { iron: 'diario', fruit: 'diario' },
   custom: [],
 };
 
@@ -120,6 +121,51 @@ function getDistinctVeggies(days) {
     }
   }
   return [...veggies];
+}
+
+/** Count days where at least n meals have the given tag */
+function countDaysMeetingDailyTag(days, tag, n = 1) {
+  let count = 0;
+  for (const day of days) {
+    if (!day.meals) continue;
+    const mealCount = day.meals.filter(m => m.tags?.some(t => t === tag || t.startsWith(tag + ':'))).length;
+    if (mealCount >= n) count++;
+  }
+  return count;
+}
+
+/** Count days where the number of distinct veggies in that day is >= n */
+function countDaysMeetingDailyVeggies(days, n = 1) {
+  let count = 0;
+  for (const day of days) {
+    const veggies = new Set();
+    for (const meal of (day.meals || [])) {
+      for (const tag of (meal.tags || [])) {
+        if (tag.startsWith('veggie:')) {
+          const name = tag.split(':')[1];
+          if (name) veggies.add(name.toLowerCase().trim());
+        }
+      }
+    }
+    if (veggies.size >= n) count++;
+  }
+  return count;
+}
+
+/** Count days where query text appears in at least n meals */
+function countDaysMeetingDailyText(days, query, n = 1) {
+  const terms = query.split(',').map(t => t.toLowerCase().trim()).filter(Boolean);
+  if (!terms.length) return 0;
+  let count = 0;
+  for (const day of days) {
+    if (!day.meals) continue;
+    const matchCount = day.meals.filter(m => {
+      const text = `${m.baby || ''} ${m.adult || ''}`.toLowerCase();
+      return terms.some(t => text.includes(t));
+    }).length;
+    if (matchCount >= n) count++;
+  }
+  return count;
 }
 
 /** Count days where at least one meal text contains any of the query terms (comma-separated OR logic) */
@@ -290,6 +336,36 @@ export function computeAdaptiveTargets(weekDoc, targets = {}) {
   const isAdapted = ironTarget !== (targets.iron ?? 5) || fishTarget !== (targets.fish ?? 3) || veggieTarget !== veggieDefault;
 
   return { ironTarget, fishTarget, veggieTarget, legumeTarget, isAdapted };
+}
+
+/**
+ * For each KPI with frequency='diario', returns { compliant, total }
+ * where compliant = days meeting the per-day threshold.
+ */
+export function calculateDailyCompliance(weekDoc, kpiConfig = {}) {
+  if (!weekDoc?.days?.length) return {};
+  const days = weekDoc.days;
+  const total = days.length;
+  const targets = kpiConfig.targets || {};
+  const frequencies = kpiConfig.frequencies || {};
+  const custom = kpiConfig.custom || [];
+  const result = {};
+
+  if (frequencies.iron === 'diario')
+    result.iron = { compliant: countDaysMeetingDailyTag(days, 'iron', targets.iron ?? 1), total };
+  if (frequencies.fish === 'diario')
+    result.fish = { compliant: countDaysMeetingDailyTag(days, 'oily_fish', targets.fish ?? 1), total };
+  if (frequencies.legume === 'diario')
+    result.legume = { compliant: countDaysMeetingDailyTag(days, 'legume', targets.legume ?? 1), total };
+  if (frequencies.fruit === 'diario')
+    result.fruit = { compliant: countDaysMeetingDailyTag(days, 'fruit', targets.fruit ?? 1), total };
+  if (frequencies.veggie === 'diario')
+    result.veggie = { compliant: countDaysMeetingDailyVeggies(days, targets.veggie ?? 1), total };
+  for (const kpi of custom) {
+    if (kpi.frequency === 'diario')
+      result[kpi.id] = { compliant: countDaysMeetingDailyText(days, kpi.query, targets[kpi.id] ?? kpi.target ?? 1), total };
+  }
+  return result;
 }
 
 /** Check if a food has been absent for more than 3 weeks from foodHistory */

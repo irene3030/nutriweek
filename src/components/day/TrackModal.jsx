@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
+import { track } from '../../lib/analytics';
 import { detectTags } from '../../lib/claude';
 import { Check, Circle, ArrowLeftRight } from 'lucide-react';
 
@@ -87,17 +88,18 @@ export default function TrackModal({ isOpen, onClose, meal, dayName, onSave, api
         }
       }
 
-      onSave({
-        status,
-        checkedIngredients: (status === 'partial' && hasChecklist) ? [...checkedIngredients] : undefined,
-        extra: extra.trim() || undefined,
-        altFood: status === 'other' ? (altFood.trim() || undefined) : undefined,
-        tags,
-        done: true,
-      });
+      const trackData = { status, tags, done: true };
+      if (status === 'partial' && hasChecklist) trackData.checkedIngredients = [...checkedIngredients];
+      if (extra.trim()) trackData.extra = extra.trim();
+      if (status === 'other' && altFood.trim()) trackData.altFood = altFood.trim();
+      onSave(trackData);
       onClose();
     } catch {
-      onSave({ status, checkedIngredients: (status === 'partial' && hasChecklist) ? [...checkedIngredients] : undefined, extra: extra.trim() || undefined, altFood: status === 'other' ? altFood.trim() || undefined : undefined, tags: null, done: true });
+      const trackData = { status, tags: null, done: true };
+      if (status === 'partial' && hasChecklist) trackData.checkedIngredients = [...checkedIngredients];
+      if (extra.trim()) trackData.extra = extra.trim();
+      if (status === 'other' && altFood.trim()) trackData.altFood = altFood.trim();
+      onSave(trackData);
       onClose();
     } finally {
       setTagsLoading(false);
@@ -188,8 +190,8 @@ export default function TrackModal({ isOpen, onClose, meal, dayName, onSave, api
           </div>
         )}
 
-        {/* Extra food — all statuses (except partial without checklist which already used extra above) */}
-        {status && !(status === 'partial' && !hasChecklist) && (
+        {/* Extra food — done and partial only (not 'other') */}
+        {status && status !== 'other' && !(status === 'partial' && !hasChecklist) && (
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">
               ¿Comió algo más? <span className="font-normal">(opcional)</span>

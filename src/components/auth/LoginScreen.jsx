@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import Logo from '../ui/Logo';
 import { CalendarDays, Bot, BarChart2, ShoppingCart } from 'lucide-react';
+import { track } from '../../lib/analytics';
 
 export default function LoginScreen() {
   const { signInWithGoogle } = useAuth();
@@ -13,6 +14,7 @@ export default function LoginScreen() {
     setError(null);
     try {
       await signInWithGoogle();
+      track('user_signed_in');
     } catch (err) {
       setError('Error al iniciar sesión. Inténtalo de nuevo.');
       console.error(err);

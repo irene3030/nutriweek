@@ -136,6 +136,7 @@ export default function WeekView({
             />
             <div className="px-4 pb-3">
               <button
+                data-tour="quick-meal-btn"
                 onClick={() => setShowQuickMeal(true)}
                 className="flex items-center gap-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 shadow-sm px-4 py-2 rounded-xl transition-colors"
               >
@@ -167,7 +168,7 @@ export default function WeekView({
             <div className="px-4 pb-4">
               <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
                 <button
-                  data-tour="shopping-toggle"
+                  data-tour="shopping-btn"
                   onClick={() => setShowShopping(v => !v)}
                   className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
                 >
@@ -217,6 +218,7 @@ export default function WeekView({
         apiKey={apiKey}
         hasAiAccess={hasAiAccess}
         kpiConfig={kpiConfig}
+        onUpdateKpiConfig={onUpdateKpiConfig}
         babyProfile={babyProfile}
       />
       <QuickMealModal

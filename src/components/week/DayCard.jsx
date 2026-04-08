@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useKPIs } from '../../hooks/useKPIs';
-import { Sunrise, Apple, Utensils, Coffee, Moon, Trash2, Check } from 'lucide-react';
+import { Sunrise, Apple, Utensils, Coffee, Moon, Trash2, Check, Circle, ArrowLeftRight } from 'lucide-react';
 
 const MEAL_ICONS = {
   desayuno: Sunrise,
@@ -9,6 +9,17 @@ const MEAL_ICONS = {
   merienda: Coffee,
   cena: Moon,
 };
+
+function effectiveText(meal) {
+  const t = meal.track;
+  if (!t?.status && !t?.done) return meal.baby;
+  if (t.status === 'other' && t.altFood) return t.altFood;
+  if (t.status === 'partial') {
+    if (t.checkedIngredients?.length) return t.checkedIngredients.join(', ');
+    if (t.extra) return t.extra;
+  }
+  return meal.baby;
+}
 
 function shortName(text) {
   if (!text) return '';
@@ -50,7 +61,7 @@ export default function DayCard({ dayData, onClick, isToday, onClear }) {
   const kpi = dayKPIs[0] || { hasIron: false, hasFish: false, veggies: [] };
 
   const filledMeals = meals ? meals.filter((m) => m.baby) : [];
-  const trackedMeals = meals ? meals.filter((m) => m.track?.done) : [];
+  const trackedMeals = meals ? meals.filter((m) => m.track?.done || m.track?.status) : [];
 
   return (
     <div
@@ -109,14 +120,18 @@ export default function DayCard({ dayData, onClick, isToday, onClear }) {
               </span>
               <div className="flex-1 min-w-0">
                 {meal.baby ? (
-                  <p className="text-xs text-gray-700 truncate">{shortName(meal.baby)}</p>
+                  <p className="text-xs text-gray-700 truncate">{shortName(effectiveText(meal))}</p>
                 ) : (
                   <div className="h-2.5 bg-gray-100 rounded w-3/4" />
                 )}
               </div>
-              {meal.track?.done && (
+              {meal.track?.status === 'partial' ? (
+                <Circle className="w-3 h-3 text-orange-400 shrink-0 opacity-50" />
+              ) : meal.track?.status === 'other' ? (
+                <ArrowLeftRight className="w-3 h-3 text-blue-400 shrink-0" />
+              ) : (meal.track?.status === 'done' || meal.track?.done) ? (
                 <Check className="w-3 h-3 text-green-500 shrink-0" />
-              )}
+              ) : null}
             </div>
           );
         })}

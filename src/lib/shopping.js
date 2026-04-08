@@ -2,11 +2,56 @@
  * Shopping list generation from week menu text.
  */
 
+// Canonical map: detected keyword → canonical ingredient name
+const CANONICAL_MAP = {
+  // Proteína animal
+  'salmon': 'salmón',
+  'sardinas': 'sardina',
+  'atun': 'atún',
+  'pechuga': 'pollo',
+  'muslo': 'pollo',
+  'contramuslo': 'pollo',
+  'huevos': 'huevo',
+  'tortilla': 'huevo',
+  'revuelto': 'huevo',
+  // Verdura
+  'brocoli': 'brócoli',
+  'calabacin': 'calabacín',
+  'zanahorias': 'zanahoria',
+  'patatas': 'patata',
+  'tomates': 'tomate',
+  'esparragos': 'espárrago',
+  'champiñones': 'champiñón',
+  'setas': 'seta',
+  'judias verdes': 'judías verdes',
+  'maiz': 'maíz',
+  // Fruta
+  'platano': 'plátano',
+  'fresas': 'fresa',
+  'melocoton': 'melocotón',
+  'uvas': 'uva',
+  'arandanos': 'arándano',
+  'frambuesas': 'frambuesa',
+  'pina': 'piña',
+  'sandia': 'sandía',
+  'melon': 'melón',
+  // Despensa
+  'macarrones': 'pasta',
+  'espagueti': 'pasta',
+  'fideos': 'pasta',
+  'judias': 'judías',
+  'cuscus': 'cuscús',
+};
+
+function canonical(kw) {
+  return CANONICAL_MAP[kw] ?? kw;
+}
+
 // Keywords/patterns for ingredient detection by category
 const PROTEIN_ANIMAL_KEYWORDS = [
   'salmón', 'salmon', 'caballa', 'sardina', 'sardinas', 'atún', 'atun', 'merluza', 'bacalao',
   'pollo', 'pechuga', 'muslo', 'contramuslo', 'ternera', 'buey', 'cerdo', 'lomo',
-  'huevo', 'huevos', 'tortilla', 'pavo', 'conejo', 'cordero',
+  'huevo', 'huevos', 'tortilla', 'revuelto', 'pavo', 'conejo', 'cordero',
 ];
 
 const VEGGIE_KEYWORDS = [
@@ -34,7 +79,7 @@ const PANTRY_KEYWORDS = [
 function extractIngredients(text) {
   if (!text) return [];
   const words = text.toLowerCase();
-  const found = [];
+  const found = new Set();
 
   const allKeywords = [
     ...PROTEIN_ANIMAL_KEYWORDS,
@@ -45,11 +90,11 @@ function extractIngredients(text) {
 
   for (const kw of allKeywords) {
     if (words.includes(kw)) {
-      found.push(kw);
+      found.add(canonical(kw));
     }
   }
 
-  return [...new Set(found)];
+  return [...found];
 }
 
 function categorize(ingredient) {

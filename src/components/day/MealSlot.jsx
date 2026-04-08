@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import TagChip from '../ui/TagChip';
 import MealEditor from './MealEditor';
 import TrackModal from './TrackModal';
@@ -64,25 +62,10 @@ export default function MealSlot({
   onSave,
   onTrack,
   onCopy,
-  id,
+  onSwap,
 }) {
   const [editing, setEditing] = useState(false);
   const [showTrack, setShowTrack] = useState(false);
-
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
 
   const effectiveTags = meal?.track?.tags ?? meal?.tags ?? [];
   const barColor = getBarColor(effectiveTags);
@@ -103,28 +86,15 @@ export default function MealSlot({
     onCopy(dayName, meal?.tipo, targetDay, targetMealType, data);
   };
 
+  const handleSwap = (targetDay, targetMealType) => {
+    onSwap(dayName, meal?.tipo, targetDay, targetMealType);
+    setEditing(false);
+  };
+
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`flex gap-0 bg-white rounded-xl border transition-shadow ${
-        isDragging ? 'shadow-lg border-brand-300' : 'border-gray-100 hover:border-gray-200 hover:shadow-sm'
-      }`}
-    >
+    <div className="flex gap-0 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-shadow">
       {/* Color bar */}
       <div className={`w-1 rounded-l-xl shrink-0 ${barColor}`} />
-
-      {/* Drag handle */}
-      <button
-        {...attributes}
-        {...listeners}
-        className="flex items-center px-1.5 text-gray-300 hover:text-gray-400 cursor-grab active:cursor-grabbing touch-none"
-        aria-label="Arrastrar"
-      >
-        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
-        </svg>
-      </button>
 
       {/* Content */}
       <div className="flex-1 min-w-0 px-3 py-3">
@@ -183,9 +153,8 @@ export default function MealSlot({
 
                 {/* Actual eaten — 'other' status */}
                 {meal?.track?.status === 'other' && meal.track.altFood && (
-                  <p className="text-sm text-gray-800 leading-snug mt-1">
-                    <span className="text-[10px] font-semibold text-blue-500 uppercase tracking-wide mr-1">Comió</span>
-                    {meal.track.altFood}
+                  <p className="text-sm text-gray-500 leading-snug mt-1">
+                    <span className="font-medium">Comió:</span> {meal.track.altFood}
                   </p>
                 )}
 
@@ -209,7 +178,7 @@ export default function MealSlot({
 
                 {/* Extra food (any status) */}
                 {meal?.track?.extra && (
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-sm text-gray-500 mt-1">
                     <span className="font-medium">También:</span> {meal.track.extra}
                   </p>
                 )}
@@ -260,6 +229,7 @@ export default function MealSlot({
               hasAiAccess={hasAiAccess}
               onSave={handleSave}
               onCopy={handleCopy}
+              onSwap={handleSwap}
               onCancel={() => setEditing(false)}
             />
           </div>

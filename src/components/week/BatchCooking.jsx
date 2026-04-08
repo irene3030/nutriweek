@@ -30,6 +30,25 @@ function firstDay(days) {
   return Math.min(...days.map(d => DAY_ORDER.indexOf(d)).filter(i => i !== -1));
 }
 
+const WEEK_DAY_TO_SHORT = {
+  'Lunes': 'Lun', 'Martes': 'Mar', 'Miércoles': 'Mié',
+  'Jueves': 'Jue', 'Viernes': 'Vie', 'Sábado': 'Sáb', 'Domingo': 'Dom',
+};
+
+// prepDayIdx: -1 = Sunday before week (default for simple mode)
+function isStale(task, prepDayIdx = -1) {
+  if (!task.days_fresh || !Array.isArray(task.days) || task.days.length === 0) return false;
+  const lastDayIdx = Math.max(...task.days.map(d => DAY_ORDER.indexOf(d)).filter(i => i >= 0));
+  if (lastDayIdx < 0) return false;
+  return (lastDayIdx - prepDayIdx) > task.days_fresh;
+}
+
+function sessionPrepDayIdx(sessionDay) {
+  if (!sessionDay || sessionDay === 'Domingo') return -1;
+  const short = WEEK_DAY_TO_SHORT[sessionDay];
+  return short ? DAY_ORDER.indexOf(short) : -1;
+}
+
 function formatDuration(minutes) {
   if (minutes < 60) return `${minutes}min`;
   const h = Math.floor(minutes / 60);
@@ -181,6 +200,7 @@ export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate })
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         {/* Header */}
         <button
+          data-tour="batch-cooking-btn"
           onClick={() => setOpen(v => !v)}
           className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
         >
@@ -266,7 +286,8 @@ export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate })
                             <ul className="space-y-2 pl-1">
                               {tasks.map(task => (
                                 <TaskRow key={task.id} task={task}
-                                  onToggle={() => toggleSimpleTask(section.id, task.id)} />
+                                  onToggle={() => toggleSimpleTask(section.id, task.id)}
+                                  stale={isStale(task)} />
                               ))}
                             </ul>
                           </div>
@@ -282,6 +303,7 @@ export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate })
                             task.id
                           )}
                           showSection
+                          stale={isStale(task)}
                         />
                       ))}
                     </ul>
@@ -403,6 +425,7 @@ export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate })
                                     <TaskRow key={task.id} task={task}
                                       onToggle={() => toggleOptimizedTask(session.id, pack.id, task.id)}
                                       showTime
+                                      stale={isStale(task, sessionPrepDayIdx(session.day))}
                                     />
                                   ))}
                                 </ul>
@@ -461,7 +484,7 @@ function RegenerateButton({ loading, hasAiAccess, onClick, label = null }) {
 
 // ─── Task row ─────────────────────────────────────────────────────────────────
 
-function TaskRow({ task, onToggle, showSection, showTime }) {
+function TaskRow({ task, onToggle, showSection, showTime, stale }) {
   return (
     <li className="flex items-start gap-2.5">
       <button
@@ -486,13 +509,20 @@ function TaskRow({ task, onToggle, showSection, showTime }) {
             <span className="text-[10px] text-gray-400 mt-0.5 shrink-0">{task.time}min</span>
           )}
         </div>
-        {Array.isArray(task.days) && task.days.length > 0 && (
+        {(Array.isArray(task.days) && task.days.length > 0 || task.days_fresh) && (
           <div className="flex flex-wrap gap-1 mt-1">
-            {task.days.map(day => (
+            {Array.isArray(task.days) && task.days.map(day => (
               <span key={day} className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${DAY_COLORS[day] || 'bg-gray-100 text-gray-600'}`}>
                 {day}
               </span>
             ))}
+            {task.days_fresh && (
+              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                stale ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'
+              }`}>
+                {stale ? '⚠️' : '❄️'} {task.days_fresh}d nevera
+              </span>
+            )}
           </div>
         )}
       </div>
