@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Modal from '../ui/Modal';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import MenuLoadingAnimation from '../ui/MenuLoadingAnimation';
-import { generateWeekMenu, regenerateDay, suggestIngredients, suggestIngredientAlternative } from '../../lib/claude';
+import { generateWeekMenu, suggestIngredients, suggestIngredientAlternative } from '../../lib/claude';
 import { track } from '../../lib/analytics';
 import { computeAdaptiveTargets, KPI_CATALOG, DEFAULT_KPI_CONFIG } from '../../lib/kpis';
 import { Beef, Fish, Bean, Leaf, Cherry, Wheat, GlassWater, Sparkles, Zap, ShoppingCart, Star, Sunrise, Apple, Utensils, Coffee, Moon } from 'lucide-react';
@@ -173,12 +173,11 @@ function enforceSlots(result, mealSlots) {
 export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds = [], pastWeeks = [], foodHistory, savedRecipes, usualMeals = [], apiKey, hasAiAccess, kpiConfig, onUpdateKpiConfig, babyProfile = null }) {
   const [step, setStep] = useState('form');
   const [copyFromWeekId, setCopyFromWeekId] = useState('');
-  const [ingredients, setIngredients] = useState('');
+  const [ingredientPills, setIngredientPills] = useState([]);
+  const [ingredientInput, setIngredientInput] = useState('');
   const [mondayDate, setMondayDate] = useState(getThisMonday());
-  const [proposedWeek, setProposedWeek] = useState(null);
-  const [regeneratingDay, setRegeneratingDay] = useState(null);
   const [error, setError] = useState(null);
-  const [saving, setSaving] = useState(false);
+  const ingredientInputRef = useRef(null);
   const [showFixedMeals, setShowFixedMeals] = useState(false);
   const [showAllUsualMeals, setShowAllUsualMeals] = useState(false);
   const [showAllUsualMealsFixed, setShowAllUsualMealsFixed] = useState(false);
@@ -265,7 +264,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
     setError(null);
     try {
       const result = await generateWeekMenu({
-        availableIngredients: ingredients,
+        availableIngredients: ingredientPills.join(', '),
         fixedMeals,
         recurringMeals,
         mealSlots,
@@ -282,13 +281,23 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
       if (!includeWeekend) {
         proposed = { ...proposed, days: proposed.days.filter(d => !['Sáb', 'Dom'].includes(d.day)) };
       }
-      setProposedWeek(proposed);
-      setStep('preview');
+      const cleanDays = (proposed.days || []).map(day => ({
+        day: day.day,
+        meals: (day.meals || []).map(meal => ({
+          tipo: meal.tipo,
+          baby: meal.baby ?? '',
+          adult: meal.adult ?? '',
+          tags: meal.tags ?? [],
+          track: meal.track ?? null,
+        })),
+      }));
       track('menu_generated', {
         method: requiredIngredients ? 'ingredient_review' : 'direct',
         has_fixed_meals: fixedMeals.length > 0,
         has_recurring_meals: recurringMeals.length > 0,
       });
+      await onSave(mondayDate, weekLabel, cleanDays);
+      handleClose();
     } catch (err) {
       setError(
         err.message === 'CALL_LIMIT_EXCEEDED' ? 'Has alcanzado el límite mensual de llamadas. Auméntalo en Perfil.' :
@@ -304,7 +313,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
     setIngredientsLoading(true);
     setIngredientsError(null);
     try {
-      const result = await suggestIngredients({ foodHistory, availableIngredients: ingredients, mealSlots, apiKey });
+      const result = await suggestIngredients({ foodHistory, availableIngredients: ingredientPills.join(', '), mealSlots, apiKey });
       setIngredientsList((result.ingredients || []).map(i => ({
         ...i,
         removed: false,
@@ -382,66 +391,6 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
     handleGenerateDirect(approved, vetoed);
   };
 
-  const handleRegenerateDay = async (dayName) => {
-    setRegeneratingDay(dayName);
-    try {
-      const result = await regenerateDay({
-        dayName,
-        weekContext: proposedWeek.days,
-        availableIngredients: ingredients,
-        fixedMeals,
-        apiKey,
-      });
-      setProposedWeek((prev) => ({
-        ...prev,
-        days: prev.days.map((d) => (d.day === dayName ? result : d)),
-      }));
-      track('day_regenerated', { day: dayName });
-    } catch (err) {
-      setError(err.message || 'Error regenerando el día');
-    } finally {
-      setRegeneratingDay(null);
-    }
-  };
-
-  const handleUpdateMeal = (dayIndex, mealIndex, field, value) => {
-    setProposedWeek((prev) => ({
-      ...prev,
-      days: prev.days.map((day, di) =>
-        di !== dayIndex
-          ? day
-          : {
-              ...day,
-              meals: day.meals.map((meal, mi) =>
-                mi !== mealIndex ? meal : { ...meal, [field]: value }
-              ),
-            }
-      ),
-    }));
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      // Sanitize: ensure no undefined fields (Firestore rejects them)
-      const cleanDays = (proposedWeek.days || []).map(day => ({
-        day: day.day,
-        meals: (day.meals || []).map(meal => ({
-          tipo: meal.tipo,
-          baby: meal.baby ?? '',
-          adult: meal.adult ?? '',
-          tags: meal.tags ?? [],
-          track: meal.track ?? null,
-        })),
-      }));
-      await onSave(mondayDate, weekLabel, cleanDays);
-      handleClose();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleCopyWeek = () => {
     const sourceId = copyFromWeekId || pastWeeks[0]?.id;
@@ -463,9 +412,9 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
 
   const handleClose = () => {
     setStep('form');
-    setIngredients('');
+    setIngredientPills([]);
+    setIngredientInput('');
     setMondayDate(getThisMonday());
-    setProposedWeek(null);
     setError(null);
     setFixedMeals([]);
     setShowFixedMeals(false);
@@ -482,7 +431,6 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
       isOpen={isOpen}
       onClose={handleClose}
       title={
-        step === 'preview' ? 'Revisar menú propuesto' :
         step === 'review_ingredients' ? 'Revisar ingredientes' :
         step === 'choice' ? 'Generar menú' :
         'Nueva semana'
@@ -515,7 +463,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
               if (!season) return null;
               return (
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                  <span className="inline-flex items-center gap-1 text-xs font-medium bg-green-50 text-green-700 border border-green-200 rounded-full px-2.5 py-0.5">
+                  <span className="inline-flex items-center gap-1 text-xs font-medium bg-green-50 text-green-700 border border-green-200 rounded px-2.5 py-0.5">
                     {season.emoji} {season.label}
                   </span>
                   <span className="text-xs text-gray-400">La IA priorizará ingredientes de temporada</span>
@@ -534,56 +482,96 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
               />
               <span className="text-sm text-gray-700">Incluir fin de semana (sáb y dom)</span>
             </label>
+
+            {/* Franjas a generar */}
+            <div className="mt-3">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Franjas a generar</label>
+              <div className="space-y-2">
+                {MEAL_TYPES.map(tipo => (
+                  <div key={tipo} className="flex items-center gap-3 flex-wrap">
+                    <label className="flex items-center gap-2 cursor-pointer w-36">
+                      <input
+                        type="checkbox"
+                        checked={mealSlots[tipo].enabled}
+                        onChange={() => toggleSlot(tipo)}
+                        className="w-4 h-4 rounded accent-brand-600"
+                      />
+                      {(() => { const Icon = MEAL_ICONS[tipo]; return Icon ? <Icon className={`w-4 h-4 shrink-0 ${mealSlots[tipo].enabled ? 'text-brand-600' : 'text-gray-300'}`} /> : null; })()}
+                      <span className={`text-sm ${mealSlots[tipo].enabled ? 'text-gray-800' : 'text-gray-400'}`}>
+                        {MEAL_LABELS[tipo]}
+                      </span>
+                    </label>
+                    {mealSlots[tipo].enabled && SLOTS_WITH_SAME.includes(tipo) && (
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={mealSlots[tipo].sameEveryDay}
+                          onChange={() => toggleSameEveryDay(tipo)}
+                          className="w-3.5 h-3.5 rounded accent-brand-600"
+                        />
+                        <span className="text-xs text-gray-500">Misma todos los días</span>
+                      </label>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              ¿Qué tienes en la nevera? (opcional)
+              ¿Qué tienes en la nevera? <span className="font-normal text-gray-400">(opcional)</span>
             </label>
-            <textarea
-              value={ingredients}
-              onChange={(e) => setIngredients(e.target.value)}
-              placeholder="Ej: pollo, zanahoria, arroz, huevos, lentejas..."
-              rows={3}
-              className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent text-sm resize-none"
-            />
+            <div
+              className="min-h-[44px] flex flex-wrap gap-1.5 items-center border border-gray-300 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-brand-400 focus-within:border-transparent cursor-text"
+              onClick={() => ingredientInputRef.current?.focus()}
+            >
+              {ingredientPills.map((pill, i) => (
+                <span key={i} className="flex items-center gap-1 bg-brand-50 text-brand-700 border border-brand-200 rounded px-2 py-0.5 text-sm shrink-0">
+                  {pill}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setIngredientPills(prev => prev.filter((_, j) => j !== i)); }}
+                    className="hover:text-red-500 transition-colors"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </span>
+              ))}
+              <input
+                ref={ingredientInputRef}
+                type="text"
+                value={ingredientInput}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val.includes(',')) {
+                    const parts = val.split(',');
+                    const newPills = parts.slice(0, -1).map(p => p.trim()).filter(Boolean);
+                    if (newPills.length > 0) setIngredientPills(prev => [...prev, ...newPills]);
+                    setIngredientInput(parts[parts.length - 1]);
+                  } else {
+                    setIngredientInput(val);
+                  }
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Backspace' && !ingredientInput && ingredientPills.length > 0) {
+                    setIngredientPills(prev => prev.slice(0, -1));
+                  }
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const pill = ingredientInput.trim();
+                    if (pill) { setIngredientPills(prev => [...prev, pill]); setIngredientInput(''); }
+                  }
+                }}
+                placeholder={ingredientPills.length === 0 ? 'Ej: pollo, zanahoria, arroz, huevos...' : ''}
+                className="flex-1 min-w-[100px] outline-none text-sm bg-transparent py-0.5"
+              />
+            </div>
             <p className="text-xs text-gray-400 mt-1">
               La IA los priorizará cuanto antes (cada alimento para una comida), sin limitarse solo a ellos.
             </p>
-          </div>
-
-          {/* Franjas a generar */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Franjas a generar</label>
-            <div className="space-y-2">
-              {MEAL_TYPES.map(tipo => (
-                <div key={tipo} className="flex items-center gap-3 flex-wrap">
-                  <label className="flex items-center gap-2 cursor-pointer w-36">
-                    <input
-                      type="checkbox"
-                      checked={mealSlots[tipo].enabled}
-                      onChange={() => toggleSlot(tipo)}
-                      className="w-4 h-4 rounded accent-brand-600"
-                    />
-                    {(() => { const Icon = MEAL_ICONS[tipo]; return Icon ? <Icon className={`w-4 h-4 shrink-0 ${mealSlots[tipo].enabled ? 'text-brand-600' : 'text-gray-300'}`} /> : null; })()}
-                    <span className={`text-sm ${mealSlots[tipo].enabled ? 'text-gray-800' : 'text-gray-400'}`}>
-                      {MEAL_LABELS[tipo]}
-                    </span>
-                  </label>
-                  {mealSlots[tipo].enabled && SLOTS_WITH_SAME.includes(tipo) && (
-                    <label className="flex items-center gap-1.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={mealSlots[tipo].sameEveryDay}
-                        onChange={() => toggleSameEveryDay(tipo)}
-                        className="w-3.5 h-3.5 rounded accent-brand-600"
-                      />
-                      <span className="text-xs text-gray-500">Misma todos los días</span>
-                    </label>
-                  )}
-                </div>
-              ))}
-            </div>
           </div>
 
           {/* KPIs que intentará cumplir la IA */}
@@ -599,7 +587,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
               <span>
                 Fijar comidas
                 {(fixedMeals.length + recurringMeals.length) > 0 && (
-                  <span className="ml-1.5 text-xs bg-brand-600 text-white rounded-full px-1.5 py-0.5">
+                  <span className="ml-1.5 text-xs bg-brand-600 text-white rounded px-1.5 py-0.5">
                     {fixedMeals.length + recurringMeals.length}
                   </span>
                 )}
@@ -627,7 +615,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                             type="button"
                             disabled={alreadyAdded}
                             onClick={() => !alreadyAdded && setRecurringMeals(prev => [...prev, m.name])}
-                            className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                            className={`text-xs px-2.5 py-1 rounded border transition-colors ${
                               alreadyAdded
                                 ? 'bg-brand-100 text-brand-400 border-brand-200 cursor-default'
                                 : 'bg-white text-gray-600 border-gray-300 hover:border-brand-400 hover:text-brand-600'
@@ -641,7 +629,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                         <button
                           type="button"
                           onClick={() => setShowAllUsualMeals(v => !v)}
-                          className="text-xs px-2.5 py-1 rounded-full border border-dashed border-gray-300 text-gray-400 hover:border-brand-400 hover:text-brand-600 transition-colors"
+                          className="text-xs px-2.5 py-1 rounded border border-dashed border-gray-300 text-gray-400 hover:border-brand-400 hover:text-brand-600 transition-colors"
                         >
                           {showAllUsualMeals ? 'Ver menos' : `+${usualMeals.length - 3} más…`}
                         </button>
@@ -669,7 +657,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                   {recurringMeals.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {recurringMeals.map((m, i) => (
-                        <span key={i} className="flex items-center gap-1 bg-brand-50 text-brand-700 border border-brand-200 rounded-full px-2.5 py-1 text-xs">
+                        <span key={i} className="flex items-center gap-1 bg-brand-50 text-brand-700 border border-brand-200 rounded px-2.5 py-1 text-xs">
                           {m}
                           <button onClick={() => setRecurringMeals(prev => prev.filter((_, j) => j !== i))} className="hover:text-red-500 transition-colors">
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -706,7 +694,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                           key={m.id}
                           type="button"
                           onClick={() => setNewFixed(p => ({ ...p, text: m.name }))}
-                          className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                          className={`text-xs px-2.5 py-1 rounded border transition-colors ${
                             newFixed.text === m.name
                               ? 'bg-orange-100 text-orange-700 border-orange-300'
                               : 'bg-white text-gray-600 border-gray-300 hover:border-orange-400 hover:text-orange-600'
@@ -719,7 +707,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                         <button
                           type="button"
                           onClick={() => setShowAllUsualMealsFixed(v => !v)}
-                          className="text-xs px-2.5 py-1 rounded-full border border-dashed border-gray-300 text-gray-400 hover:border-orange-400 hover:text-orange-600 transition-colors"
+                          className="text-xs px-2.5 py-1 rounded border border-dashed border-gray-300 text-gray-400 hover:border-orange-400 hover:text-orange-600 transition-colors"
                         >
                           {showAllUsualMealsFixed ? 'Ver menos' : `+${usualMeals.length - 3} más…`}
                         </button>
@@ -918,7 +906,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                                 <button
                                   onClick={() => toggleIngredientRemoved(item.id)}
                                   title={item.removed ? 'Restaurar' : 'Eliminar'}
-                                  className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                                  className={`shrink-0 w-5 h-5 rounded flex items-center justify-center text-xs font-bold transition-colors ${
                                     item.removed
                                       ? 'bg-gray-200 text-gray-500 hover:bg-brand-100 hover:text-brand-600'
                                       : 'bg-red-100 text-red-500 hover:bg-red-200'
@@ -931,7 +919,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                                 <button
                                   onClick={() => handleUnveto(item.id)}
                                   title="Quitar veto"
-                                  className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold bg-red-200 text-red-600 hover:bg-gray-200 hover:text-gray-500 transition-colors"
+                                  className="shrink-0 w-5 h-5 rounded flex items-center justify-center text-xs font-bold bg-red-200 text-red-600 hover:bg-gray-200 hover:text-gray-500 transition-colors"
                                 >
                                   ↩
                                 </button>
@@ -1011,7 +999,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                                   <button
                                     key={reason}
                                     onClick={() => handleVeto(item.id, reason)}
-                                    className="text-xs px-2.5 py-1 rounded-full border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                    className="text-xs px-2.5 py-1 rounded border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                                   >
                                     {reason}
                                   </button>
@@ -1085,96 +1073,6 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
         </div>
       )}
 
-      {step === 'preview' && proposedWeek && (
-        <div className="space-y-4">
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
-          <p className="text-sm text-gray-500">
-            Revisa y edita el menú antes de guardarlo. Puedes regenerar días individuales si no te convencen.
-          </p>
-
-          <div className="space-y-3">
-            {proposedWeek.days && proposedWeek.days.map((dayData, dayIndex) => (
-              <div key={dayData.day} className="border border-gray-200 rounded-xl overflow-hidden">
-                <div className="flex items-center justify-between bg-gray-50 px-4 py-2.5">
-                  <span className="font-semibold text-gray-800">{dayData.day}</span>
-                  <button
-                    onClick={() => handleRegenerateDay(dayData.day)}
-                    disabled={regeneratingDay === dayData.day}
-                    className="flex items-center gap-1 text-xs text-brand-600 hover:text-brand-800 disabled:opacity-50 font-medium"
-                  >
-                    {regeneratingDay === dayData.day ? (
-                      <div className="w-3 h-3 border border-brand-300 border-t-brand-600 rounded-full animate-spin" />
-                    ) : (
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    )}
-                    Regenerar día
-                  </button>
-                </div>
-                <div className="divide-y divide-gray-100">
-                  {dayData.meals && dayData.meals.map((meal, mealIndex) => (
-                    <div key={meal.tipo} className="px-4 py-2.5">
-                      <div className="flex items-start gap-3">
-                        <span className="text-xs font-medium text-gray-400 w-16 shrink-0 pt-0.5">
-                          {MEAL_LABELS[meal.tipo]}
-                        </span>
-                        <div className="flex-1 space-y-1">
-                          <input
-                            type="text"
-                            value={meal.baby || ''}
-                            onChange={(e) => handleUpdateMeal(dayIndex, mealIndex, 'baby', e.target.value)}
-                            placeholder="Bebé..."
-                            className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-400"
-                          />
-                          <input
-                            type="text"
-                            value={meal.adult || ''}
-                            onChange={(e) => handleUpdateMeal(dayIndex, mealIndex, 'adult', e.target.value)}
-                            placeholder="Adulto..."
-                            className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-500 focus:outline-none focus:ring-1 focus:ring-brand-400"
-                          />
-                          {meal.tags && meal.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1 pt-0.5">
-                              {meal.tags.map((tag) => (
-                                <span key={tag} className="text-xs bg-brand-50 text-brand-700 rounded-full px-2 py-0.5">
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex gap-3 pt-2 sticky bottom-0 bg-white pb-1">
-            <button
-              onClick={() => setStep('form')}
-              className="flex-1 border border-gray-300 text-gray-700 rounded-xl py-3 font-medium hover:bg-gray-50 transition-colors"
-            >
-              ← Volver
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex-1 bg-brand-600 text-white rounded-xl py-3 font-medium hover:bg-brand-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
-            >
-              {saving && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-              {saving ? 'Guardando...' : 'Guardar semana'}
-            </button>
-          </div>
-        </div>
-      )}
     </Modal>
   );
 }
@@ -1195,9 +1093,9 @@ function KPIPreview({ kpiConfig, mealSlots, includeWeekend, kpiOverrides, onUpda
   if (entries.length === 0) return null;
 
   return (
-    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-2">
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">KPIs que intentará cumplir la IA</p>
-      <div className="space-y-1.5">
+    <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+      <p className="text-sm font-medium text-gray-700">Objetivos nutricionales de la semana</p>
+      <div className="space-y-3">
         {entries.map(([id, override]) => {
           const catalogKpi = KPI_CATALOG.find(k => k.id === id);
           const customKpi = config.custom.find(k => k.id === id);
