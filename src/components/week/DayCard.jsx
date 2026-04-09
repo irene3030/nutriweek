@@ -140,13 +140,13 @@ export default function DayCard({ dayData, onClick, isToday, onClear }) {
       {/* KPI indicators */}
       <div className="px-3 pb-2 flex gap-1">
         {kpi.hasIron && (
-          <span className="w-2 h-2 rounded-full bg-orange-400" title="Hierro" />
+          <span className="w-2 h-2 bg-orange-400" title="Hierro" />
         )}
         {kpi.hasFish && (
-          <span className="w-2 h-2 rounded-full bg-blue-400" title="Pescado graso" />
+          <span className="w-2 h-2 bg-blue-400" title="Pescado graso" />
         )}
         {kpi.veggies.length > 0 && (
-          <span className="w-2 h-2 rounded-full bg-green-400" title={`Verduras: ${kpi.veggies.join(', ')}`} />
+          <span className="w-2 h-2 bg-green-400" title={`Verduras: ${kpi.veggies.join(', ')}`} />
         )}
         {filledMeals.length === 0 && (
           <span className="text-xs text-gray-300">Sin planificar</span>

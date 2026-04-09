@@ -192,7 +192,7 @@ export default function DayView({
             <p className="text-xs text-gray-400 mb-2">Contribución de hoy</p>
             <div className="flex flex-wrap gap-1.5">
               {contributions.map(c => (
-                <span key={c.id} className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-100">
+                <span key={c.id} className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded bg-brand-50 text-brand-700 border border-brand-100">
                   {c.Icon && <c.Icon className="w-3 h-3 shrink-0" />}
                   {c.value} {c.label}
                 </span>

@@ -689,7 +689,7 @@ function ProfileTab({ auth, householdDoc, onShowFFWelcome }) {
                         <p className="text-xs text-gray-400 truncate">{m.email}</p>
                       </div>
                       {m.uid === auth.user?.uid && (
-                        <span className="text-xs text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full shrink-0">Tú</span>
+                        <span className="text-xs text-brand-600 bg-brand-50 px-2 py-0.5 rounded shrink-0">Tú</span>
                       )}
                     </div>
                   ))}

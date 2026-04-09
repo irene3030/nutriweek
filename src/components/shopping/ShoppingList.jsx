@@ -170,7 +170,7 @@ export default function ShoppingList({ weekDoc, householdId }) {
                     </span>
                     {item.usages?.map((u, i) => (
                       <span key={i} className="relative group/pill inline-block">
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 cursor-default">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 cursor-default">
                           {u.day} · {MEAL_LABELS[u.tipo] ?? u.tipo}
                         </span>
                         {u.text && (
@@ -204,7 +204,7 @@ export default function ShoppingList({ weekDoc, householdId }) {
                   <span className="text-sm capitalize text-gray-500">{item.name}</span>
                   {item.usages?.map((u, i) => (
                     <span key={i} className="relative group/pill inline-block">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 cursor-default">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-400 cursor-default">
                         {u.day} · {MEAL_LABELS[u.tipo] ?? u.tipo}
                       </span>
                       {u.text && (

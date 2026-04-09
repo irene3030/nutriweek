@@ -48,7 +48,7 @@ export default function OnboardingScreen() {
 
   if (createdInfo) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-orange-50 flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-3"><PartyPopper className="w-12 h-12 text-brand-500" /></div>
@@ -98,7 +98,7 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-orange-50 flex items-center justify-center p-6">
+    <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-sm">
         {/* Header */}
         <div className="text-center mb-8">

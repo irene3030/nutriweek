@@ -92,12 +92,9 @@ export default function MealSlot({
   };
 
   return (
-    <div className="flex gap-0 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-shadow">
-      {/* Color bar */}
-      <div className={`w-1 rounded-l-xl shrink-0 ${barColor}`} />
-
+    <div className="bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-shadow">
       {/* Content */}
-      <div className="flex-1 min-w-0 px-3 py-3">
+      <div className="px-3 py-3">
         {/* Header */}
         <div className="flex items-center justify-between mb-1">
           <span className="text-xs font-semibold text-gray-500 flex items-center gap-1">
@@ -108,7 +105,7 @@ export default function MealSlot({
             {/* Track button */}
             <button
               onClick={() => setShowTrack(true)}
-              className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+              className={`text-xs px-2 py-0.5 rounded border transition-colors ${
                 meal?.track?.status === 'done'
                   ? 'bg-green-50 border-green-300 text-green-700'
                   : meal?.track?.status === 'partial'
@@ -166,7 +163,7 @@ export default function MealSlot({
                   return (
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {allIngs.map(ing => (
-                        <span key={ing} className={`text-xs px-1.5 py-0.5 rounded-full ${
+                        <span key={ing} className={`text-xs px-1.5 py-0.5 rounded ${
                           checkedSet.has(ing)
                             ? 'bg-orange-50 text-orange-700'
                             : 'bg-gray-100 text-gray-400 line-through'

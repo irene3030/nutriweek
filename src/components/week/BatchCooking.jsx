@@ -208,7 +208,7 @@ export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate })
             <ChefHat className="w-4 h-4 text-gray-500" />
             <span className="text-sm font-semibold text-gray-800">Batch cooking</span>
             {totalCount > 0 && (
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+              <span className={`text-xs font-medium px-2 py-0.5 rounded ${
                 doneCount === totalCount ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
               }`}>
                 {doneCount}/{totalCount}
@@ -417,7 +417,7 @@ export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate })
                                 <div className="flex items-center justify-between">
                                   <span className="text-xs font-semibold text-gray-700">{pack.label}</span>
                                   {pack.parallel && (
-                                    <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">paralelo</span>
+                                    <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">paralelo</span>
                                   )}
                                 </div>
                                 <ul className="space-y-2">
@@ -512,12 +512,12 @@ function TaskRow({ task, onToggle, showSection, showTime, stale }) {
         {(Array.isArray(task.days) && task.days.length > 0 || task.days_fresh) && (
           <div className="flex flex-wrap gap-1 mt-1">
             {Array.isArray(task.days) && task.days.map(day => (
-              <span key={day} className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${DAY_COLORS[day] || 'bg-gray-100 text-gray-600'}`}>
+              <span key={day} className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${DAY_COLORS[day] || 'bg-gray-100 text-gray-600'}`}>
                 {day}
               </span>
             ))}
             {task.days_fresh && (
-              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
                 stale ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'
               }`}>
                 {stale ? '⚠️' : '❄️'} {task.days_fresh}d nevera

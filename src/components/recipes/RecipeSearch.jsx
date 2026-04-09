@@ -73,7 +73,7 @@ export default function RecipeSearch({ householdId, onSelect }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <p className="text-sm font-medium text-gray-800 truncate">{item.name}</p>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
                     item._source === 'usual'
                       ? 'bg-brand-50 text-brand-600'
                       : 'bg-gray-100 text-gray-500'
