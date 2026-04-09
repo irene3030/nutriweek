@@ -1,15 +1,16 @@
 import { track } from '../../lib/analytics';
 import MealSlot from './MealSlot';
+import { Droplets, Fish, Bean, Apple, Leaf, Sparkles } from 'lucide-react';
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const MEAL_TYPES = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
 
 const KPI_DAY_META = {
-  iron:   { icon: '🩸', label: 'Hierro' },
-  fish:   { icon: '🐟', label: 'Pescado graso' },
-  legume: { icon: '🟢', label: 'Legumbre' },
-  fruit:  { icon: '🍎', label: 'Fruta' },
-  veggie: { icon: '🥦', label: 'Verduras' },
+  iron:   { Icon: Droplets, label: 'Hierro' },
+  fish:   { Icon: Fish,     label: 'Pescado graso' },
+  legume: { Icon: Bean,     label: 'Legumbre' },
+  fruit:  { Icon: Apple,    label: 'Fruta' },
+  veggie: { Icon: Leaf,     label: 'Verduras' },
 };
 
 function computeDayContributions(dayData, kpiConfig) {
@@ -59,7 +60,7 @@ function computeDayContributions(dayData, kpiConfig) {
           return terms.some(t => text.includes(t));
         });
         if (matched)
-          result.push({ id, icon: '✨', label: custom.name, value: '+1' });
+          result.push({ id, Icon: Sparkles, label: custom.name, value: '+1' });
       }
     }
   }
@@ -192,7 +193,8 @@ export default function DayView({
             <div className="flex flex-wrap gap-1.5">
               {contributions.map(c => (
                 <span key={c.id} className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-100">
-                  {c.icon} {c.value} {c.label}
+                  {c.Icon && <c.Icon className="w-3 h-3 shrink-0" />}
+                  {c.value} {c.label}
                 </span>
               ))}
             </div>

@@ -344,23 +344,32 @@ export function computeAdaptiveTargets(weekDoc, targets = {}) {
  */
 export function calculateDailyCompliance(weekDoc, kpiConfig = {}) {
   if (!weekDoc?.days?.length) return {};
-  const days = weekDoc.days;
+  // Use effective tags (track.tags when tracked, else planned tags) — same as calculateKPIs
+  const days = weekDoc.days.map(day => ({
+    ...day,
+    meals: (day.meals || []).map(meal => ({
+      ...meal,
+      tags: meal.track?.tags ?? meal.tags ?? [],
+    })),
+  }));
   const total = days.length;
   const targets = kpiConfig.targets || {};
   const frequencies = kpiConfig.frequencies || {};
   const custom = kpiConfig.custom || [];
   const result = {};
 
+  // For 'diario' KPIs: each day needs >= 1 of the food (n=1).
+  // 'targets.x' is the weekly day-count goal, used as the compliance threshold.
   if (frequencies.iron === 'diario')
-    result.iron = { compliant: countDaysMeetingDailyTag(days, 'iron', targets.iron ?? 1), total };
+    result.iron = { compliant: countDaysMeetingDailyTag(days, 'iron', 1), total: targets.iron ?? days.length };
   if (frequencies.fish === 'diario')
-    result.fish = { compliant: countDaysMeetingDailyTag(days, 'oily_fish', targets.fish ?? 1), total };
+    result.fish = { compliant: countDaysMeetingDailyTag(days, 'oily_fish', 1), total: targets.fish ?? days.length };
   if (frequencies.legume === 'diario')
-    result.legume = { compliant: countDaysMeetingDailyTag(days, 'legume', targets.legume ?? 1), total };
+    result.legume = { compliant: countDaysMeetingDailyTag(days, 'legume', 1), total: targets.legume ?? days.length };
   if (frequencies.fruit === 'diario')
-    result.fruit = { compliant: countDaysMeetingDailyTag(days, 'fruit', targets.fruit ?? 1), total };
+    result.fruit = { compliant: countDaysMeetingDailyTag(days, 'fruit', 1), total: targets.fruit ?? days.length };
   if (frequencies.veggie === 'diario')
-    result.veggie = { compliant: countDaysMeetingDailyVeggies(days, targets.veggie ?? 1), total };
+    result.veggie = { compliant: countDaysMeetingDailyVeggies(days, 1), total: targets.veggie ?? days.length };
   for (const kpi of custom) {
     if (kpi.frequency === 'diario')
       result[kpi.id] = { compliant: countDaysMeetingDailyText(days, kpi.query, targets[kpi.id] ?? kpi.target ?? 1), total };

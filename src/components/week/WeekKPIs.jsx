@@ -70,10 +70,9 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
     const qualPrefix = quality === 'máximo' ? '≤' : quality === 'exacto' ? '=' : '≥';
     if (freq === 'diario') {
       const dc = dailyCompliance[id];
-      const perDayTgt = config.targets[id] ?? 1;
       return {
-        value: dc ? `${dc.compliant}/${dc.total} días` : '0/0 días',
-        target: `${qualPrefix}${perDayTgt}/día`,
+        value: dc ? `${dc.compliant}/${dc.total} días` : '–',
+        target: `${qualPrefix}${weeklyTarget ?? '–'} días`,
       };
     }
     return {
@@ -286,55 +285,55 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
       {/* KPI Pills */}
       <div data-tour="kpi-pills" className="flex flex-wrap gap-2 items-center">
         {activeCatalogKPIs.map(k => {
-          if (k.id === 'iron') return (
+          if (k.id === 'iron') { const pv = getPillValueTarget('iron', kpis.ironDays, ironTarget); return (
             <KPIPill key="iron"
-              IconComponent={Droplets} label="Hierro" value={`${kpis.ironDays}/${ironTarget ?? '–'}`} target={ironTarget ? `≥${ironTarget} días` : '–'}
+              IconComponent={Droplets} label="Hierro" value={pv.value} target={pv.target}
               status={ironStatus} statusColors={statusColors}
               disabled={ironStatus === null}
               disabledTooltip="Solo aplica cuando el menú tiene comidas principales (comida o cena)"
               tooltip={ironDetail}
-              onFix={hasAiAccess && ironStatus !== null ? () => handleFix('iron') : null}
+              onFix={hasAiAccess && ironStatus !== null && ironStatus !== 'good' ? () => handleFix('iron') : null}
               fixing={fixing === 'iron'} loading={loading && fixing === 'iron'}
             />
-          );
-          if (k.id === 'fish') return (
+          ); }
+          if (k.id === 'fish') { const pv = getPillValueTarget('fish', kpis.fishDays, fishTarget); return (
             <KPIPill key="fish"
-              IconComponent={Fish} label="Pesc. graso" value={`${kpis.fishDays}/${fishTarget ?? '–'}`} target={fishTarget ? `≥${fishTarget} días` : '–'}
+              IconComponent={Fish} label="Pesc. graso" value={pv.value} target={pv.target}
               status={fishStatus} statusColors={statusColors}
               disabled={fishStatus === null}
               disabledTooltip="Solo aplica cuando el menú tiene comidas principales (comida o cena)"
               tooltip={fishDetail}
-              onFix={hasAiAccess && fishStatus !== null ? () => handleFix('fish') : null}
+              onFix={hasAiAccess && fishStatus !== null && fishStatus !== 'good' ? () => handleFix('fish') : null}
               fixing={fixing === 'fish'} loading={loading && fixing === 'fish'}
             />
-          );
-          if (k.id === 'veggie') return (
+          ); }
+          if (k.id === 'veggie') { const pv = getPillValueTarget('veggie', kpis.distinctVeggies, veggieTarget, 'tipos'); return (
             <KPIPill key="veggie"
-              IconComponent={Leaf} label="Verduras" value={`${kpis.distinctVeggies} distintas`} target={`≥${veggieTarget} tipos`}
+              IconComponent={Leaf} label="Verduras" value={pv.value} target={pv.target}
               status={veggieStatus} statusColors={statusColors}
               tooltip={veggieDetail}
-              onFix={hasAiAccess ? () => handleFix('veggie') : null}
+              onFix={hasAiAccess && veggieStatus !== 'good' ? () => handleFix('veggie') : null}
               fixing={fixing === 'veggie'} loading={loading && fixing === 'veggie'}
             />
-          );
-          if (k.id === 'legume') return (
+          ); }
+          if (k.id === 'legume') { const pv = getPillValueTarget('legume', kpis.legumedDays, legumeTarget); return (
             <KPIPill key="legume"
-              IconComponent={Bean} label="Legumbres" value={`${kpis.legumedDays}/${legumeTarget}`} target={`≥${legumeTarget} días`}
+              IconComponent={Bean} label="Legumbres" value={pv.value} target={pv.target}
               status={legumeStatus} statusColors={statusColors}
               tooltip={legumeDetail}
-              onFix={hasAiAccess ? () => handleFix('legume') : null}
+              onFix={hasAiAccess && legumeStatus !== 'good' ? () => handleFix('legume') : null}
               fixing={fixing === 'legume'} loading={loading && fixing === 'legume'}
             />
-          );
-          if (k.id === 'fruit') return (
+          ); }
+          if (k.id === 'fruit') { const pv = getPillValueTarget('fruit', kpis.fruitDays, fruitTarget); return (
             <KPIPill key="fruit"
-              IconComponent={Apple} label="Fruta" value={`${kpis.fruitDays}/${fruitTarget}`} target={`≥${fruitTarget} días`}
+              IconComponent={Apple} label="Fruta" value={pv.value} target={pv.target}
               status={fruitStatus} statusColors={statusColors}
               tooltip={fruitDetail}
-              onFix={hasAiAccess ? () => handleFix('fruit') : null}
+              onFix={hasAiAccess && fruitStatus !== 'good' ? () => handleFix('fruit') : null}
               fixing={fixing === 'fruit'} loading={loading && fixing === 'fruit'}
             />
-          );
+          ); }
           if (k.id === 'protein_rotation') {
             const alertCount = kpis.consecutiveAlerts.length;
             const rotStatus = alertCount === 0 ? 'good' : 'warning';
