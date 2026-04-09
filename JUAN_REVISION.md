@@ -1,0 +1,24 @@
+# Revisión Juan
+
+- [ ] Quitar mención a Firebase en pantalla de login → hecho (`LoginScreen.jsx:88`)
+- [ ] Convertir los ingredientes de la nevera en pills (campo textarea de `NewWeekModal`)
+- [ ] Franjas a generar: añadir los mismos iconos que en la pantalla principal → hecho (`NewWeekModal.jsx`)
+- [ ] KPIs → renombrar a "Objetivos nutricionales" en la UI
+- [ ] Mover secciones del modal de generación de semana (orden a definir)
+- [ ] KPIs: espaciado inconsistente entre ellos
+- [ ] "Fijar comidas" — el texto/concepto no se entiende, revisar copy o explicación. Propuesta: "¿Quieres incluir algún plato concreto? (ya preparado o...)". Unificar en una sola sección: añadir plato + seleccionar franja
+- [ ] Animación del bebé — mejorarla
+- [ ] Eliminar el modal de revisar menú propuesto
+- [ ] Fix de KPI: regenerar las opciones de cambios propuestos
+- [ ] Fix de KPI: hacer highlight de las comidas que se están cambiando
+- [ ] Vista general: hacer la card de cada día más grande y reemplazar los puntitos de KPIs por mini pills con emoji y +1 (estilo "contribución de hoy")
+- [ ] Recolocar el botón de "generar idea de comida"
+- [ ] Revisar los resúmenes de las comidas en la página principal (no están bien hechos)
+- [ ] Drawer de día: quitar los pills de cada comida visualmente, pero mantener la sección "contribución de hoy"
+- [ ] Lista de la compra: el conteo está al revés, revisar
+- [ ] Intercambiar "qué ceno" y "evaluar mi día" (orden)
+- [ ] "Qué ceno": poder actualizar el día de hoy con la info introducida
+- [ ] "Qué ceno": el icono de legumbres no está bien y el de pescado es azul (revisar iconos)
+- [ ] Contexto semanal: revisarlo para que tenga sentido
+- [ ] Pensar cómo regenerar la cena propuesta al cambiar ingredientes
+- [ ] "Evaluar mi día": cambiar "FALTA en este día" por "COSAS A MEJORAR"

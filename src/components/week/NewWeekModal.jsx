@@ -5,7 +5,7 @@ import MenuLoadingAnimation from '../ui/MenuLoadingAnimation';
 import { generateWeekMenu, regenerateDay, suggestIngredients, suggestIngredientAlternative } from '../../lib/claude';
 import { track } from '../../lib/analytics';
 import { computeAdaptiveTargets, KPI_CATALOG, DEFAULT_KPI_CONFIG } from '../../lib/kpis';
-import { Beef, Fish, Bean, Leaf, Cherry, Wheat, GlassWater, Sparkles, Zap, ShoppingCart, Star } from 'lucide-react';
+import { Beef, Fish, Bean, Leaf, Cherry, Wheat, GlassWater, Sparkles, Zap, ShoppingCart, Star, Sunrise, Apple, Utensils, Coffee, Moon } from 'lucide-react';
 
 const CATEGORY_META = {
   proteína: { label: 'Proteínas', Icon: Beef },
@@ -20,6 +20,14 @@ const CATEGORY_META = {
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const MEAL_TYPES = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
+
+const MEAL_ICONS = {
+  desayuno: Sunrise,
+  snack: Apple,
+  comida: Utensils,
+  merienda: Coffee,
+  cena: Moon,
+};
 
 const MEAL_LABELS = {
   desayuno: 'Desayuno',
@@ -550,13 +558,14 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
             <div className="space-y-2">
               {MEAL_TYPES.map(tipo => (
                 <div key={tipo} className="flex items-center gap-3 flex-wrap">
-                  <label className="flex items-center gap-2 cursor-pointer w-32">
+                  <label className="flex items-center gap-2 cursor-pointer w-36">
                     <input
                       type="checkbox"
                       checked={mealSlots[tipo].enabled}
                       onChange={() => toggleSlot(tipo)}
                       className="w-4 h-4 rounded accent-brand-600"
                     />
+                    {(() => { const Icon = MEAL_ICONS[tipo]; return Icon ? <Icon className={`w-4 h-4 shrink-0 ${mealSlots[tipo].enabled ? 'text-brand-600' : 'text-gray-300'}`} /> : null; })()}
                     <span className={`text-sm ${mealSlots[tipo].enabled ? 'text-gray-800' : 'text-gray-400'}`}>
                       {MEAL_LABELS[tipo]}
                     </span>

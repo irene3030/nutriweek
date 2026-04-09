@@ -84,9 +84,6 @@ export default function LoginScreen() {
           <p className="text-red-600 text-sm text-center mt-3">{error}</p>
         )}
 
-        <p className="text-xs text-gray-400 text-center mt-6">
-          Tus datos se guardan de forma segura en Firebase.
-        </p>
       </div>
     </div>
   );
