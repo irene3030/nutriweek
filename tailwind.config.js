@@ -70,7 +70,8 @@ export default {
         veggie: { light: '#d9f99d', DEFAULT: '#84cc16', dark: '#4d7c0f' },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Barlow', 'system-ui', 'sans-serif'],
+        display: ['"Barlow Condensed"', 'Barlow', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', '"Space Mono"', 'Courier New', 'monospace'],
       },
       backgroundImage: {

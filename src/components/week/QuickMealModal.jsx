@@ -109,7 +109,7 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, hasAiAccess, c
                 key={r.id}
                 type="button"
                 onClick={() => toggleReq(r.id)}
-                className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
+                className={`text-xs px-3 py-1.5 rounded border font-medium transition-colors ${
                   requirements.includes(r.id)
                     ? 'bg-brand-600 text-white border-brand-600'
                     : 'bg-white text-gray-600 border-gray-300 hover:border-brand-400'
@@ -135,7 +135,7 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, hasAiAccess, c
                 key={opt.value}
                 type="button"
                 onClick={() => setPrepTime(prev => prev === opt.value ? null : opt.value)}
-                className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
+                className={`text-xs px-3 py-1.5 rounded border font-medium transition-colors ${
                   prepTime === opt.value
                     ? 'bg-brand-600 text-white border-brand-600'
                     : 'bg-white text-gray-600 border-gray-300 hover:border-brand-400'
@@ -162,7 +162,7 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, hasAiAccess, c
             {result.tags?.length > 0 && (
               <div className="flex flex-wrap gap-1 pt-1">
                 {result.tags.map(tag => (
-                  <span key={tag} className="text-xs bg-white border border-brand-200 text-brand-700 rounded-full px-2 py-0.5">
+                  <span key={tag} className="text-xs bg-white border border-brand-200 text-brand-700 rounded px-2 py-0.5">
                     {tag.startsWith('veggie:') ? <span className="flex items-center gap-0.5"><Leaf className="w-3 h-3" /> Verdura</span> : tag}
                   </span>
                 ))}
@@ -196,7 +196,7 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, hasAiAccess, c
                         key={d.day}
                         type="button"
                         onClick={() => setSelectedDay(d.day)}
-                        className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                        className={`text-xs px-2.5 py-1 rounded border transition-colors ${
                           selectedDay === d.day
                             ? 'bg-brand-600 text-white border-brand-600'
                             : 'bg-white text-gray-600 border-gray-300 hover:border-brand-400'
@@ -212,7 +212,7 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, hasAiAccess, c
                       key={t}
                       type="button"
                       onClick={() => setSelectedTipo(t)}
-                      className={`text-xs px-2.5 py-1 rounded-full border transition-colors capitalize ${
+                      className={`text-xs px-2.5 py-1 rounded border transition-colors capitalize ${
                         selectedTipo === t
                           ? 'bg-brand-600 text-white border-brand-600'
                           : 'bg-white text-gray-600 border-gray-300 hover:border-brand-400'

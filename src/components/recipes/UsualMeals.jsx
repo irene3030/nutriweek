@@ -376,7 +376,7 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
                     key={tag}
                     type="button"
                     onClick={() => toggleTag(tag)}
-                    className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border font-medium transition-all ${
+                    className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded border font-medium transition-all ${
                       isSelected ? cfg.color : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50'
                     }`}
                   >

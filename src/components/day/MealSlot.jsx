@@ -105,7 +105,7 @@ export default function MealSlot({
             {/* Track button */}
             <button
               onClick={() => setShowTrack(true)}
-              className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+              className={`text-xs px-2 min-h-[44px] inline-flex items-center gap-0.5 rounded border transition-colors ${
                 meal?.track?.status === 'done'
                   ? 'bg-green-50 border-green-300 text-green-700'
                   : meal?.track?.status === 'partial'
@@ -119,17 +119,17 @@ export default function MealSlot({
               title="Registrar seguimiento"
             >
               {meal?.track?.status === 'done' || meal?.track?.done
-                ? <><Check className="w-3 h-3 inline mr-0.5" />Comido</>
+                ? <><Check className="w-3 h-3" />Comido</>
                 : meal?.track?.status === 'partial'
-                ? <><Circle className="w-3 h-3 inline mr-0.5 opacity-50" />Parcial</>
+                ? <><Circle className="w-3 h-3 opacity-50" />Parcial</>
                 : meal?.track?.status === 'other'
-                ? <><ArrowLeftRight className="w-3 h-3 inline mr-0.5" />Otra cosa</>
-                : <><Circle className="w-3 h-3 inline mr-0.5" />Registrar</>}
+                ? <><ArrowLeftRight className="w-3 h-3" />Otra cosa</>
+                : <><Circle className="w-3 h-3" />Registrar</>}
             </button>
             {/* Edit button */}
             <button
               onClick={() => setEditing(!editing)}
-              className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
               aria-label="Editar"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -163,7 +163,7 @@ export default function MealSlot({
                   return (
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {allIngs.map(ing => (
-                        <span key={ing} className={`text-xs px-1.5 py-0.5 rounded-full ${
+                        <span key={ing} className={`text-xs px-1.5 py-0.5 rounded ${
                           checkedSet.has(ing)
                             ? 'bg-orange-50 text-orange-700'
                             : 'bg-gray-100 text-gray-400 line-through'

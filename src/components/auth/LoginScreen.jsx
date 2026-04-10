@@ -30,7 +30,7 @@ export default function LoginScreen() {
         {/* Logo */}
         <div className="text-center mb-10">
           <Logo variant="full" className="w-40 h-40 mx-auto block mb-4" />
-          <h1 className="text-3xl font-bold text-gray-900">MealOps</h1>
+          <h1 className="text-3xl font-display font-bold text-gray-900 tracking-tight">MealOps</h1>
           <p className="text-gray-500 mt-2 text-sm">Planificador de alimentación BLW</p>
         </div>
 

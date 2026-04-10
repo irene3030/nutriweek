@@ -125,7 +125,7 @@ export default function DayView({
       <div className="bg-white border-b border-gray-100 shrink-0 px-4 py-3 flex items-center gap-3">
         <button
           onClick={onBack}
-          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
           aria-label="Cerrar"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,19 +137,19 @@ export default function DayView({
           <button
             disabled={!canGoPrev}
             onClick={() => onBack(dayIndex - 1)}
-            className="p-1 rounded text-gray-400 hover:text-gray-600 disabled:opacity-30 transition-colors"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded text-gray-400 hover:text-gray-600 disabled:opacity-30 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="text-base font-bold text-gray-900 flex-1 text-center">
+          <h1 className="text-base font-display font-bold text-gray-900 flex-1 text-center">
             {dayName} <span className="text-gray-400 font-normal text-sm">— {weekDoc?.label}</span>
           </h1>
           <button
             disabled={!canGoNext}
             onClick={() => onBack(dayIndex + 1)}
-            className="p-1 rounded text-gray-400 hover:text-gray-600 disabled:opacity-30 transition-colors"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded text-gray-400 hover:text-gray-600 disabled:opacity-30 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -192,7 +192,7 @@ export default function DayView({
             <p className="text-xs text-gray-400 mb-2">Contribución de hoy</p>
             <div className="flex flex-wrap gap-1.5">
               {contributions.map(c => (
-                <span key={c.id} className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border ${c.colors || 'bg-brand-50 text-brand-700 border-brand-100'}`}>
+                <span key={c.id} className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded border ${c.colors || 'bg-brand-50 text-brand-700 border-brand-100'}`}>
                   {c.Icon && <c.Icon className="w-3 h-3 shrink-0" />}
                   {c.value} {c.label}
                 </span>

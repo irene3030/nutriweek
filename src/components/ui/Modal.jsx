@@ -32,10 +32,10 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'ma
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+          <h2 className="text-lg font-display font-semibold text-gray-900">{title}</h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded hover:bg-gray-100 text-gray-500 transition-colors"
             aria-label="Cerrar"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

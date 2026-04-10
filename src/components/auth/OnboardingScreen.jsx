@@ -48,11 +48,11 @@ export default function OnboardingScreen() {
 
   if (createdInfo) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-orange-50 flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-3"><PartyPopper className="w-12 h-12 text-brand-500" /></div>
-            <h2 className="text-2xl font-bold text-gray-900">¡Familia creada!</h2>
+            <h2 className="text-2xl font-display font-bold text-gray-900 tracking-tight">¡Familia creada!</h2>
             <p className="text-gray-500 mt-2 text-sm">Comparte este código con tu familia para que se unan</p>
           </div>
 
@@ -98,12 +98,12 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-orange-50 flex items-center justify-center p-6">
+    <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-sm">
         {/* Header */}
         <div className="text-center mb-8">
           <Logo variant="full" className="w-20 h-20 mx-auto block mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900">¡Bienvenido/a!</h1>
+          <h1 className="text-2xl font-display font-bold text-gray-900 tracking-tight">¡Bienvenido/a!</h1>
           <p className="text-gray-500 mt-2 text-sm">¿Cómo quieres empezar?</p>
         </div>
 

@@ -154,7 +154,7 @@ export default function MealEditor({
             <button
               key={tag}
               onClick={() => toggleTag(tag)}
-              className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-all ${
+              className={`text-xs px-2.5 py-1 rounded border font-medium transition-all ${
                 tags.includes(tag)
                   ? 'bg-brand-600 text-white border-brand-600'
                   : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
@@ -198,7 +198,7 @@ export default function MealEditor({
                     key={r.id}
                     type="button"
                     onClick={() => toggleRegenReq(r.id)}
-                    className={`text-xs px-2 py-0.5 rounded-full border transition-colors flex items-center gap-0.5 ${
+                    className={`text-xs px-2 py-0.5 rounded border transition-colors flex items-center gap-0.5 ${
                       regenRequirements.includes(r.id)
                         ? 'bg-brand-600 text-white border-brand-600'
                         : 'bg-white text-gray-500 border-gray-200 hover:border-brand-400'

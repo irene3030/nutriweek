@@ -28,7 +28,7 @@ export default function TagChip({ tag, onRemove, small = false }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 border rounded-full font-medium ${color} ${
+      className={`inline-flex items-center gap-1 border rounded font-medium ${color} ${
         small ? 'text-xs px-1.5 py-0.5' : 'text-xs px-2 py-1'
       }`}
     >
