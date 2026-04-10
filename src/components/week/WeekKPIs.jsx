@@ -55,7 +55,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, o
   function getDailyStatus(compliant, total) {
     if (!total) return null;
     if (compliant >= total) return 'good';
-    if (compliant >= Math.ceil(total * 0.6)) return 'warning';
+    if (compliant >= total - 2) return 'warning';
     return 'bad';
   }
 
@@ -74,9 +74,11 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, o
     const qualPrefix = quality === 'máximo' ? '≤' : quality === 'exacto' ? '=' : '≥';
     if (freq === 'diario') {
       const dc = dailyCompliance[id];
+      const catalogEntry = KPI_CATALOG.find(k => k.id === id);
+      const targetLabel = catalogEntry?.unit === 'al día' ? '1 al día' : `${qualPrefix}${weeklyTarget ?? '–'} días`;
       return {
         value: dc ? `${dc.compliant}/${dc.total} días` : '–',
-        target: `${qualPrefix}${weeklyTarget ?? '–'} días`,
+        target: targetLabel,
       };
     }
     return {
@@ -126,7 +128,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, o
     try {
       const customKPI = config.custom.find(k => k.id === kpiType);
       const kpiState =
-        kpiType === 'iron'             ? { current: kpis.ironDays,       target: ironTarget } :
+        kpiType === 'iron'             ? { compliant: dailyCompliance.iron?.compliant ?? kpis.ironDays, total: dailyCompliance.iron?.total ?? 7, missingDays: (weekDoc?.days || []).filter(d => !d.meals?.some(m => (m.track?.tags ?? m.tags ?? []).includes('iron'))).map(d => d.day) } :
         kpiType === 'fish'             ? { current: kpis.fishDays,       target: fishTarget } :
         kpiType === 'legume'           ? { current: kpis.legumedDays,    target: legumeTarget } :
         kpiType === 'veggie'           ? { current: kpis.distinctVeggies, existing: kpis.veggieList, target: veggieTarget } :
@@ -142,7 +144,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, o
       )];
 
       const allKpiStates = [
-        config.active.includes('iron') && ironTarget ? `Hierro ${kpis.ironDays}/${ironTarget} días` : null,
+        config.active.includes('iron') ? `Hierro ${dailyCompliance.iron ? `${dailyCompliance.iron.compliant}/${dailyCompliance.iron.total} días (objetivo: 1 al día)` : `${kpis.ironDays} días`}` : null,
         config.active.includes('fish') && fishTarget ? `Pescado graso ${kpis.fishDays}/${fishTarget} días` : null,
         config.active.includes('legume') ? `Legumbres ${kpis.legumedDays}/${legumeTarget} días` : null,
         config.active.includes('veggie') ? `Verduras distintas ${kpis.distinctVeggies}/${veggieTarget} tipos` : null,
@@ -171,9 +173,9 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, o
     }
   };
 
-  const handleApply = () => {
+  const handleApply = async () => {
     if (!fixes?.length) return;
-    onApplyFixes(fixes.map(f => ({ day: f.day, tipo: f.tipo, baby: f.baby, tags: f.tags || [] })));
+    await onApplyFixes(fixes.map(f => ({ day: f.day, tipo: f.tipo, baby: f.baby, tags: f.tags || [] })));
     track('kpi_fix_applied', { kpiType: fixing, fixCount: fixes.length });
     setFixing(null);
     setFixes(null);

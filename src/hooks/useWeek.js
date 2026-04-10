@@ -208,6 +208,8 @@ export function useWeek(householdId) {
         ),
       };
     }
+    // Optimistic update: reflect changes immediately without waiting for Firebase snapshot
+    setWeeks(prev => prev.map(w => w.id === weekId ? { ...w, days } : w));
     await updateWeek(weekId, { days });
   }, [householdId, weeks, updateWeek]);
 

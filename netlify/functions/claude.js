@@ -431,8 +431,10 @@ Devuelve SOLO este JSON:
 
       let kpiDescription = '';
       if (safeKpiType === 'iron') {
-        const needed = Math.max(0, ironTarget - (kpiState.current || 0));
-        kpiDescription = `Hierro: actualmente ${kpiState.current} días con hierro, necesita al menos ${ironTarget}. Modifica ${needed} comida(s) para añadir hierro (carne roja, legumbre o pescado azul).`;
+        const compliant = kpiState.compliant ?? 0;
+        const total = kpiState.total ?? 7;
+        const missingDays = Array.isArray(kpiState.missingDays) ? kpiState.missingDays.map(d => sanitize(d, 10)) : [];
+        kpiDescription = `Hierro (objetivo: 1 comida con hierro cada día): actualmente ${compliant}/${total} días tienen hierro.${missingDays.length ? ` Días sin hierro: ${missingDays.join(', ')}.` : ''} Modifica una comida en cada uno de esos días para incluir hierro (carne roja, legumbre o pescado azul). Prioriza las franjas comida o cena de esos días.`;
       } else if (safeKpiType === 'fish') {
         const needed = Math.max(0, fishTarget - (kpiState.current || 0));
         kpiDescription = `Pescado graso: actualmente ${kpiState.current} días con pescado graso, necesita al menos ${fishTarget}. Modifica ${needed} comida(s) para añadir salmón, caballa, sardina o atún.`;

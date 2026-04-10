@@ -9,11 +9,12 @@ export const KPI_CATALOG = [
     id: 'iron',
     label: 'Hierro',
     icon: '🩸',
-    description: 'Proteína animal o legumbre con hierro en comidas principales',
-    defaultTarget: 5,
-    unit: 'días',
+    description: 'Al menos 1 comida con hierro cada día (carne, legumbre o pescado azul)',
+    defaultTarget: 1,
+    unit: 'al día',
+    frequency: 'diario',
     defaultOn: true,
-    adaptive: true,
+    adaptive: false,
   },
   {
     id: 'fish',
@@ -363,7 +364,7 @@ export function calculateDailyCompliance(weekDoc, kpiConfig = {}) {
   // For 'diario' KPIs: each day needs >= 1 of the food (n=1).
   // 'targets.x' is the weekly day-count goal, used as the compliance threshold.
   if (frequencies.iron === 'diario')
-    result.iron = { compliant: countDaysMeetingDailyTag(days, 'iron', 1), total: targets.iron ?? days.length };
+    result.iron = { compliant: countDaysMeetingDailyTag(days, 'iron', 1), total: days.length };
   if (frequencies.fish === 'diario')
     result.fish = { compliant: countDaysMeetingDailyTag(days, 'oily_fish', 1), total: targets.fish ?? days.length };
   if (frequencies.legume === 'diario')

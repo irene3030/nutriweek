@@ -1052,22 +1052,28 @@ function KPIPreview({ kpiConfig, mealSlots, includeWeekend, kpiOverrides, onUpda
                 className="accent-brand-600 shrink-0"
               />
               <span className="text-sm flex-1">{label}</span>
-              <input
-                type="number"
-                min={1}
-                max={7}
-                value={override.target}
-                disabled={!override.active || notApplicable}
-                onChange={e => {
-                  const val = e.target.value;
-                  if (val === '' || val === '0') return;
-                  onUpdate(id, 'target', Math.min(7, Math.max(1, Number(val))));
-                }}
-                className="w-12 text-sm text-center border border-gray-200 rounded-lg px-1 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-brand-400 disabled:opacity-40"
-              />
-              <span className="text-xs text-gray-400 w-16 shrink-0">
-                {notApplicable ? 'No aplica' : wasAdapted ? `≥${adaptiveTarget} ajust.` : unit}
-              </span>
+              {catalogKpi?.frequency === 'diario' ? (
+                <span className="text-xs text-gray-500 w-28 shrink-0 text-right">Objetivo: 1 al día</span>
+              ) : (
+                <>
+                  <input
+                    type="number"
+                    min={1}
+                    max={7}
+                    value={override.target}
+                    disabled={!override.active || notApplicable}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '' || val === '0') return;
+                      onUpdate(id, 'target', Math.min(7, Math.max(1, Number(val))));
+                    }}
+                    className="w-12 text-sm text-center border border-gray-200 rounded-lg px-1 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-brand-400 disabled:opacity-40"
+                  />
+                  <span className="text-xs text-gray-400 w-16 shrink-0">
+                    {notApplicable ? 'No aplica' : wasAdapted ? `≥${adaptiveTarget} ajust.` : unit}
+                  </span>
+                </>
+              )}
             </div>
           );
         })}
