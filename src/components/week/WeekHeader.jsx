@@ -52,7 +52,7 @@ export default function WeekHeader({
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Logo variant="full" className="w-11 h-11" />
-            <span className="font-bold text-brand-700 text-lg">MealOps</span>
+            <span className="font-display font-bold text-brand-700 text-lg tracking-tight">MealOps</span>
             {saving && (
               <span className="text-xs text-gray-400 flex items-center gap-1">
                 <div className="w-3 h-3 border border-gray-300 border-t-gray-500 rounded-full animate-spin" />

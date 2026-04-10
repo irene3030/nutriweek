@@ -143,7 +143,7 @@ export default function DayView({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="text-base font-bold text-gray-900 flex-1 text-center">
+          <h1 className="text-base font-display font-bold text-gray-900 flex-1 text-center">
             {dayName} <span className="text-gray-400 font-normal text-sm">— {weekDoc?.label}</span>
           </h1>
           <button

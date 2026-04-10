@@ -99,7 +99,7 @@ export default function ShoppingList({ weekDoc, householdId }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-bold text-gray-900">Lista de la compra</h2>
+          <h2 className="font-display font-bold text-gray-900">Lista de la compra</h2>
           <p className="text-xs text-gray-400">{weekDoc.label}</p>
         </div>
         <div className="flex items-center gap-2">

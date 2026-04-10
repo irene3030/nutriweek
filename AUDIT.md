@@ -72,12 +72,11 @@
 #### ~~[P2] `rounded-full` generalizado — contradice estética blueprint~~ ✅ Corregido
 - Corregido en `/normalize`. 50+ instancias cambiadas a `rounded` (4px). Mantenido `rounded-full` solo en: spinners, avatares, toggles, progress bars.
 
-#### [P2] Inter como única tipografía
+#### ~~[P2] Inter como única tipografía~~ ✅ Corregido
 - **Archivos**: `index.html:27` · `index.css:7` · `tailwind.config.js:74`
 - **Categoría**: Anti-Pattern
 - **Impacto**: Inter está en la lista explícita de fuentes reflex prohibidas. Para un producto "calm, engineering, practical", Inter se lee como SaaS genérico. La estética blueprint merece una fuente que refuerce el carácter técnico/preciso.
-- **Recomendación**: Reemplazar Inter. JetBrains Mono (ya cargado) podría promoverse para elementos de datos; considerar **Geist** o **Barlow Condensed** para el carácter engineering.
-- **Comando**: `/typeset`
+- Corregido en `/typeset`. Inter reemplazado por **Barlow** (UI body) + **Barlow Condensed** (headings display). JetBrains Mono mantenido para `.data-value`. Headings actualizados con `font-display font-bold tracking-tight`: LoginScreen h1, WeekHeader wordmark, Onboarding h1/h2, Modal h2, DayView h1, ShoppingList h2.
 
 #### [P2] Rosa en tags de fruta
 - **Archivo**: `src/components/ui/TagChip.jsx:8`
