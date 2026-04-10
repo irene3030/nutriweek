@@ -140,14 +140,14 @@ export default function ShoppingList({ weekDoc, householdId }) {
       {/* Categories */}
       {Object.entries(shoppingList.categories).map(([cat, items]) => {
         if (items.length === 0) return null;
-        const remaining = items.filter((i) => !checked[i.name]);
+        const checkedInCat = items.filter((i) => checked[i.name]).length;
         return (
           <div key={cat} className={`border rounded-xl overflow-hidden ${CATEGORY_COLORS[cat]}`}>
             <div className="flex items-center gap-2 px-4 py-2.5 border-b border-inherit">
               {CATEGORY_ICON_COMPONENTS[cat] && (() => { const CatIcon = CATEGORY_ICON_COMPONENTS[cat]; return <CatIcon className="w-4 h-4 text-gray-500" />; })()}
               <h3 className="font-semibold text-sm text-gray-700 capitalize">{cat}</h3>
               <span className="text-xs text-gray-400 ml-auto">
-                {remaining.length}/{items.length}
+                {checkedInCat}/{items.length}
               </span>
             </div>
             <div className="bg-white divide-y divide-gray-50">

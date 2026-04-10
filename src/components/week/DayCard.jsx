@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useKPIs } from '../../hooks/useKPIs';
-import { Sunrise, Apple, Utensils, Coffee, Moon, Trash2, Check, Circle, ArrowLeftRight } from 'lucide-react';
+import { Sunrise, Apple, Utensils, Coffee, Moon, Trash2, Check, Circle, ArrowLeftRight, Droplets, Fish, Leaf, Bean } from 'lucide-react';
 
 const MEAL_ICONS = {
   desayuno: Sunrise,
@@ -38,7 +38,7 @@ function shortName(text) {
   return first;
 }
 
-export default function DayCard({ dayData, onClick, isToday, onClear }) {
+export default function DayCard({ dayData, onClick, isToday, onClear, highlightedMeals }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -66,7 +66,9 @@ export default function DayCard({ dayData, onClick, isToday, onClear }) {
   return (
     <div
       className={`w-full text-left bg-white rounded-xl border transition-all hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 cursor-pointer ${
-        isToday
+        highlightedMeals?.length
+          ? 'border-amber-300 shadow-sm shadow-amber-100'
+          : isToday
           ? 'border-brand-400 shadow-sm shadow-brand-100'
           : 'border-gray-100 hover:border-gray-200'
       }`}
@@ -113,14 +115,15 @@ export default function DayCard({ dayData, onClick, isToday, onClear }) {
       <div className="px-3 py-2 space-y-1">
         {meals && meals.map((meal) => {
           const MealIcon = MEAL_ICONS[meal.tipo];
+          const isHighlighted = highlightedMeals?.some(m => m.tipo === meal.tipo);
           return (
-            <div key={meal.tipo} className="flex items-center gap-1.5">
-              <span className="w-4 flex items-center justify-center text-gray-400">
+            <div key={meal.tipo} className={`flex items-center gap-1.5 rounded px-0.5 -mx-0.5 transition-colors ${isHighlighted ? 'bg-amber-50 ring-1 ring-amber-300' : ''}`}>
+              <span className={`w-4 flex items-center justify-center ${isHighlighted ? 'text-amber-500' : 'text-gray-400'}`}>
                 {MealIcon ? <MealIcon className="w-3 h-3" /> : <span className="text-xs">•</span>}
               </span>
               <div className="flex-1 min-w-0">
                 {meal.baby ? (
-                  <p className="text-xs text-gray-700 truncate">{shortName(effectiveText(meal))}</p>
+                  <p className={`text-xs truncate ${isHighlighted ? 'text-amber-700 font-medium' : 'text-gray-700'}`}>{shortName(effectiveText(meal))}</p>
                 ) : (
                   <div className="h-2.5 bg-gray-100 rounded w-3/4" />
                 )}
@@ -137,19 +140,35 @@ export default function DayCard({ dayData, onClick, isToday, onClear }) {
         })}
       </div>
 
-      {/* KPI indicators */}
-      <div className="px-3 pb-2 flex gap-1">
+      {/* Contribution pills */}
+      <div className="px-3 pb-2 flex flex-wrap gap-1">
         {kpi.hasIron && (
-          <span className="w-2 h-2 rounded-full bg-orange-400" title="Hierro" />
+          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-100">
+            <Droplets className="w-2.5 h-2.5 shrink-0" />+1
+          </span>
         )}
         {kpi.hasFish && (
-          <span className="w-2 h-2 rounded-full bg-blue-400" title="Pescado graso" />
+          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">
+            <Fish className="w-2.5 h-2.5 shrink-0" />+1
+          </span>
+        )}
+        {kpi.hasLegume && (
+          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-100">
+            <Bean className="w-2.5 h-2.5 shrink-0" />+1
+          </span>
+        )}
+        {kpi.hasFruit && (
+          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100">
+            <Apple className="w-2.5 h-2.5 shrink-0" />+1
+          </span>
         )}
         {kpi.veggies.length > 0 && (
-          <span className="w-2 h-2 rounded-full bg-green-400" title={`Verduras: ${kpi.veggies.join(', ')}`} />
+          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded bg-lime-50 text-lime-700 border border-lime-100">
+            <Leaf className="w-2.5 h-2.5 shrink-0" />+{kpi.veggies.length}
+          </span>
         )}
         {filledMeals.length === 0 && (
-          <span className="text-xs text-gray-300">Sin planificar</span>
+          <span className="text-[10px] text-gray-300">Sin planificar</span>
         )}
       </div>
     </div>

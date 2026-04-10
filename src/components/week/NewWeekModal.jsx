@@ -180,11 +180,9 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
   const ingredientInputRef = useRef(null);
   const [showFixedMeals, setShowFixedMeals] = useState(false);
   const [showAllUsualMeals, setShowAllUsualMeals] = useState(false);
-  const [showAllUsualMealsFixed, setShowAllUsualMealsFixed] = useState(false);
-  const [fixedMeals, setFixedMeals] = useState([]);      // [{day, tipo, text}] day can be null
-  const [newFixed, setNewFixed] = useState({ day: 'Lun', tipo: 'comida', text: '', anyDay: false });
+  const [fixedMeals, setFixedMeals] = useState([]);      // [{day, tipo, text}]
+  const [newFixed, setNewFixed] = useState({ day: 'Lun', tipo: 'comida', text: '', anyDay: true });
   const [recurringMeals, setRecurringMeals] = useState([]); // string[]
-  const [recurringInput, setRecurringInput] = useState('');
   const [mealSlots, setMealSlots] = useState(DEFAULT_SLOTS);
   const [includeWeekend, setIncludeWeekend] = useState(true);
   const [kpiOverrides, setKpiOverrides] = useState(() => initKpiOverrides(kpiConfig));
@@ -203,8 +201,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
   const addFixedMeal = () => {
     if (!newFixed.text.trim()) return;
     if (newFixed.anyDay) {
-      // Floating: keyed only by texto, allow duplicates by texto+tipo
-      setFixedMeals(prev => [...prev, { day: null, tipo: newFixed.tipo, text: newFixed.text.trim() }]);
+      setRecurringMeals(prev => [...prev, newFixed.text.trim()]);
     } else {
       setFixedMeals(prev => {
         const filtered = prev.filter(m => !(m.day === newFixed.day && m.tipo === newFixed.tipo));
@@ -216,13 +213,6 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
 
   const removeFixedMeal = (idx) => {
     setFixedMeals(prev => prev.filter((_, i) => i !== idx));
-  };
-
-  const addRecurring = () => {
-    const val = recurringInput.trim();
-    if (!val) return;
-    setRecurringMeals(prev => [...prev, val]);
-    setRecurringInput('');
   };
 
   const updateKpiOverride = (id, field, value) => {
@@ -577,7 +567,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
           {/* KPIs que intentará cumplir la IA */}
           {hasAiAccess && <KPIPreview kpiConfig={kpiConfig} mealSlots={mealSlots} includeWeekend={includeWeekend} kpiOverrides={kpiOverrides} onUpdate={updateKpiOverride} />}
 
-          {/* Fixed meals & recurring */}
+          {/* Platos concretos */}
           <div className="border border-gray-200 rounded-xl overflow-hidden">
             <button
               type="button"
@@ -585,7 +575,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
               className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-sm font-medium text-gray-700"
             >
               <span>
-                Fijar comidas
+                ¿Quieres incluir algún plato concreto?
                 {(fixedMeals.length + recurringMeals.length) > 0 && (
                   <span className="ml-1.5 text-xs bg-brand-600 text-white rounded px-1.5 py-0.5">
                     {fixedMeals.length + recurringMeals.length}
@@ -599,129 +589,60 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
             </button>
 
             {showFixedMeals && (
-              <div className="p-4 space-y-4">
+              <div className="p-4 space-y-3">
+                <p className="text-xs text-gray-400">La IA lo colocará donde encaje mejor, o en el día y franja que indiques.</p>
 
-                {/* Recurring meals (any day) */}
-                <div>
-                  <p className="text-xs font-semibold text-gray-600 mb-1.5">Incluir esta semana <span className="font-normal text-gray-400">(sin día específico)</span></p>
-                  <p className="text-xs text-gray-400 mb-2">La IA la colocará en el día y franja más adecuados.</p>
-                  {usualMeals.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {(showAllUsualMeals ? usualMeals : usualMeals.slice(0, 3)).map(m => {
-                        const alreadyAdded = recurringMeals.includes(m.name);
-                        return (
-                          <button
-                            key={m.id}
-                            type="button"
-                            disabled={alreadyAdded}
-                            onClick={() => !alreadyAdded && setRecurringMeals(prev => [...prev, m.name])}
-                            className={`text-xs px-2.5 py-1 rounded border transition-colors ${
-                              alreadyAdded
-                                ? 'bg-brand-100 text-brand-400 border-brand-200 cursor-default'
-                                : 'bg-white text-gray-600 border-gray-300 hover:border-brand-400 hover:text-brand-600'
-                            }`}
-                          >
-                            <Star className="w-3 h-3 inline mr-0.5" />{m.name}
-                          </button>
-                        );
-                      })}
-                      {usualMeals.length > 3 && (
-                        <button
-                          type="button"
-                          onClick={() => setShowAllUsualMeals(v => !v)}
-                          className="text-xs px-2.5 py-1 rounded border border-dashed border-gray-300 text-gray-400 hover:border-brand-400 hover:text-brand-600 transition-colors"
-                        >
-                          {showAllUsualMeals ? 'Ver menos' : `+${usualMeals.length - 3} más…`}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  <div className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      value={recurringInput}
-                      onChange={e => setRecurringInput(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && addRecurring()}
-                      placeholder="Ej: lentejas, salmón, tortitas..."
-                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-brand-400"
-                    />
-                    <button
-                      type="button"
-                      onClick={addRecurring}
-                      disabled={!recurringInput.trim()}
-                      className="bg-brand-600 text-white rounded-lg px-3 py-2 text-xs font-medium hover:bg-brand-700 transition-colors disabled:opacity-40"
-                    >
-                      + Añadir
-                    </button>
+                {/* Quick-add from usual meals */}
+                {usualMeals.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {(showAllUsualMeals ? usualMeals : usualMeals.slice(0, 4)).map(m => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setNewFixed(p => ({ ...p, text: m.name }))}
+                        className={`text-xs px-2.5 py-1 rounded border transition-colors ${
+                          newFixed.text === m.name
+                            ? 'bg-brand-100 text-brand-700 border-brand-300'
+                            : 'bg-white text-gray-600 border-gray-300 hover:border-brand-400 hover:text-brand-600'
+                        }`}
+                      >
+                        <Star className="w-3 h-3 inline mr-0.5" />{m.name}
+                      </button>
+                    ))}
+                    {usualMeals.length > 4 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllUsualMeals(v => !v)}
+                        className="text-xs px-2.5 py-1 rounded border border-dashed border-gray-300 text-gray-400 hover:border-brand-400 hover:text-brand-600 transition-colors"
+                      >
+                        {showAllUsualMeals ? 'Ver menos' : `+${usualMeals.length - 4} más…`}
+                      </button>
+                    )}
                   </div>
-                  {recurringMeals.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {recurringMeals.map((m, i) => (
-                        <span key={i} className="flex items-center gap-1 bg-brand-50 text-brand-700 border border-brand-200 rounded px-2.5 py-1 text-xs">
-                          {m}
-                          <button onClick={() => setRecurringMeals(prev => prev.filter((_, j) => j !== i))} className="hover:text-red-500 transition-colors">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                )}
 
-                <div className="border-t border-gray-100" />
-
-                {/* Fixed to a specific day */}
-                <div>
-                  <p className="text-xs font-semibold text-gray-600 mb-1.5">Fijar en día y franja concretos</p>
-                  {fixedMeals.length > 0 && (
-                    <div className="space-y-1.5 mb-2">
-                      {fixedMeals.map((m, idx) => (
-                        <div key={idx} className="flex items-center gap-2 bg-orange-50 rounded-lg px-3 py-2">
-                          <span className="text-xs font-semibold text-orange-700 w-16 shrink-0">{m.day ?? 'Libre'}</span>
-                          <span className="text-xs text-orange-600 w-16 shrink-0">{MEAL_LABELS[m.tipo]}</span>
-                          <span className="text-xs text-gray-700 flex-1 truncate">{m.text}</span>
-                          <button onClick={() => removeFixedMeal(idx)} className="text-gray-400 hover:text-red-500 transition-colors shrink-0">
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {usualMeals.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {(showAllUsualMealsFixed ? usualMeals : usualMeals.slice(0, 3)).map(m => (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() => setNewFixed(p => ({ ...p, text: m.name }))}
-                          className={`text-xs px-2.5 py-1 rounded border transition-colors ${
-                            newFixed.text === m.name
-                              ? 'bg-orange-100 text-orange-700 border-orange-300'
-                              : 'bg-white text-gray-600 border-gray-300 hover:border-orange-400 hover:text-orange-600'
-                          }`}
-                        >
-                          <Star className="w-3 h-3 inline mr-0.5" />{m.name}
-                        </button>
-                      ))}
-                      {usualMeals.length > 3 && (
-                        <button
-                          type="button"
-                          onClick={() => setShowAllUsualMealsFixed(v => !v)}
-                          className="text-xs px-2.5 py-1 rounded border border-dashed border-gray-300 text-gray-400 hover:border-orange-400 hover:text-orange-600 transition-colors"
-                        >
-                          {showAllUsualMealsFixed ? 'Ver menos' : `+${usualMeals.length - 3} más…`}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  <div className="flex gap-2 flex-wrap">
-                    <select
-                      value={newFixed.day}
-                      onChange={e => setNewFixed(p => ({ ...p, day: e.target.value }))}
-                      className="border border-gray-300 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-brand-400"
-                    >
-                      {DAYS.map(d => <option key={d}>{d}</option>)}
-                    </select>
+                {/* Unified form */}
+                <div className="flex gap-2 flex-wrap">
+                  <input
+                    type="text"
+                    value={newFixed.text}
+                    onChange={e => setNewFixed(p => ({ ...p, text: e.target.value }))}
+                    onKeyDown={e => e.key === 'Enter' && addFixedMeal()}
+                    placeholder="Ej: lentejas, salmón al horno, tortitas..."
+                    className="flex-1 min-w-[140px] border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-brand-400"
+                  />
+                  <select
+                    value={newFixed.anyDay ? 'any' : newFixed.day}
+                    onChange={e => {
+                      if (e.target.value === 'any') setNewFixed(p => ({ ...p, anyDay: true }));
+                      else setNewFixed(p => ({ ...p, anyDay: false, day: e.target.value }));
+                    }}
+                    className="border border-gray-300 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-brand-400"
+                  >
+                    <option value="any">Cualquier día</option>
+                    {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  {!newFixed.anyDay && (
                     <select
                       value={newFixed.tipo}
                       onChange={e => setNewFixed(p => ({ ...p, tipo: e.target.value }))}
@@ -729,24 +650,39 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
                     >
                       {MEAL_TYPES.map(t => <option key={t} value={t}>{MEAL_LABELS[t]}</option>)}
                     </select>
-                    <input
-                      type="text"
-                      value={newFixed.text}
-                      onChange={e => setNewFixed(p => ({ ...p, text: e.target.value }))}
-                      onKeyDown={e => e.key === 'Enter' && addFixedMeal()}
-                      placeholder="Ej: pollo guisado"
-                      className="flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-brand-400"
-                    />
-                    <button
-                      type="button"
-                      onClick={addFixedMeal}
-                      disabled={!newFixed.text.trim()}
-                      className="bg-orange-500 text-white rounded-lg px-3 py-2 text-xs font-medium hover:bg-orange-600 transition-colors disabled:opacity-40"
-                    >
-                      + Fijar
-                    </button>
-                  </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={addFixedMeal}
+                    disabled={!newFixed.text.trim()}
+                    className="bg-brand-600 text-white rounded-lg px-3 py-2 text-xs font-medium hover:bg-brand-700 transition-colors disabled:opacity-40"
+                  >
+                    + Añadir
+                  </button>
                 </div>
+
+                {/* Combined list */}
+                {(recurringMeals.length > 0 || fixedMeals.length > 0) && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {recurringMeals.map((m, i) => (
+                      <span key={`r-${i}`} className="flex items-center gap-1 bg-brand-50 text-brand-700 border border-brand-200 rounded px-2.5 py-1 text-xs">
+                        {m}
+                        <button onClick={() => setRecurringMeals(prev => prev.filter((_, j) => j !== i))} className="hover:text-red-500 transition-colors ml-0.5">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      </span>
+                    ))}
+                    {fixedMeals.map((m, idx) => (
+                      <span key={`f-${idx}`} className="flex items-center gap-1 bg-orange-50 text-orange-700 border border-orange-200 rounded px-2.5 py-1 text-xs">
+                        {m.text}
+                        <span className="text-orange-400">· {m.day} {MEAL_LABELS[m.tipo]}</span>
+                        <button onClick={() => removeFixedMeal(idx)} className="hover:text-red-500 transition-colors ml-0.5">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

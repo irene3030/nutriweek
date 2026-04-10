@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useKPIs } from '../../hooks/useKPIs';
 import { computeAdaptiveTargets, calculateDailyCompliance, KPI_CATALOG, DEFAULT_KPI_CONFIG } from '../../lib/kpis';
 import { fixKPI } from '../../lib/claude';
@@ -11,7 +11,7 @@ const MEAL_LABELS = {
 
 const PROTEIN_LABELS = { iron: 'hierro', fish: 'pescado', egg: 'huevo', legume: 'legumbre', dairy: 'lácteo' };
 
-export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, kpiConfig, onUpdateKpiConfig }) {
+export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, onFixesChange, kpiConfig, onUpdateKpiConfig }) {
   const config = {
     active: kpiConfig?.active ?? DEFAULT_KPI_CONFIG.active,
     targets: kpiConfig?.targets ?? {},
@@ -29,6 +29,10 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
   const [fixes, setFixes] = useState(null);
   const [error, setError] = useState(null);
   const [showLibrary, setShowLibrary] = useState(false);
+
+  useEffect(() => {
+    onFixesChange?.(fixes?.length ? fixes.map(f => ({ day: f.day, tipo: f.tipo })) : null);
+  }, [fixes]);
 
   // --- status helpers ---
   function getStatusWithQuality(value, target, quality = 'mínimo') {
@@ -173,9 +177,10 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, k
     track('kpi_fix_applied', { kpiType: fixing, fixCount: fixes.length });
     setFixing(null);
     setFixes(null);
+    onFixesChange?.(null);
   };
 
-  const handleDiscard = () => { setFixing(null); setFixes(null); setError(null); };
+  const handleDiscard = () => { setFixing(null); setFixes(null); setError(null); onFixesChange?.(null); };
 
   // Compute KPI impact of a single fix vs the original meal
   const computeFixImpact = (fix) => {

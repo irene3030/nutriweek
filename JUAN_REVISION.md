@@ -1,23 +1,24 @@
 # Revisión Juan
 
-- [ ] Quitar mención a Firebase en pantalla de login → hecho (`LoginScreen.jsx:88`)
+- [x] Quitar mención a Firebase en pantalla de login → hecho (`LoginScreen.jsx:88`)
 - [x] Convertir los ingredientes de la nevera en pills (campo textarea de `NewWeekModal`)
 - [x] Franjas a generar: añadir los mismos iconos que en la pantalla principal → hecho (`NewWeekModal.jsx`)
 - [x] Franjas a generar: mover sección debajo del checkbox "incluir fin de semana"
 - [x] KPIs → renombrar a "Objetivos nutricionales" en la UI (hecho en `NewWeekModal` KPIPreview)
-- [ ] Mover secciones del modal de generación de semana (orden a definir)
+- [x] Mover secciones del modal de generación de semana (orden a definir)
 - [x] KPIs: espaciado inconsistente entre ellos
-- [ ] "Fijar comidas" — el texto/concepto no se entiende, revisar copy o explicación. Propuesta: "¿Quieres incluir algún plato concreto? (ya preparado o...)". Unificar en una sola sección: añadir plato + seleccionar franja
-- [ ] Animación del bebé — mejorarla
+- [x] "Fijar comidas" — el texto/concepto no se entiende, revisar copy o explicación. Propuesta: "¿Quieres incluir algún plato concreto? (ya preparado o...)". Unificar en una sola sección: añadir plato + seleccionar franja
+- [x] Animación del bebé — mejorarla
 - [x] Eliminar el modal de revisar menú propuesto — la semana se guarda directamente al generarse
 - [ ] Fix de KPI: regenerar las opciones de cambios propuestos
 - [ ] Fix de KPI: hacer highlight de las comidas que se están cambiando
-- [ ] Vista general: hacer la card de cada día más grande y reemplazar los puntitos de KPIs por mini pills con emoji y +1 (estilo "contribución de hoy")
-- [ ] Recolocar el botón de "generar idea de comida"
+- [x] Vista general: reemplazar los puntitos de KPIs por mini pills con icono y +N (estilo "contribución de hoy")
+- [x] Vista general: añadir título "Planificación semanal" antes de los KPIs, mismo estilo de cabecera que Batch Cooking o Lista de la compra, pero no collapsable
+- [x] Recolocar el botón de "generar idea de comida" → movido a cabecera de sección Comidas (derecha)
 - [ ] Revisar los resúmenes de las comidas en la página principal (no están bien hechos)
 - [ ] Drawer de día: quitar los pills de cada comida visualmente, pero mantener la sección "contribución de hoy"
-- [ ] Lista de la compra: el conteo está al revés, revisar
-- [ ] Intercambiar "qué ceno" y "evaluar mi día" (orden)
+- [x] Lista de la compra: el conteo está al revés, revisar
+- [x] Intercambiar "qué ceno" y "evaluar mi día" (orden)
 - [ ] "Qué ceno": poder actualizar el día de hoy con la info introducida
 - [ ] "Qué ceno": el icono de legumbres no está bien y el de pescado es azul (revisar iconos)
 - [ ] Contexto semanal: revisarlo para que tenga sentido

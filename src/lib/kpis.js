@@ -236,9 +236,11 @@ function detectConsecutiveProteinAlert(days) {
 
 /** Get per-day KPI indicators */
 function getDayKPIs(day) {
-  if (!day.meals) return { hasIron: false, hasFish: false, veggies: [] };
-  const hasIron = day.meals.some((m) => m.tags && m.tags.includes('iron'));
-  const hasFish = day.meals.some((m) => m.tags && m.tags.includes('oily_fish'));
+  if (!day.meals) return { hasIron: false, hasFish: false, hasLegume: false, hasFruit: false, veggies: [] };
+  const hasIron   = day.meals.some((m) => m.tags && m.tags.includes('iron'));
+  const hasFish   = day.meals.some((m) => m.tags && m.tags.includes('oily_fish'));
+  const hasLegume = day.meals.some((m) => m.tags && m.tags.includes('legume'));
+  const hasFruit  = day.meals.some((m) => m.tags && m.tags.includes('fruit'));
   const veggies = new Set();
   for (const meal of day.meals) {
     if (!meal.tags) continue;
@@ -249,7 +251,7 @@ function getDayKPIs(day) {
       }
     }
   }
-  return { hasIron, hasFish, veggies: [...veggies] };
+  return { hasIron, hasFish, hasLegume, hasFruit, veggies: [...veggies] };
 }
 
 /**

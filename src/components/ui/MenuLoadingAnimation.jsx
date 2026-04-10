@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Baby } from 'lucide-react';
+import { Baby, Leaf, Fish, Bean, Apple, Droplets, Egg, Wheat, Cherry } from 'lucide-react';
 
 const MESSAGES = [
   'Eligiendo verduritas nutritivas...',
@@ -11,7 +11,16 @@ const MESSAGES = [
   'Revisando variedad de colores...',
 ];
 
-const FOOD_COLORS = ['#22c55e', '#f97316', '#eab308', '#8b5cf6', '#84cc16', '#ef4444', '#06b6d4', '#f59e0b'];
+const FOOD_ORBIT_ICONS = [
+  { Icon: Leaf,     color: '#22c55e' },
+  { Icon: Fish,     color: '#0ea5e9' },
+  { Icon: Bean,     color: '#16a34a' },
+  { Icon: Apple,    color: '#f97316' },
+  { Icon: Droplets, color: '#ea580c' },
+  { Icon: Egg,      color: '#d97706' },
+  { Icon: Wheat,    color: '#ca8a04' },
+  { Icon: Cherry,   color: '#e11d48' },
+];
 
 export default function MenuLoadingAnimation() {
   const [msgIndex, setMsgIndex] = useState(0);
@@ -45,13 +54,12 @@ export default function MenuLoadingAnimation() {
         }
         .food-orbit {
           position: absolute;
-          width: 28px;
-          height: 28px;
+          width: 26px;
+          height: 26px;
           display: flex;
           align-items: center;
           justify-content: center;
           animation: orbit var(--dur) linear infinite;
-          font-size: 18px;
         }
         .baby-bob {
           animation: baby-bob 1.8s ease-in-out infinite;
@@ -72,22 +80,22 @@ export default function MenuLoadingAnimation() {
             <Baby className="w-12 h-12" />
           </span>
 
-          {/* Orbiting food dots */}
-          {FOOD_COLORS.map((color, i) => (
+          {/* Orbiting food icons */}
+          {FOOD_ORBIT_ICONS.map(({ Icon, color }, i) => (
             <span
               key={i}
               className="food-orbit"
               style={{
-                '--start': `${i * (360 / FOOD_COLORS.length)}deg`,
+                '--start': `${i * (360 / FOOD_ORBIT_ICONS.length)}deg`,
                 '--dur': `${3.5 + (i % 3) * 0.4}s`,
                 top: '50%',
                 left: '50%',
-                marginTop: '-14px',
-                marginLeft: '-14px',
-                animationDelay: `${-i * (3.5 / FOOD_COLORS.length)}s`,
+                marginTop: '-13px',
+                marginLeft: '-13px',
+                animationDelay: `${-i * (3.5 / FOOD_ORBIT_ICONS.length)}s`,
               }}
             >
-              <span style={{ width: 10, height: 10, borderRadius: '50%', background: color, display: 'block' }} />
+              <Icon style={{ width: 14, height: 14, color }} />
             </span>
           ))}
         </div>

@@ -254,8 +254,8 @@ export default function DayPlayground({ apiKey, hasAiAccess, householdId }) {
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
             {[
-              { id: 'evaluate', label: <span className="flex items-center gap-1 justify-center"><Search className="w-3.5 h-3.5" /> Evaluar mi día</span> },
               { id: 'dinner', label: <span className="flex items-center gap-1 justify-center"><Moon className="w-3.5 h-3.5" /> ¿Qué ceno?</span> },
+              { id: 'evaluate', label: <span className="flex items-center gap-1 justify-center"><Search className="w-3.5 h-3.5" /> Evaluar mi día</span> },
             ].map(tab => (
               <button
                 key={tab.id}

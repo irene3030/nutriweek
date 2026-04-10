@@ -4,10 +4,9 @@ import WeekKPIs from './WeekKPIs';
 import DayCard from './DayCard';
 import BatchCooking from './BatchCooking';
 import NewWeekModal from './NewWeekModal';
-import QuickMealModal from './QuickMealModal';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import ShoppingList from '../shopping/ShoppingList';
-import { Zap, ShoppingCart, Sparkles, Calendar, ClipboardList, Check } from 'lucide-react';
+import { ShoppingCart, Sparkles, Calendar, ClipboardList, Check } from 'lucide-react';
 
 const DAY_ORDER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
@@ -46,11 +45,11 @@ export default function WeekView({
   onClearDay,
 }) {
   const [showNewWeekModal, setShowNewWeekModal] = useState(false);
-  const [showQuickMeal, setShowQuickMeal] = useState(false);
   const [showShopping, setShowShopping] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [exportSimple, setExportSimple] = useState(false);
   const [exportCopied, setExportCopied] = useState(false);
+  const [pendingFixMeals, setPendingFixMeals] = useState(null);
   const todayName = getTodayDayName();
 
   function shortName(text) {
@@ -126,35 +125,33 @@ export default function WeekView({
       <main className="max-w-7xl mx-auto">
         {currentWeek ? (
           <>
-            <WeekKPIs
-              weekDoc={currentWeek}
-              apiKey={apiKey}
-              hasAiAccess={hasAiAccess}
-              onApplyFixes={onApplyFixes}
-              kpiConfig={kpiConfig}
-              onUpdateKpiConfig={onUpdateKpiConfig}
-            />
-            <div className="px-4 pb-3">
-              <button
-                data-tour="quick-meal-btn"
-                onClick={() => setShowQuickMeal(true)}
-                className="flex items-center gap-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 shadow-sm px-4 py-2 rounded-xl transition-colors"
-              >
-                <Zap className="w-4 h-4" /> Generar idea de comida
-              </button>
-            </div>
-
-            <div className="px-4 pb-4">
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
-                {sortedDays.map((dayData) => (
-                  <DayCard
-                    key={dayData.day}
-                    dayData={dayData}
-                    onClick={() => onDayClick(DAY_ORDER.indexOf(dayData.day))}
-                    isToday={dayData.day === todayName}
-                    onClear={() => onClearDay?.(dayData.day)}
-                  />
-                ))}
+            <div className="px-4 pt-4 pb-4">
+              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                  <Calendar className="w-4 h-4 text-gray-500" />
+                  <span className="text-sm font-semibold text-gray-800">Planificación semanal</span>
+                </div>
+                <WeekKPIs
+                  weekDoc={currentWeek}
+                  apiKey={apiKey}
+                  hasAiAccess={hasAiAccess}
+                  onApplyFixes={onApplyFixes}
+                  onFixesChange={setPendingFixMeals}
+                  kpiConfig={kpiConfig}
+                  onUpdateKpiConfig={onUpdateKpiConfig}
+                />
+                <div className="border-t border-gray-100 p-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+                  {sortedDays.map((dayData) => (
+                    <DayCard
+                      key={dayData.day}
+                      dayData={dayData}
+                      onClick={() => onDayClick(DAY_ORDER.indexOf(dayData.day))}
+                      isToday={dayData.day === todayName}
+                      onClear={() => onClearDay?.(dayData.day)}
+                      highlightedMeals={pendingFixMeals?.filter(m => m.day === dayData.day) ?? null}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -220,14 +217,6 @@ export default function WeekView({
         kpiConfig={kpiConfig}
         onUpdateKpiConfig={onUpdateKpiConfig}
         babyProfile={babyProfile}
-      />
-      <QuickMealModal
-        isOpen={showQuickMeal}
-        onClose={() => setShowQuickMeal(false)}
-        apiKey={apiKey}
-        hasAiAccess={hasAiAccess}
-        currentWeek={currentWeek}
-        onAddToWeek={onAddMealToSlot}
       />
 
       {/* WhatsApp export modal */}

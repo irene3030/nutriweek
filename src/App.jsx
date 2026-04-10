@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AuthContext, useAuth, useAuthProvider } from './hooks/useAuth';
-import { Star, User as UserIcon, Lightbulb, Check, Baby } from 'lucide-react';
+import { Star, User as UserIcon, Lightbulb, Check, Baby, Zap } from 'lucide-react';
 import { setPreCallHook, validateFFCode } from './lib/claude';
 import { createInvite, buildInviteUrl, redeemInvite } from './lib/invites';
 import { identify, resetIdentity, track } from './lib/analytics';
@@ -15,6 +15,7 @@ import InstallBanner from './components/ui/InstallBanner';
 import SpotlightTour from './components/ui/SpotlightTour';
 import Modal from './components/ui/Modal';
 import DayPlayground from './components/playground/DayPlayground';
+import QuickMealModal from './components/week/QuickMealModal';
 import {
   collection,
   onSnapshot,
@@ -66,6 +67,7 @@ function AppContent() {
   const [householdApiKey, setHouseholdApiKey] = useState(null);
   const [householdDoc, setHouseholdDoc] = useState(null);
   const [recipesTab, setRecipesTab] = useState('usual');
+  const [showQuickMeal, setShowQuickMeal] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [showFFWelcome, setShowFFWelcome] = useState(false);
 
@@ -340,6 +342,13 @@ function AppContent() {
                 <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-2">
                   <Star className="w-5 h-5 text-brand-500" />
                   <h1 className="text-lg font-bold text-gray-900">Comidas habituales</h1>
+                  <button
+                    data-tour="quick-meal-btn"
+                    onClick={() => setShowQuickMeal(true)}
+                    className="ml-auto flex items-center gap-1.5 bg-brand-600 text-white text-sm font-medium px-3 min-h-[44px] rounded-lg hover:bg-brand-700 transition-colors"
+                  >
+                    <Zap className="w-4 h-4" /> Generar idea
+                  </button>
                 </div>
               </header>
               <div className="max-w-2xl mx-auto px-4 py-4">
@@ -403,6 +412,15 @@ function AppContent() {
             </div>
           </>
         )}
+
+        <QuickMealModal
+          isOpen={showQuickMeal}
+          onClose={() => setShowQuickMeal(false)}
+          apiKey={householdApiKey}
+          hasAiAccess={!!householdApiKey || (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)}
+          currentWeek={currentWeek}
+          onAddToWeek={handleAddMealToSlot}
+        />
 
         <InstallBanner />
 
