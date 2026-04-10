@@ -35,7 +35,8 @@ Reglas nutricionales semanales:
 - Evitar pescados altos en mercurio (pez espada, tiburón, atún rojo, marlín) — especialmente en bebé BLW
 
 Para cada comida devuelve:
-- baby: descripción de la comida (apta para bebé BLW, la familia come lo mismo)
+- baby: descripción completa de la comida (apta para bebé BLW, la familia come lo mismo)
+- babyShort: nombre muy corto para vista de calendario (máx 20 caracteres, solo lo esencial — ej: "Puré de zanahoria", "Salmón con brócoli", "Tortilla de patata")
 - tags: array con los tags aplicables. Definición de cada tag:
   - iron → contiene carne roja (ternera, cerdo, cordero) o legumbre o pescado azul (salmón, caballa, sardina, atún, boquerón)
   - oily_fish → contiene pescado azul alto en omega-3 (salmón, caballa, sardina, atún, boquerón) — también añade siempre el tag fish
@@ -321,6 +322,7 @@ Devuelve un JSON con esta estructura exacta:
         {
           "tipo": "desayuno",
           "baby": "descripción de la comida",
+          "babyShort": "nombre corto",
           "tags": ["tag1", "tag2"]
         },
         { "tipo": "snack", ... },
@@ -357,11 +359,11 @@ Devuelve SOLO el JSON de ese día:
 {
   "day": "${safeDayName}",
   "meals": [
-    { "tipo": "desayuno", "baby": "...", "tags": [...] },
-    { "tipo": "snack", "baby": "...", "tags": [...] },
-    { "tipo": "comida", "baby": "...", "tags": [...] },
-    { "tipo": "merienda", "baby": "...", "tags": [...] },
-    { "tipo": "cena", "baby": "...", "tags": [...] }
+    { "tipo": "desayuno", "baby": "...", "babyShort": "...", "tags": [...] },
+    { "tipo": "snack", "baby": "...", "babyShort": "...", "tags": [...] },
+    { "tipo": "comida", "baby": "...", "babyShort": "...", "tags": [...] },
+    { "tipo": "merienda", "baby": "...", "babyShort": "...", "tags": [...] },
+    { "tipo": "cena", "baby": "...", "babyShort": "...", "tags": [...] }
   ]
 }`;
     } else if (type === 'suggest_meal') {
@@ -380,6 +382,7 @@ ${JSON.stringify(weekContext, null, 2).slice(0, 3000)}
 Devuelve SOLO el JSON de esa comida:
 {
   "baby": "descripción de la comida",
+  "babyShort": "nombre corto",
   "tags": ["tag1", "tag2"]
 }`;
     } else if (type === 'quick_meal') {
@@ -396,6 +399,7 @@ ${reqList ? `\nRequisitos nutricionales: ${reqList}` : ''}${prepNote}
 Devuelve SOLO este JSON:
 {
   "baby": "descripción breve de la comida",
+  "babyShort": "nombre corto",
   "tags": ["tag1", "tag2"]
 }`;
     } else if (type === 'fix_kpi') {

@@ -1,25 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { useKPIs } from '../../hooks/useKPIs';
-import { Sunrise, Apple, Utensils, Coffee, Moon, Trash2, Check, Circle, ArrowLeftRight, Droplets, Fish, Leaf, Bean } from 'lucide-react';
+import { Sun, Banana, Apple, Utensils, Citrus, Moon, Trash2, Check, Circle, ArrowLeftRight, Droplets, Fish, Leaf, Bean } from 'lucide-react';
 
 const MEAL_ICONS = {
-  desayuno: Sunrise,
-  snack: Apple,
+  desayuno: Sun,
+  snack: Banana,
   comida: Utensils,
-  merienda: Coffee,
+  merienda: Citrus,
   cena: Moon,
 };
-
-function effectiveText(meal) {
-  const t = meal.track;
-  if (!t?.status && !t?.done) return meal.baby;
-  if (t.status === 'other' && t.altFood) return t.altFood;
-  if (t.status === 'partial') {
-    if (t.checkedIngredients?.length) return t.checkedIngredients.join(', ');
-    if (t.extra) return t.extra;
-  }
-  return meal.baby;
-}
 
 function shortName(text) {
   if (!text) return '';
@@ -34,8 +23,31 @@ function shortName(text) {
       return `${first} ${conn} ${words[idx + 1]}`;
     }
   }
-  // No connector found: first word only
-  return first;
+  // No connector: take as many words as fit within 22 chars
+  let result = first;
+  for (let i = 1; i < words.length; i++) {
+    const candidate = result + ' ' + words[i];
+    if (candidate.length > 22) break;
+    result = candidate;
+  }
+  return result;
+}
+
+function summaryText(meal) {
+  const t = meal.track;
+  // Base name: prefer AI-generated short version, fall back to algorithmic truncation
+  const baseName = meal.babyShort || shortName(meal.baby || '');
+
+  // 'other': show what was actually eaten
+  if (t?.status === 'other' && t.altFood) return shortName(t.altFood);
+
+  // Extra food eaten alongside planned meal: append with "+"
+  if (t?.extra) {
+    const extraShort = t.extra.split(/[\s,]+/).slice(0, 2).join(' ');
+    return `${baseName} + ${extraShort}`;
+  }
+
+  return baseName;
 }
 
 export default function DayCard({ dayData, onClick, isToday, onClear, highlightedMeals }) {
@@ -123,7 +135,7 @@ export default function DayCard({ dayData, onClick, isToday, onClear, highlighte
               </span>
               <div className="flex-1 min-w-0">
                 {meal.baby ? (
-                  <p className={`text-xs truncate ${isHighlighted ? 'text-amber-700 font-medium' : 'text-gray-700'}`}>{shortName(effectiveText(meal))}</p>
+                  <p className={`text-xs truncate ${isHighlighted ? 'text-amber-700 font-medium' : 'text-gray-700'}`}>{summaryText(meal)}</p>
                 ) : (
                   <div className="h-2.5 bg-gray-100 rounded w-3/4" />
                 )}

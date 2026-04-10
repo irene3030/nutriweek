@@ -276,6 +276,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
         meals: (day.meals || []).map(meal => ({
           tipo: meal.tipo,
           baby: meal.baby ?? '',
+          ...(meal.babyShort ? { babyShort: meal.babyShort } : {}),
           adult: meal.adult ?? '',
           tags: meal.tags ?? [],
           track: meal.track ?? null,
@@ -410,7 +411,6 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
     setShowFixedMeals(false);
     setNewFixed({ day: 'Lun', tipo: 'comida', text: '', anyDay: false });
     setRecurringMeals([]);
-    setRecurringInput('');
     setMealSlots(DEFAULT_SLOTS);
     setIncludeWeekend(true);
     onClose();
@@ -1004,8 +1004,6 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
       {step === 'loading' && (
         <div className="py-8 text-center">
           <MenuLoadingAnimation />
-          <p className="text-gray-700 font-semibold -mt-2">Generando tu menú semanal...</p>
-          <p className="text-gray-400 text-sm mt-1">Claude está creando un plan nutritivo completo</p>
         </div>
       )}
 

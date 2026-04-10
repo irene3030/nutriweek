@@ -37,6 +37,7 @@ export default function MealEditor({
   onCancel,
 }) {
   const [baby, setBaby] = useState('');
+  const [babyShort, setBabyShort] = useState('');
   const [tags, setTags] = useState([]);
 
   // Regenerate
@@ -63,6 +64,7 @@ export default function MealEditor({
   useEffect(() => {
     if (meal) {
       setBaby(meal.baby || '');
+      setBabyShort(meal.babyShort || '');
       setTags(meal.tags || []);
     }
   }, [meal]);
@@ -89,6 +91,7 @@ export default function MealEditor({
         apiKey,
       });
       if (result.baby) setBaby(result.baby);
+      if (result.babyShort) setBabyShort(result.babyShort);
       if (result.tags) setTags(result.tags);
       track('meal_suggested', { day: dayName, meal_type: meal?.tipo, tags: result.tags || [] });
       setShowRegen(false);
@@ -117,11 +120,12 @@ export default function MealEditor({
 
   const handleUseRecipe = (recipe) => {
     setBaby(recipe.baby || '');
+    setBabyShort(''); // recipe has no AI-generated short name
     setTags(recipe.tags || []);
     setShowRecipes(false);
   };
 
-  const handleSubmit = () => onSave({ baby, tags });
+  const handleSubmit = () => onSave({ baby, ...(babyShort ? { babyShort } : {}), tags });
 
   return (
     <div className="space-y-4">
@@ -133,7 +137,7 @@ export default function MealEditor({
         </label>
         <textarea
           value={baby}
-          onChange={(e) => setBaby(e.target.value)}
+          onChange={(e) => { setBaby(e.target.value); setBabyShort(''); }}
           placeholder="Ej: Salmón al vapor + brócoli en trozos + arroz"
           rows={2}
           className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 resize-none"
