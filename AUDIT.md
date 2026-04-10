@@ -66,12 +66,8 @@
 - **Recomendación**: Añadir focus trap, `aria-labelledby="modal-title"` en el dialog, `id="modal-title"` en el `<h2>`, handler de Escape.
 - **Comando**: `/harden`
 
-#### [P2] Touch targets ~28px — mínimo 44px
-- **Archivos**: `WeekHeader.jsx:64,73` · `DayView.jsx:127,137,148` · `MealSlot.jsx:133-141` · `WeekKPIs.jsx` botones de navegación
-- **Categoría**: Responsive / Accesibilidad
-- **Impacto**: Botones de icono usan `p-1` o `p-1.5`, resultando en 28–32px. Crítico en contexto de uso mobile con una mano (padre/madre con bebé en brazos).
-- **Recomendación**: Subir botones de solo-icono a `p-2.5` (44px total con icono de 24px) o usar `min-h-[44px] min-w-[44px]`.
-- **Comando**: `/adapt`
+#### ~~[P2] Touch targets ~28px — mínimo 44px~~ ✅ Corregido
+- Corregido en `/adapt`. Todos los botones de icono usan ahora `min-h-[44px] min-w-[44px] flex items-center justify-center`. Track button de MealSlot usa `min-h-[44px] inline-flex items-center`. Afectados: WeekHeader (flechas nav, share, delete, nueva semana), DayView (cerrar, flechas día), MealSlot (editar, registrar), WeekKPIs (cerrar drawer).
 
 #### ~~[P2] `rounded-full` generalizado — contradice estética blueprint~~ ✅ Corregido
 - Corregido en `/normalize`. 50+ instancias cambiadas a `rounded` (4px). Mantenido `rounded-full` solo en: spinners, avatares, toggles, progress bars.
