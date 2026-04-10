@@ -18,6 +18,12 @@ dist/
 *.swp
 *.swo
 
+# Local tooling (Claude Code, Kiro, agent skills)
+.claude/
+.agents/
+.kiro/
+skills-lock.json
+
 # OS
 .DS_Store
 Thumbs.db
