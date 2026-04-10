@@ -6,11 +6,11 @@ const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const MEAL_TYPES = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
 
 const KPI_DAY_META = {
-  iron:   { Icon: Droplets, label: 'Hierro' },
-  fish:   { Icon: Fish,     label: 'Pescado graso' },
-  legume: { Icon: Bean,     label: 'Legumbre' },
-  fruit:  { Icon: Apple,    label: 'Fruta' },
-  veggie: { Icon: Leaf,     label: 'Verduras' },
+  iron:   { Icon: Droplets, label: 'Hierro',        colors: 'bg-orange-50 text-orange-700 border-orange-100' },
+  fish:   { Icon: Fish,     label: 'Pescado graso', colors: 'bg-blue-50 text-blue-700 border-blue-100' },
+  legume: { Icon: Bean,     label: 'Legumbre',      colors: 'bg-green-50 text-green-700 border-green-100' },
+  fruit:  { Icon: Apple,    label: 'Fruta',         colors: 'bg-amber-50 text-amber-700 border-amber-100' },
+  veggie: { Icon: Leaf,     label: 'Verduras',      colors: 'bg-lime-50 text-lime-700 border-lime-100' },
 };
 
 function computeDayContributions(dayData, kpiConfig) {
@@ -192,7 +192,7 @@ export default function DayView({
             <p className="text-xs text-gray-400 mb-2">Contribución de hoy</p>
             <div className="flex flex-wrap gap-1.5">
               {contributions.map(c => (
-                <span key={c.id} className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-100">
+                <span key={c.id} className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border ${c.colors || 'bg-brand-50 text-brand-700 border-brand-100'}`}>
                   {c.Icon && <c.Icon className="w-3 h-3 shrink-0" />}
                   {c.value} {c.label}
                 </span>

@@ -92,12 +92,9 @@ export default function MealSlot({
   };
 
   return (
-    <div className="flex gap-0 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-shadow">
-      {/* Color bar */}
-      <div className={`w-1 rounded-l-xl shrink-0 ${barColor}`} />
-
+    <div className="bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-shadow">
       {/* Content */}
-      <div className="flex-1 min-w-0 px-3 py-3">
+      <div className="px-3 py-3">
         {/* Header */}
         <div className="flex items-center justify-between mb-1">
           <span className="text-xs font-semibold text-gray-500 flex items-center gap-1">
