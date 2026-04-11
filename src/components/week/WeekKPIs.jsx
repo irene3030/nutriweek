@@ -282,7 +282,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, o
           <svg className="w-3.5 h-3.5 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <div className="absolute bottom-full left-0 mb-1.5 px-2 py-1.5 bg-gray-800 text-white text-xs rounded-lg w-56 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
+          <div className="absolute bottom-full left-0 mb-1.5 px-2 py-1.5 bg-gray-800 text-white text-xs rounded-lg w-[28rem] opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
             Los targets se adaptan automáticamente a las franjas activas del menú
             <div className="absolute top-full left-3 border-4 border-transparent border-t-gray-800" />
           </div>
@@ -512,7 +512,7 @@ function KPIPill({ IconComponent, label, value, target, status, statusColors, on
           <span className="text-xs font-semibold">{label}</span>
         </div>
         {disabledTooltip && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
             {disabledTooltip}
             <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
           </div>
@@ -539,7 +539,7 @@ function KPIPill({ IconComponent, label, value, target, status, statusColors, on
         )}
       </div>
       {tooltip && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10 whitespace-pre-wrap text-left" style={{ minWidth: '100px', maxWidth: '200px' }}>
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1.5 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-pre-wrap text-left" style={{ minWidth: '200px', maxWidth: '480px' }}>
           {tooltip}
           <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
         </div>

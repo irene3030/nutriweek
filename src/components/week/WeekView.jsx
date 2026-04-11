@@ -126,8 +126,8 @@ export default function WeekView({
         {currentWeek ? (
           <>
             <div className="px-4 pt-4 pb-4">
-              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+              <div className="bg-white rounded-2xl border border-gray-100 overflow-visible">
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 rounded-t-2xl">
                   <Calendar className="w-4 h-4 text-gray-500" />
                   <span className="text-sm font-semibold text-gray-800">Planificación semanal</span>
                 </div>
@@ -140,7 +140,7 @@ export default function WeekView({
                   kpiConfig={kpiConfig}
                   onUpdateKpiConfig={onUpdateKpiConfig}
                 />
-                <div className="border-t border-gray-100 p-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+                <div className="border-t border-gray-100 p-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 rounded-b-2xl">
                   {sortedDays.map((dayData) => (
                     <DayCard
                       key={dayData.day}
