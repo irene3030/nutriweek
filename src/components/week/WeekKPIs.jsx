@@ -11,7 +11,7 @@ const MEAL_LABELS = {
 
 const PROTEIN_LABELS = { iron: 'hierro', fish: 'pescado', egg: 'huevo', legume: 'legumbre', dairy: 'lácteo' };
 
-export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, onFixesChange, kpiConfig, onUpdateKpiConfig }) {
+export default function WeekKPIs({ weekDoc, hasAiAccess, onApplyFixes, onFixesChange, kpiConfig, onUpdateKpiConfig }) {
   const config = {
     active: kpiConfig?.active ?? DEFAULT_KPI_CONFIG.active,
     targets: kpiConfig?.targets ?? {},
@@ -152,7 +152,7 @@ export default function WeekKPIs({ weekDoc, apiKey, hasAiAccess, onApplyFixes, o
         ...activeCustomKPIs.map(k => `${k.name} ${kpis.customResults?.[k.id] ?? 0}/${config.targets[k.id] ?? k.target ?? 3} días`),
       ].filter(Boolean);
 
-      const result = await fixKPI({ kpiType, weekContext: futureDays(weekDoc.days), kpiState, activeTipos, allKpiStates, apiKey });
+      const result = await fixKPI({ kpiType, weekContext: futureDays(weekDoc.days), kpiState, activeTipos, allKpiStates });
       const validFixes = (result.fixes || []).filter(f => {
         if (!activeTipos.includes(f.tipo)) return false;
         const originalDay = weekDoc?.days?.find(d => d.day === f.day);

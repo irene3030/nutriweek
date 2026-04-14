@@ -33,13 +33,19 @@ function shortName(text) {
   return result;
 }
 
-function summaryText(meal) {
+function summaryText(meal, ingredientsMode) {
   const t = meal.track;
+
+  // 'other': always show what was actually eaten regardless of mode
+  if (t?.status === 'other' && t.altFood) return shortName(t.altFood);
+
+  // Ingredients mode: show raw ingredients list if available, else fall back to normal
+  if (ingredientsMode && Array.isArray(meal.ingredients) && meal.ingredients.length > 0) {
+    return meal.ingredients.join(', ');
+  }
+
   // Base name: prefer AI-generated short version, fall back to algorithmic truncation
   const baseName = meal.babyShort || shortName(meal.baby || '');
-
-  // 'other': show what was actually eaten
-  if (t?.status === 'other' && t.altFood) return shortName(t.altFood);
 
   // Extra food eaten alongside planned meal: append with "+"
   if (t?.extra) {
@@ -50,7 +56,7 @@ function summaryText(meal) {
   return baseName;
 }
 
-export default function DayCard({ dayData, onClick, isToday, onClear, highlightedMeals }) {
+export default function DayCard({ dayData, onClick, isToday, onClear, highlightedMeals, ingredientsMode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -135,7 +141,7 @@ export default function DayCard({ dayData, onClick, isToday, onClear, highlighte
               </span>
               <div className="flex-1 min-w-0">
                 {meal.baby ? (
-                  <p className={`text-xs truncate ${isHighlighted ? 'text-amber-700 font-medium' : 'text-gray-700'}`}>{summaryText(meal)}</p>
+                  <p className={`text-xs truncate ${isHighlighted ? 'text-amber-700 font-medium' : 'text-gray-700'}`}>{summaryText(meal, ingredientsMode)}</p>
                 ) : (
                   <div className="h-2.5 bg-gray-100 rounded w-3/4" />
                 )}

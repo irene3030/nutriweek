@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AuthContext, useAuth, useAuthProvider } from './hooks/useAuth';
 import { Star, User as UserIcon, Lightbulb, Check, Baby, Zap } from 'lucide-react';
-import { setPreCallHook, validateFFCode } from './lib/claude';
+import { validateFFCode } from './lib/claude';
 import { createInvite, buildInviteUrl, redeemInvite } from './lib/invites';
 import { identify, resetIdentity, track } from './lib/analytics';
 import { useWeek } from './hooks/useWeek';
@@ -70,6 +70,7 @@ function AppContent() {
   const [showQuickMeal, setShowQuickMeal] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [showFFWelcome, setShowFFWelcome] = useState(false);
+  const [ingredientsMode, setIngredientsMode] = useState(false);
 
   const {
     weeks,
@@ -152,7 +153,7 @@ function AppContent() {
       await updateDoc(doc(db, 'users', auth.user.uid), { tourCompleted: true });
     }
   }, [auth.user]);
-  // Listen to household doc in real-time (apiKey + usage data)
+  // Listen to household doc in real-time (usage data + access flags)
   useEffect(() => {
     if (!auth.userDoc?.householdId) return;
     const unsub = onSnapshot(doc(db, 'households', auth.userDoc.householdId), (snap) => {
@@ -165,36 +166,6 @@ function AppContent() {
     return unsub;
   }, [auth.userDoc?.householdId]);
 
-  // Register pre-call hook: check monthly limit and increment counter
-  useEffect(() => {
-    const householdId = auth.userDoc?.householdId;
-    if (!householdId || !householdDoc) return;
-
-    setPreCallHook(async ({ apiKey }) => {
-      const householdRef = doc(db, 'households', householdId);
-
-      if (apiKey) {
-        // Personal API key — track monthly usage
-        const currentMonth = new Date().toISOString().slice(0, 7);
-        const storedMonth = householdDoc.aiCallMonth;
-        const calls = storedMonth === currentMonth ? (householdDoc.aiCallsThisMonth || 0) : 0;
-        const limit = householdDoc.aiCallLimit || null;
-        if (limit && calls >= limit) throw new Error('CALL_LIMIT_EXCEEDED');
-        await updateDoc(householdRef, { aiCallsThisMonth: calls + 1, aiCallMonth: currentMonth });
-        return;
-      }
-
-      // No personal key — check Friends & Family free quota
-      if (householdDoc.ffActivated) {
-        const used = householdDoc.freeCallsUsed || 0;
-        if (used >= 30) throw new Error('FREE_QUOTA_EXCEEDED');
-        await updateDoc(householdRef, { freeCallsUsed: used + 1 });
-        return;
-      }
-
-      throw new Error('NO_API_KEY');
-    });
-  }, [auth.userDoc?.householdId, householdDoc]);
 
   // Load saved recipes
   useEffect(() => {
@@ -311,6 +282,8 @@ function AppContent() {
               currentWeekIndex={currentWeekIndex}
               loading={weeksLoading}
               saving={saving}
+              ingredientsMode={ingredientsMode}
+              onToggleIngredientsMode={() => setIngredientsMode(v => !v)}
               onGoToPrevious={goToPreviousWeek}
               onGoToNext={goToNextWeek}
               onNewWeek={handleNewWeek}
@@ -324,7 +297,6 @@ function AppContent() {
               foodHistory={foodHistory}
               savedRecipes={savedRecipes}
               usualMeals={usualMeals}
-              apiKey={householdApiKey}
               hasAiAccess={
                 !!householdApiKey ||
                 (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)
@@ -354,7 +326,6 @@ function AppContent() {
               <div className="max-w-2xl mx-auto px-4 py-4">
                 <UsualMeals
                   householdId={auth.userDoc?.householdId}
-                  apiKey={householdApiKey}
                   hasAiAccess={
                     !!householdApiKey ||
                     (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)
@@ -370,7 +341,6 @@ function AppContent() {
 
           {activeTab === 'day' && (
             <DayPlayground
-              apiKey={householdApiKey}
               hasAiAccess={
                 !!householdApiKey ||
                 (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)
@@ -392,7 +362,7 @@ function AppContent() {
                 weekDoc={currentWeek}
                 dayIndex={selectedDayIndex}
                 householdId={auth.userDoc.householdId}
-                apiKey={householdApiKey}
+                ingredientsMode={ingredientsMode}
                 hasAiAccess={
                   !!householdApiKey ||
                   (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)
@@ -416,7 +386,6 @@ function AppContent() {
         <QuickMealModal
           isOpen={showQuickMeal}
           onClose={() => setShowQuickMeal(false)}
-          apiKey={householdApiKey}
           hasAiAccess={!!householdApiKey || (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)}
           currentWeek={currentWeek}
           onAddToWeek={handleAddMealToSlot}

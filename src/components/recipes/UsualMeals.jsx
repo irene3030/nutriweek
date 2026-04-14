@@ -58,7 +58,7 @@ function resizeImage(file) {
   });
 }
 
-export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWeek }) {
+export default function UsualMeals({ householdId, hasAiAccess, onAddToWeek }) {
   const [meals, setMeals] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', baby: '', adult: '', tags: [] });
@@ -131,7 +131,7 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
     setDetecting(true);
     setDetectError(null);
     try {
-      const result = await detectTags({ text, apiKey });
+      const result = await detectTags({ text });
       setForm(prev => ({ ...prev, tags: result.tags || [] }));
     } catch (err) {
       setDetectError(
@@ -168,7 +168,6 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
       const result = await analyzeMealPhoto({
         imageBase64: resized.base64,
         mimeType: 'image/jpeg',
-        apiKey,
       });
       if (result?.name) {
         let photoTags = (result.tags || []).filter(t =>
@@ -177,7 +176,7 @@ export default function UsualMeals({ householdId, apiKey, hasAiAccess, onAddToWe
         // Fallback: si no hay tags (o solo hay veggie sin nombre), complementar con detectTags sobre el nombre
         if (photoTags.length === 0) {
           try {
-            const detected = await detectTags({ text: result.name, apiKey });
+            const detected = await detectTags({ text: result.name });
             photoTags = detected.tags || [];
           } catch { /* ignorar error del fallback */ }
         }

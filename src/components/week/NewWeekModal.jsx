@@ -170,7 +170,7 @@ function enforceSlots(result, mealSlots) {
   return { ...result, days };
 }
 
-export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds = [], pastWeeks = [], foodHistory, savedRecipes, usualMeals = [], apiKey, hasAiAccess, kpiConfig, onUpdateKpiConfig, babyProfile = null }) {
+export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds = [], pastWeeks = [], foodHistory, savedRecipes, usualMeals = [], hasAiAccess, kpiConfig, onUpdateKpiConfig, babyProfile = null }) {
   const [step, setStep] = useState('form');
   const [copyFromWeekId, setCopyFromWeekId] = useState('');
   const [ingredientPills, setIngredientPills] = useState([]);
@@ -265,7 +265,6 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
         season: getSeason(mondayDate),
         vetoedIngredients,
         babyProfile,
-        apiKey,
       });
       let proposed = enforceSlots(result, mealSlots);
       if (!includeWeekend) {
@@ -277,6 +276,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
           tipo: meal.tipo,
           baby: meal.baby ?? '',
           ...(meal.babyShort ? { babyShort: meal.babyShort } : {}),
+          ...(meal.ingredients ? { ingredients: meal.ingredients } : {}),
           adult: meal.adult ?? '',
           tags: meal.tags ?? [],
           track: meal.track ?? null,
@@ -304,7 +304,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
     setIngredientsLoading(true);
     setIngredientsError(null);
     try {
-      const result = await suggestIngredients({ foodHistory, availableIngredients: ingredientPills.join(', '), mealSlots, apiKey });
+      const result = await suggestIngredients({ foodHistory, availableIngredients: ingredientPills.join(', '), mealSlots });
       setIngredientsList((result.ingredients || []).map(i => ({
         ...i,
         removed: false,
@@ -368,7 +368,6 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
         ingredient: item.customName || item.name,
         category: item.category,
         existingInCategory,
-        apiKey,
       });
       setIngredientsList(prev => prev.map(i => i.id === id ? { ...i, customName: result.alternative, editing: false, altLoading: false } : i));
     } catch {

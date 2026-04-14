@@ -57,8 +57,8 @@ export default function MealSlot({
   weekId,
   weekContext,
   householdId,
-  apiKey,
   hasAiAccess,
+  ingredientsMode,
   onSave,
   onTrack,
   onCopy,
@@ -146,7 +146,11 @@ export default function MealSlot({
                 {/* Planned meal — struck through if 'other' */}
                 <p className={`text-sm leading-snug ${
                   meal?.track?.status === 'other' ? 'text-gray-400 line-through' : 'text-gray-800'
-                }`}>{meal.baby}</p>
+                }`}>
+                  {ingredientsMode && Array.isArray(meal.ingredients) && meal.ingredients.length > 0
+                    ? meal.ingredients.join(', ')
+                    : meal.baby}
+                </p>
 
                 {/* Actual eaten — 'other' status */}
                 {meal?.track?.status === 'other' && meal.track.altFood && (
@@ -222,7 +226,6 @@ export default function MealSlot({
               dayName={dayName}
               weekContext={weekContext}
               householdId={householdId}
-              apiKey={apiKey}
               hasAiAccess={hasAiAccess}
               onSave={handleSave}
               onCopy={handleCopy}
@@ -240,7 +243,7 @@ export default function MealSlot({
         meal={meal}
         dayName={dayName}
         onSave={handleTrackSave}
-        apiKey={apiKey}
+        hasAiAccess={hasAiAccess}
       />
     </div>
   );

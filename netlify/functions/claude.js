@@ -1,5 +1,37 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { PostHog } from 'posthog-node';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
+
+function getAdminApp() {
+  if (getApps().length > 0) return getApps()[0];
+  const serviceAccount = JSON.parse(
+    Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_B64, 'base64').toString('utf-8')
+  );
+  return initializeApp({ credential: cert(serviceAccount) });
+}
+
+async function verifyToken(authHeader) {
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  try {
+    const decoded = await getAuth(getAdminApp()).verifyIdToken(authHeader.slice(7));
+    return decoded.uid;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchHousehold(uid) {
+  const db = getFirestore(getAdminApp());
+  const userSnap = await db.doc(`users/${uid}`).get();
+  if (!userSnap.exists) return null;
+  const householdId = userSnap.data().householdId;
+  if (!householdId) return null;
+  const householdSnap = await db.doc(`households/${householdId}`).get();
+  if (!householdSnap.exists) return null;
+  return { householdId, ...householdSnap.data() };
+}
 
 const posthog = process.env.POSTHOG_KEY
   ? new PostHog(process.env.POSTHOG_KEY, {
@@ -65,7 +97,7 @@ function corsHeaders(requestOrigin) {
     : ALLOWED_ORIGINS[0];
   return {
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Headers': 'Content-Type, X-POSTHOG-DISTINCT-ID',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-POSTHOG-DISTINCT-ID',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Vary': 'Origin',
   };
@@ -90,10 +122,21 @@ export const handler = async (event) => {
   const distinctId = event.headers?.['x-posthog-distinct-id'] || null;
 
   try {
-    const body = JSON.parse(event.body);
-    const { type, payload, apiKey } = body;
+    // Verify Firebase auth token
+    const authHeader = event.headers?.authorization || event.headers?.Authorization;
+    const uid = await verifyToken(authHeader);
+    if (!uid) {
+      return {
+        statusCode: 401,
+        headers: { ...cors, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'No autorizado' }),
+      };
+    }
 
-    // validate_ff_code does not need an Anthropic API key — handle it first
+    const body = JSON.parse(event.body);
+    const { type, payload } = body;
+
+    // validate_ff_code only needs auth, not a household API key
     if (type === 'validate_ff_code') {
       const ffCode = process.env.FRIENDS_FAMILY_CODE;
       if (!ffCode) {
@@ -111,12 +154,59 @@ export const handler = async (event) => {
       };
     }
 
-    const resolvedKey = apiKey || process.env.ANTHROPIC_API_KEY;
-    if (!resolvedKey) {
+    // Fetch household and resolve API key server-side (key never sent from client)
+    const household = await fetchHousehold(uid);
+    if (!household) {
+      return {
+        statusCode: 403,
+        headers: { ...cors, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Household no encontrado' }),
+      };
+    }
+
+    const db = getFirestore(getAdminApp());
+    const householdRef = db.doc(`households/${household.householdId}`);
+    let resolvedKey;
+
+    if (household.anthropicApiKey) {
+      // Personal API key — enforce monthly call limit server-side
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const storedMonth = household.aiCallMonth || '';
+      const calls = storedMonth === currentMonth ? (household.aiCallsThisMonth || 0) : 0;
+      const limit = household.aiCallLimit || null;
+      if (limit && calls >= limit) {
+        return {
+          statusCode: 429,
+          headers: { ...cors, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'CALL_LIMIT_EXCEEDED' }),
+        };
+      }
+      await householdRef.update({ aiCallsThisMonth: calls + 1, aiCallMonth: currentMonth });
+      resolvedKey = household.anthropicApiKey;
+    } else if (household.ffActivated) {
+      // Friends & Family quota — enforce server-side
+      const used = household.freeCallsUsed || 0;
+      if (used >= 30) {
+        return {
+          statusCode: 429,
+          headers: { ...cors, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'FREE_QUOTA_EXCEEDED' }),
+        };
+      }
+      if (!process.env.ANTHROPIC_API_KEY) {
+        return {
+          statusCode: 503,
+          headers: { ...cors, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'NO_API_KEY' }),
+        };
+      }
+      await householdRef.update({ freeCallsUsed: used + 1 });
+      resolvedKey = process.env.ANTHROPIC_API_KEY;
+    } else {
       return {
         statusCode: 400,
         headers: { ...cors, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'No hay API key configurada. Añádela en la sección Perfil.' }),
+        body: JSON.stringify({ error: 'NO_API_KEY' }),
       };
     }
 
@@ -323,6 +413,7 @@ Devuelve un JSON con esta estructura exacta:
           "tipo": "desayuno",
           "baby": "descripción de la comida",
           "babyShort": "nombre corto",
+          "ingredients": ["ingrediente1", "ingrediente2"],
           "tags": ["tag1", "tag2"]
         },
         { "tipo": "snack", ... },
@@ -333,7 +424,9 @@ Devuelve un JSON con esta estructura exacta:
     },
     ... (7 días: Lun, Mar, Mié, Jue, Vie, Sáb, Dom)
   ]
-}`;
+}
+
+El campo "ingredients" debe contener la lista de ingredientes principales en crudo (nombres simples, sin preparación): p.ej. para "tortilla de patata con calabacín" → ["huevo", "patata", "calabacín"].`;
     } else if (type === 'regenerate_day') {
       const { dayName, weekContext, availableIngredients, fixedMeals } = payload;
 
@@ -359,13 +452,15 @@ Devuelve SOLO el JSON de ese día:
 {
   "day": "${safeDayName}",
   "meals": [
-    { "tipo": "desayuno", "baby": "...", "babyShort": "...", "tags": [...] },
-    { "tipo": "snack", "baby": "...", "babyShort": "...", "tags": [...] },
-    { "tipo": "comida", "baby": "...", "babyShort": "...", "tags": [...] },
-    { "tipo": "merienda", "baby": "...", "babyShort": "...", "tags": [...] },
-    { "tipo": "cena", "baby": "...", "babyShort": "...", "tags": [...] }
+    { "tipo": "desayuno", "baby": "...", "babyShort": "...", "ingredients": ["ing1", "ing2"], "tags": [...] },
+    { "tipo": "snack", "baby": "...", "babyShort": "...", "ingredients": ["ing1", "ing2"], "tags": [...] },
+    { "tipo": "comida", "baby": "...", "babyShort": "...", "ingredients": ["ing1", "ing2"], "tags": [...] },
+    { "tipo": "merienda", "baby": "...", "babyShort": "...", "ingredients": ["ing1", "ing2"], "tags": [...] },
+    { "tipo": "cena", "baby": "...", "babyShort": "...", "ingredients": ["ing1", "ing2"], "tags": [...] }
   ]
-}`;
+}
+
+El campo "ingredients" debe contener la lista de ingredientes principales en crudo (nombres simples, sin preparación).`;
     } else if (type === 'suggest_meal') {
       const { dayName, mealType, weekContext, ingredients, requirements } = payload;
       const safeDayName = sanitize(dayName, 10);
@@ -383,8 +478,11 @@ Devuelve SOLO el JSON de esa comida:
 {
   "baby": "descripción de la comida",
   "babyShort": "nombre corto",
+  "ingredients": ["ingrediente1", "ingrediente2"],
   "tags": ["tag1", "tag2"]
-}`;
+}
+
+El campo "ingredients" debe contener la lista de ingredientes principales en crudo (nombres simples, sin preparación).`;
     } else if (type === 'quick_meal') {
       const { ingredients, requirements, prepTime } = payload;
       const safeIngredients = sanitize(ingredients, 300);
@@ -400,8 +498,11 @@ Devuelve SOLO este JSON:
 {
   "baby": "descripción breve de la comida",
   "babyShort": "nombre corto",
+  "ingredients": ["ingrediente1", "ingrediente2"],
   "tags": ["tag1", "tag2"]
-}`;
+}
+
+El campo "ingredients" debe contener la lista de ingredientes principales en crudo (nombres simples, sin preparación).`;
     } else if (type === 'fix_kpi') {
       const { kpiType, weekContext, kpiState, activeTipos, allKpiStates } = payload;
       const safeKpiType = sanitize(kpiType, 20);

@@ -29,7 +29,6 @@ export default function MealEditor({
   dayName,
   weekContext,
   householdId,
-  apiKey,
   hasAiAccess,
   onSave,
   onCopy,
@@ -38,6 +37,7 @@ export default function MealEditor({
 }) {
   const [baby, setBaby] = useState('');
   const [babyShort, setBabyShort] = useState('');
+  const [ingredients, setIngredients] = useState([]);
   const [tags, setTags] = useState([]);
 
   // Regenerate
@@ -65,6 +65,7 @@ export default function MealEditor({
     if (meal) {
       setBaby(meal.baby || '');
       setBabyShort(meal.babyShort || '');
+      setIngredients(meal.ingredients || []);
       setTags(meal.tags || []);
     }
   }, [meal]);
@@ -88,10 +89,10 @@ export default function MealEditor({
         weekContext,
         ingredients: regenIngredients,
         requirements: regenRequirements,
-        apiKey,
       });
       if (result.baby) setBaby(result.baby);
       if (result.babyShort) setBabyShort(result.babyShort);
+      if (result.ingredients) setIngredients(result.ingredients); else setIngredients([]);
       if (result.tags) setTags(result.tags);
       track('meal_suggested', { day: dayName, meal_type: meal?.tipo, tags: result.tags || [] });
       setShowRegen(false);
@@ -125,7 +126,7 @@ export default function MealEditor({
     setShowRecipes(false);
   };
 
-  const handleSubmit = () => onSave({ baby, ...(babyShort ? { babyShort } : {}), tags });
+  const handleSubmit = () => onSave({ baby, ...(babyShort ? { babyShort } : {}), ...(ingredients.length ? { ingredients } : {}), tags });
 
   return (
     <div className="space-y-4">
@@ -137,7 +138,7 @@ export default function MealEditor({
         </label>
         <textarea
           value={baby}
-          onChange={(e) => { setBaby(e.target.value); setBabyShort(''); }}
+          onChange={(e) => { setBaby(e.target.value); setBabyShort(''); setIngredients([]); }}
           placeholder="Ej: Salmón al vapor + brócoli en trozos + arroz"
           rows={2}
           className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 resize-none"

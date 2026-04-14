@@ -24,6 +24,8 @@ export default function WeekView({
   currentWeekIndex,
   loading,
   saving,
+  ingredientsMode,
+  onToggleIngredientsMode,
   onGoToPrevious,
   onGoToNext,
   onNewWeek,
@@ -36,7 +38,6 @@ export default function WeekView({
   foodHistory,
   savedRecipes,
   usualMeals,
-  apiKey,
   hasAiAccess,
   householdId,
   kpiConfig,
@@ -130,10 +131,23 @@ export default function WeekView({
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 rounded-t-2xl">
                   <Calendar className="w-4 h-4 text-gray-500" />
                   <span className="text-sm font-semibold text-gray-800">Planificación semanal</span>
+                  <div className="ml-auto flex items-center gap-1.5">
+                    <span className={`text-xs transition-colors ${ingredientsMode ? 'text-gray-400' : 'text-gray-500 font-medium'}`}>Plato</span>
+                    <button
+                      onClick={onToggleIngredientsMode}
+                      className={`relative rounded-full transition-colors shrink-0 ${ingredientsMode ? 'bg-brand-600' : 'bg-gray-200'}`}
+                      style={{ width: 28, height: 16 }}
+                      title={ingredientsMode ? 'Mostrando ingredientes' : 'Mostrando plato completo'}
+                    >
+                      <span
+                        className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${ingredientsMode ? 'translate-x-3.5' : 'translate-x-0.5'}`}
+                      />
+                    </button>
+                    <span className={`text-xs transition-colors ${ingredientsMode ? 'text-gray-500 font-medium' : 'text-gray-400'}`}>Ingredientes</span>
+                  </div>
                 </div>
                 <WeekKPIs
                   weekDoc={currentWeek}
-                  apiKey={apiKey}
                   hasAiAccess={hasAiAccess}
                   onApplyFixes={onApplyFixes}
                   onFixesChange={setPendingFixMeals}
@@ -149,6 +163,7 @@ export default function WeekView({
                       isToday={dayData.day === todayName}
                       onClear={() => onClearDay?.(dayData.day)}
                       highlightedMeals={pendingFixMeals?.filter(m => m.day === dayData.day) ?? null}
+                      ingredientsMode={ingredientsMode}
                     />
                   ))}
                 </div>
@@ -157,7 +172,6 @@ export default function WeekView({
 
             <BatchCooking
               weekDoc={currentWeek}
-              apiKey={apiKey}
               hasAiAccess={hasAiAccess}
               onUpdate={(items) => onUpdateBatchCooking(currentWeek.id, items)}
             />
@@ -212,7 +226,6 @@ export default function WeekView({
         foodHistory={foodHistory}
         savedRecipes={savedRecipes}
         usualMeals={usualMeals}
-        apiKey={apiKey}
         hasAiAccess={hasAiAccess}
         kpiConfig={kpiConfig}
         onUpdateKpiConfig={onUpdateKpiConfig}

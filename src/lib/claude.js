@@ -1,30 +1,24 @@
 import { track, getDistinctId } from './analytics';
+import { auth } from './firebase';
 
 const API_URL = '/api/claude';
 
-// Module-level pre-call hook — set from App.jsx to check limits and track usage.
-// Must throw an error to block the call, or resolve to allow it.
-let _preCallHook = null;
-export function setPreCallHook(fn) { _preCallHook = fn; }
+async function callClaude(type, payload) {
+  const user = auth.currentUser;
+  if (!user) throw new Error('NO_API_KEY');
 
-async function callClaude(type, payload, apiKey) {
-  if (_preCallHook) {
-    // Hook is responsible for: validating access (personal key OR free quota),
-    // tracking usage, and throwing NO_API_KEY / CALL_LIMIT_EXCEEDED / FREE_QUOTA_EXCEEDED.
-    await _preCallHook({ apiKey });
-  } else if (!apiKey) {
-    throw new Error('NO_API_KEY');
-  }
-
-  const headers = { 'Content-Type': 'application/json' };
+  const idToken = await user.getIdToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${idToken}`,
+  };
   const distinctId = getDistinctId();
   if (distinctId) headers['X-POSTHOG-DISTINCT-ID'] = distinctId;
 
   const response = await fetch(API_URL, {
     method: 'POST',
     headers,
-    // Only send apiKey when present; server falls back to its own key for free quota calls
-    body: JSON.stringify({ type, payload, ...(apiKey ? { apiKey } : {}) }),
+    body: JSON.stringify({ type, payload }),
   });
 
   if (!response.ok) {
@@ -36,76 +30,82 @@ async function callClaude(type, payload, apiKey) {
   return data.result;
 }
 
-export async function generateWeekMenu({ availableIngredients = '', fixedMeals = [], recurringMeals = [], mealSlots = null, foodHistory = [], savedRecipes = [], requiredIngredients = null, kpiOverrides = null, season = null, vetoedIngredients = null, babyProfile = null, apiKey } = {}) {
-  const result = await callClaude('generate_week', { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, kpiOverrides, season, vetoedIngredients, babyProfile }, apiKey);
+export async function generateWeekMenu({ availableIngredients = '', fixedMeals = [], recurringMeals = [], mealSlots = null, foodHistory = [], savedRecipes = [], requiredIngredients = null, kpiOverrides = null, season = null, vetoedIngredients = null, babyProfile = null } = {}) {
+  const result = await callClaude('generate_week', { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, kpiOverrides, season, vetoedIngredients, babyProfile });
   track('ai_week_generated');
   return result;
 }
 
-export async function suggestIngredients({ foodHistory = [], availableIngredients = '', mealSlots = null, apiKey } = {}) {
-  return callClaude('suggest_ingredients', { foodHistory, availableIngredients, mealSlots }, apiKey);
+export async function suggestIngredients({ foodHistory = [], availableIngredients = '', mealSlots = null } = {}) {
+  return callClaude('suggest_ingredients', { foodHistory, availableIngredients, mealSlots });
 }
 
-export async function suggestIngredientAlternative({ ingredient, category, existingInCategory = [], apiKey } = {}) {
-  return callClaude('suggest_ingredient_alternative', { ingredient, category, existingInCategory }, apiKey);
+export async function suggestIngredientAlternative({ ingredient, category, existingInCategory = [] } = {}) {
+  return callClaude('suggest_ingredient_alternative', { ingredient, category, existingInCategory });
 }
 
-export async function regenerateDay({ dayName, weekContext = [], availableIngredients = '', fixedMeals = [], apiKey }) {
-  const result = await callClaude('regenerate_day', { dayName, weekContext, availableIngredients, fixedMeals }, apiKey);
+export async function regenerateDay({ dayName, weekContext = [], availableIngredients = '', fixedMeals = [] }) {
+  const result = await callClaude('regenerate_day', { dayName, weekContext, availableIngredients, fixedMeals });
   track('ai_day_regenerated');
   return result;
 }
 
-export async function suggestMeal({ dayName, mealType, weekContext = [], ingredients = '', requirements = [], apiKey }) {
-  return callClaude('suggest_meal', { dayName, mealType, weekContext, ingredients, requirements }, apiKey);
+export async function suggestMeal({ dayName, mealType, weekContext = [], ingredients = '', requirements = [] }) {
+  return callClaude('suggest_meal', { dayName, mealType, weekContext, ingredients, requirements });
 }
 
-export async function quickMeal({ ingredients = '', requirements = [], prepTime = null, apiKey }) {
-  const result = await callClaude('quick_meal', { ingredients, requirements, prepTime }, apiKey);
+export async function quickMeal({ ingredients = '', requirements = [], prepTime = null }) {
+  const result = await callClaude('quick_meal', { ingredients, requirements, prepTime });
   track('ai_meal_suggested');
   return result;
 }
 
-export async function evaluateDay({ meals, apiKey }) {
-  return callClaude('evaluate_day', { meals }, apiKey);
+export async function evaluateDay({ meals }) {
+  return callClaude('evaluate_day', { meals });
 }
 
-export async function suggestDinner({ meals, weeklyFish = null, weeklyLegume = null, previousTitle = null, apiKey }) {
-  return callClaude('suggest_dinner', { meals, weeklyFish, weeklyLegume, previousTitle }, apiKey);
+export async function suggestDinner({ meals, weeklyFish = null, weeklyLegume = null, previousTitle = null }) {
+  return callClaude('suggest_dinner', { meals, weeklyFish, weeklyLegume, previousTitle });
 }
 
-export async function swapDinnerIngredient({ ingredient, role, otherIngredients = [], apiKey }) {
-  return callClaude('swap_dinner_ingredient', { ingredient, role, otherIngredients }, apiKey);
+export async function swapDinnerIngredient({ ingredient, role, otherIngredients = [] }) {
+  return callClaude('swap_dinner_ingredient', { ingredient, role, otherIngredients });
 }
 
-export async function detectTags({ text, apiKey }) {
-  return callClaude('detect_tags', { text }, apiKey);
+export async function detectTags({ text }) {
+  return callClaude('detect_tags', { text });
 }
 
-export async function analyzeMealPhoto({ imageBase64, mimeType = 'image/jpeg', apiKey }) {
-  return callClaude('analyze_meal_photo', { imageBase64, mimeType }, apiKey);
+export async function analyzeMealPhoto({ imageBase64, mimeType = 'image/jpeg' }) {
+  return callClaude('analyze_meal_photo', { imageBase64, mimeType });
 }
 
-export async function generateBatchCooking({ weekMenu, apiKey }) {
-  const result = await callClaude('batch_cooking', { weekMenu }, apiKey);
+export async function generateBatchCooking({ weekMenu }) {
+  const result = await callClaude('batch_cooking', { weekMenu });
   track('ai_batch_cooking_generated');
   return result;
 }
 
-export async function generateBatchCookingOptimized({ weekMenu, timeSessions, apiKey }) {
-  const result = await callClaude('batch_cooking_optimized', { weekMenu, timeSessions }, apiKey);
+export async function generateBatchCookingOptimized({ weekMenu, timeSessions }) {
+  const result = await callClaude('batch_cooking_optimized', { weekMenu, timeSessions });
   track('ai_batch_cooking_generated');
   return result;
 }
 
-export async function fixKPI({ kpiType, weekContext, kpiState, activeTipos, allKpiStates, apiKey }) {
-  return callClaude('fix_kpi', { kpiType, weekContext, kpiState, activeTipos, allKpiStates }, apiKey);
+export async function fixKPI({ kpiType, weekContext, kpiState, activeTipos, allKpiStates }) {
+  return callClaude('fix_kpi', { kpiType, weekContext, kpiState, activeTipos, allKpiStates });
 }
 
 export async function validateFFCode(code) {
+  const user = auth.currentUser;
+  const headers = { 'Content-Type': 'application/json' };
+  if (user) {
+    const idToken = await user.getIdToken();
+    headers['Authorization'] = `Bearer ${idToken}`;
+  }
   const response = await fetch(API_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ type: 'validate_ff_code', payload: { code } }),
   });
   if (!response.ok) {

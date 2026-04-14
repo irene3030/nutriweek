@@ -21,7 +21,7 @@ function parseIngredients(text) {
   return parts.length >= 2 ? parts : [];
 }
 
-export default function TrackModal({ isOpen, onClose, meal, dayName, onSave, apiKey }) {
+export default function TrackModal({ isOpen, onClose, meal, dayName, onSave, hasAiAccess }) {
   const [status, setStatus] = useState(null);
   const [checkedIngredients, setCheckedIngredients] = useState(new Set());
   const [extra, setExtra] = useState('');
@@ -72,17 +72,17 @@ export default function TrackModal({ isOpen, onClose, meal, dayName, onSave, api
     try {
       let tags = null;
 
-      if (apiKey) {
+      if (hasAiAccess) {
         if (status === 'partial' && hasChecklist && checkedIngredients.size > 0) {
           const text = [[...checkedIngredients].join(' y '), extra.trim()].filter(Boolean).join(' y ');
-          const res = await detectTags({ text, apiKey });
+          const res = await detectTags({ text });
           tags = res.tags?.length ? res.tags : null;
         } else if (status === 'other' && altFood.trim()) {
           const text = [altFood.trim(), extra.trim()].filter(Boolean).join(' y ');
-          const res = await detectTags({ text, apiKey });
+          const res = await detectTags({ text });
           tags = res.tags?.length ? res.tags : null;
         } else if (status === 'done' && extra.trim()) {
-          const res = await detectTags({ text: extra.trim(), apiKey });
+          const res = await detectTags({ text: extra.trim() });
           const extraTags = res.tags || [];
           tags = [...new Set([...(meal?.tags || []), ...extraTags])];
         }

@@ -16,7 +16,7 @@ const REQUIREMENTS = [
 const DAY_ORDER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const TIPOS = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
 
-export default function QuickMealModal({ isOpen, onClose, apiKey, hasAiAccess, currentWeek, onAddToWeek }) {
+export default function QuickMealModal({ isOpen, onClose, hasAiAccess, currentWeek, onAddToWeek }) {
   const [ingredients, setIngredients] = useState('');
   const [requirements, setRequirements] = useState([]);
   const [prepTime, setPrepTime] = useState(null); // null | 15 | 30
@@ -40,7 +40,7 @@ export default function QuickMealModal({ isOpen, onClose, apiKey, hasAiAccess, c
     setError(null);
     setResult(null);
     try {
-      const res = await quickMeal({ ingredients, requirements, prepTime, apiKey });
+      const res = await quickMeal({ ingredients, requirements, prepTime });
       setResult(res);
       track('quick_meal_generated', { tags: res.tags || [] });
     } catch (err) {

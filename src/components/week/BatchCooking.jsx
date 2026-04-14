@@ -56,7 +56,7 @@ function formatDuration(minutes) {
   return m > 0 ? `${h}h ${m}min` : `${h}h`;
 }
 
-export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate }) {
+export default function BatchCooking({ weekDoc, hasAiAccess, onUpdate }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -102,7 +102,7 @@ export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate })
     setLoading(true);
     setError(null);
     try {
-      const result = await generateBatchCooking({ weekMenu: buildWeekMenu(), apiKey });
+      const result = await generateBatchCooking({ weekMenu: buildWeekMenu() });
       const newSections = (result.sections || []).map(section => ({
         ...section,
         tasks: (section.tasks || []).map(task => ({ ...task, done: false })),
@@ -128,7 +128,6 @@ export default function BatchCooking({ weekDoc, apiKey, hasAiAccess, onUpdate })
       const result = await generateBatchCookingOptimized({
         weekMenu: buildWeekMenu(),
         timeSessions: validSessions,
-        apiKey,
       });
       const newSessions = (result.sessions || []).map(session => ({
         ...session,

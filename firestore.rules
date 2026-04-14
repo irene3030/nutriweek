@@ -29,8 +29,12 @@ service cloud.firestore {
     }
 
     match /households/{householdId} {
-      // Any authenticated user can read households
-      allow read: if request.auth != null;
+      // Members can read their own household.
+      // Users with no household yet (onboarding) can also read, so the inviteCode join flow works.
+      allow read: if request.auth != null && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.householdId == householdId ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.householdId == null
+      );
 
       // Allow creating a household if the creator is in the members array
       allow create: if request.auth != null &&

@@ -84,7 +84,7 @@ function EvaluateResult({ data }) {
 
 // ─── Dinner result ────────────────────────────────────────────────────────────
 
-function DinnerResult({ data, apiKey }) {
+function DinnerResult({ data }) {
   const [ingredients, setIngredients] = useState(() => data.ingredients || []);
   const [expandedIdx, setExpandedIdx] = useState(null);
   const [swappingIdx, setSwappingIdx] = useState(null);
@@ -105,7 +105,7 @@ function DinnerResult({ data, apiKey }) {
     setSwappingIdx(idx);
     try {
       const others = ingredients.filter((_, i) => i !== idx).map(i => i.name);
-      const res = await swapDinnerIngredient({ ingredient: ing.name, role: ing.why, otherIngredients: others, apiKey });
+      const res = await swapDinnerIngredient({ ingredient: ing.name, role: ing.why, otherIngredients: others });
       setIngredients(prev => prev.map((item, i) => i === idx ? { name: res.name, why: res.why } : item));
     } catch {
       // silently fail
@@ -174,7 +174,7 @@ function DinnerResult({ data, apiKey }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function DayPlayground({ apiKey, hasAiAccess, householdId }) {
+export default function DayPlayground({ hasAiAccess, householdId }) {
   const [mode, setMode] = useState('evaluate'); // 'evaluate' | 'dinner'
   const [meals, setMeals] = useState({});
   const [weeklyFish, setWeeklyFish] = useState(null);
@@ -221,11 +221,11 @@ export default function DayPlayground({ apiKey, hasAiAccess, householdId }) {
       .map(m => ({ tipo: m.id, text: meals[m.id].trim() }));
     try {
       if (mode === 'evaluate') {
-        const res = await evaluateDay({ meals: mealList, apiKey });
+        const res = await evaluateDay({ meals: mealList });
         setResult({ type: 'evaluate', data: res });
       } else {
         const previousTitle = result?.type === 'dinner' ? result.data.title : null;
-        const res = await suggestDinner({ meals: mealList, weeklyFish, weeklyLegume, previousTitle, apiKey });
+        const res = await suggestDinner({ meals: mealList, weeklyFish, weeklyLegume, previousTitle });
         setResult({ type: 'dinner', data: res });
       }
     } catch (err) {
@@ -356,7 +356,7 @@ export default function DayPlayground({ apiKey, hasAiAccess, householdId }) {
 
         {/* Result — dinner */}
         {result?.type === 'dinner' && (
-          <DinnerResult data={result.data} apiKey={apiKey} />
+          <DinnerResult data={result.data} />
         )}
 
         {/* Actions */}
