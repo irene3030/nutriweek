@@ -30,8 +30,8 @@ async function callClaude(type, payload) {
   return data.result;
 }
 
-export async function generateWeekMenu({ availableIngredients = '', fixedMeals = [], recurringMeals = [], mealSlots = null, foodHistory = [], savedRecipes = [], requiredIngredients = null, kpiOverrides = null, season = null, vetoedIngredients = null, babyProfile = null } = {}) {
-  const result = await callClaude('generate_week', { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, kpiOverrides, season, vetoedIngredients, babyProfile });
+export async function generateWeekMenu({ availableIngredients = '', fixedMeals = [], recurringMeals = [], mealSlots = null, foodHistory = [], savedRecipes = [], requiredIngredients = null, kpiOverrides = null, season = null, vetoedIngredients = null, babyProfile = null, consumedMeals = null, daysToGenerate = null } = {}) {
+  const result = await callClaude('generate_week', { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, kpiOverrides, season, vetoedIngredients, babyProfile, consumedMeals, daysToGenerate });
   track('ai_week_generated');
   return result;
 }

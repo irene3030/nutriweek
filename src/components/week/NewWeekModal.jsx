@@ -287,7 +287,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
         has_fixed_meals: fixedMeals.length > 0,
         has_recurring_meals: recurringMeals.length > 0,
       });
-      await onSave(mondayDate, weekLabel, cleanDays);
+      await onSave(mondayDate, weekLabel, cleanDays, ingredientPills);
       handleClose();
     } catch (err) {
       setError(
@@ -396,7 +396,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
         track: null,
       })),
     }));
-    onSave(mondayDate, weekLabel, cleanDays);
+    onSave(mondayDate, weekLabel, cleanDays, []);
     handleClose();
   };
 

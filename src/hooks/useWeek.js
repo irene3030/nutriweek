@@ -78,7 +78,7 @@ export function useWeek(householdId) {
     setCurrentWeekIndex((i) => Math.max(i - 1, 0));
   }, []);
 
-  const createWeek = useCallback(async (mondayDate, label, daysData = null) => {
+  const createWeek = useCallback(async (mondayDate, label, daysData = null, ingredients = []) => {
     if (!householdId) return;
     setSaving(true);
     try {
@@ -90,8 +90,8 @@ export function useWeek(householdId) {
       }
 
       const weekData = daysData
-        ? { label, mondayDate, createdAt: new Date().toISOString(), days: daysData }
-        : { ...createEmptyWeek(label), mondayDate };
+        ? { label, mondayDate, createdAt: new Date().toISOString(), days: daysData, ingredients }
+        : { ...createEmptyWeek(label), mondayDate, ingredients: [] };
 
       await setDoc(weekRef, weekData);
       setCurrentWeekIndex(0);
@@ -258,6 +258,10 @@ export function useWeek(householdId) {
     });
   }, [weeks, updateMeal]);
 
+  const updateAllDays = useCallback(async (weekId, days) => {
+    await updateWeek(weekId, { days });
+  }, [updateWeek]);
+
   return {
     weeks,
     currentWeek,
@@ -275,6 +279,7 @@ export function useWeek(householdId) {
     updateWeekLabel,
     updateBatchCooking,
     trackMeal,
+    updateAllDays,
     applyMealFixes,
     copyMeal,
     swapMeals,
