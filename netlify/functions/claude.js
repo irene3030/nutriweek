@@ -6,6 +6,9 @@ import { getFirestore } from 'firebase-admin/firestore';
 
 function getAdminApp() {
   if (getApps().length > 0) return getApps()[0];
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT_B64) {
+    throw new Error('MISSING_SERVICE_ACCOUNT');
+  }
   const serviceAccount = JSON.parse(
     Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_B64, 'base64').toString('utf-8')
   );
@@ -14,12 +17,8 @@ function getAdminApp() {
 
 async function verifyToken(authHeader) {
   if (!authHeader?.startsWith('Bearer ')) return null;
-  try {
-    const decoded = await getAuth(getAdminApp()).verifyIdToken(authHeader.slice(7));
-    return decoded.uid;
-  } catch {
-    return null;
-  }
+  const decoded = await getAuth(getAdminApp()).verifyIdToken(authHeader.slice(7));
+  return decoded.uid;
 }
 
 async function fetchHousehold(uid) {
@@ -124,7 +123,19 @@ export const handler = async (event) => {
   try {
     // Verify Firebase auth token
     const authHeader = event.headers?.authorization || event.headers?.Authorization;
-    const uid = await verifyToken(authHeader);
+    let uid;
+    try {
+      uid = await verifyToken(authHeader);
+    } catch (e) {
+      if (e.message === 'MISSING_SERVICE_ACCOUNT') {
+        return {
+          statusCode: 503,
+          headers: { ...cors, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'Servidor no configurado: falta FIREBASE_SERVICE_ACCOUNT_B64' }),
+        };
+      }
+      uid = null;
+    }
     if (!uid) {
       return {
         statusCode: 401,
@@ -287,7 +298,7 @@ El alternativo debe ser de la misma categoría nutricional (${safeCategory}), f�
 Devuelve SOLO este JSON: { "alternative": "nombre del ingrediente" }`;
 
     } else if (type === 'generate_week') {
-      const { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, kpiOverrides, season, vetoedIngredients, babyProfile } = payload;
+      const { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, kpiOverrides, season, vetoedIngredients, babyProfile, consumedMeals, daysToGenerate } = payload;
 
       // Build baby context from profile
       let babyContext = 'bebé de ~12 meses';
@@ -327,6 +338,16 @@ Devuelve SOLO este JSON: { "alternative": "nombre del ingrediente" }`;
       const safeRecurring = Array.isArray(recurringMeals)
         ? recurringMeals.map(r => sanitize(r, 200))
         : [];
+      const safeConsumed = Array.isArray(consumedMeals)
+        ? consumedMeals.map(m => ({
+            day: sanitize(m.day, 10),
+            tipo: sanitize(m.tipo, 20),
+            text: sanitize(m.text, 200),
+          })).filter(m => m.day && m.text)
+        : [];
+      const safeDaysToGenerate = Array.isArray(daysToGenerate)
+        ? daysToGenerate.map(d => sanitize(d, 10)).filter(Boolean)
+        : [];
 
       const ingredientsSection = safeRequired.length > 0
         ? `\nIngredientes OBLIGATORIOS que debes usar en el menú, distribuyéndolos a lo largo de la semana (uno por comida principal): ${safeRequired.join(', ')}`
@@ -340,6 +361,14 @@ Devuelve SOLO este JSON: { "alternative": "nombre del ingrediente" }`;
 
       const recurringSection = safeRecurring.length > 0
         ? `\nComidas que deben aparecer esta semana (colócalas en el día y franja que mejor encaje nutricionalmente): ${safeRecurring.join(', ')}`
+        : '';
+
+      const consumedSection = safeConsumed.length > 0
+        ? `\nComidas YA CONSUMIDAS esta semana (NO las regeneres — úsalas solo como contexto nutricional para cuadrar los KPIs del resto de días):\n${safeConsumed.map(m => `- ${m.day} ${m.tipo}: "${m.text}"`).join('\n')}`
+        : '';
+
+      const daysToGenerateSection = safeDaysToGenerate.length > 0
+        ? `\nDías a generar (SOLO genera comidas para estos días; para el resto devuelve baby:"", adult:"", tags:[], ingredients:[]): ${safeDaysToGenerate.join(', ')}`
         : '';
 
       const slotsSection = mealSlots ? (() => {
@@ -397,7 +426,7 @@ Devuelve SOLO este JSON: { "alternative": "nombre del ingrediente" }`;
         : '';
 
       userMessage = `Genera un menú completo para 7 días para: ${babyContext}.
-${ingredientsSection}${recurringSection}${fixedSection}${slotsSection}${seasonSection}${kpiSection}${vetoedSection}
+${ingredientsSection}${recurringSection}${fixedSection}${slotsSection}${seasonSection}${kpiSection}${vetoedSection}${consumedSection}${daysToGenerateSection}
 
 Historial de alimentos últimas semanas: ${foodHistory ? JSON.stringify(foodHistory).slice(0, 1000) : 'sin historial'}
 

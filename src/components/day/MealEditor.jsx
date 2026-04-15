@@ -126,7 +126,13 @@ export default function MealEditor({
     setShowRecipes(false);
   };
 
-  const handleSubmit = () => onSave({ baby, ...(babyShort ? { babyShort } : {}), ...(ingredients.length ? { ingredients } : {}), tags });
+  const handleSubmit = () => {
+    // If the user manually edited the baby text, clear babyShort so DayCard
+    // doesn't keep showing the stale short name from the previous version.
+    const babyChanged = baby !== (meal?.baby || '');
+    const resolvedShort = babyChanged ? '' : (babyShort || '');
+    onSave({ baby, babyShort: resolvedShort, ...(ingredients.length ? { ingredients } : {}), tags });
+  };
 
   return (
     <div className="space-y-4">

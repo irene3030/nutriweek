@@ -84,6 +84,7 @@ function AppContent() {
     deleteWeek,
     updateMeal,
     updateDayMeals,
+    updateAllDays,
     updateWeekLabel,
     updateBatchCooking,
     trackMeal,
@@ -231,14 +232,19 @@ function AppContent() {
     }
   };
 
-  const handleNewWeek = async (mondayDate, label, daysData) => {
-    await createWeek(mondayDate, label, daysData);
+  const handleNewWeek = async (mondayDate, label, daysData, ingredients = []) => {
+    await createWeek(mondayDate, label, daysData, ingredients);
     track('week_created', { generated_with_ai: !!daysData });
   };
 
   const handleDeleteWeek = async (weekId) => {
     await deleteWeek(weekId);
     track('week_deleted');
+  };
+
+  const handleReplanWeek = async (weekId, mergedDays) => {
+    await updateAllDays(weekId, mergedDays);
+    track('week_replanned', { days_updated: mergedDays.length });
   };
 
   const handleApplyFixes = async (fixes) => {
@@ -305,6 +311,7 @@ function AppContent() {
               kpiConfig={householdDoc?.kpiConfig}
               onUpdateKpiConfig={handleUpdateKpiConfig}
               babyProfile={householdDoc?.baby}
+              onReplanWeek={handleReplanWeek}
             />
           )}
 

@@ -4,9 +4,10 @@ import WeekKPIs from './WeekKPIs';
 import DayCard from './DayCard';
 import BatchCooking from './BatchCooking';
 import NewWeekModal from './NewWeekModal';
+import ReplanModal from './ReplanModal';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import ShoppingList from '../shopping/ShoppingList';
-import { ShoppingCart, Sparkles, Calendar, ClipboardList, Check } from 'lucide-react';
+import { ShoppingCart, Sparkles, Calendar, ClipboardList, Check, RefreshCw } from 'lucide-react';
 
 const DAY_ORDER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
@@ -44,14 +45,30 @@ export default function WeekView({
   onUpdateKpiConfig,
   babyProfile,
   onClearDay,
+  onReplanWeek,
 }) {
   const [showNewWeekModal, setShowNewWeekModal] = useState(false);
+  const [showReplan, setShowReplan] = useState(false);
   const [showShopping, setShowShopping] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [exportSimple, setExportSimple] = useState(false);
   const [exportCopied, setExportCopied] = useState(false);
   const [pendingFixMeals, setPendingFixMeals] = useState(null);
   const todayName = getTodayDayName();
+  const DAY_LABELS = { Lun: 'Lunes', Mar: 'Martes', Mié: 'Miércoles', Jue: 'Jueves', Vie: 'Viernes', Sáb: 'Sábado', Dom: 'Domingo' };
+
+  // Show "Regenerar desde X" when: the viewed week is the current week (today falls
+  // within its Monday–Sunday range), today is not Saturday, and there are future days left.
+  const todayIdx = DAY_ORDER.indexOf(todayName);
+  const replanFromDay = todayIdx >= 0 && todayIdx < 6 ? DAY_ORDER[todayIdx + 1] : null;
+  const isCurrentWeek = (() => {
+    if (!currentWeek?.mondayDate) return false;
+    const monday = new Date(currentWeek.mondayDate + 'T00:00:00');
+    const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return today >= monday && today <= sunday;
+  })();
+  const showReplanButton = !!(currentWeek && replanFromDay && hasAiAccess && isCurrentWeek);
 
   function shortName(text) {
     if (!text) return '';
@@ -146,6 +163,18 @@ export default function WeekView({
                     <span className={`text-xs transition-colors ${ingredientsMode ? 'text-gray-500 font-medium' : 'text-gray-400'}`}>Ingredientes</span>
                   </div>
                 </div>
+                {showReplanButton && (
+                  <div className="border-t border-gray-100 px-4 py-2.5 flex items-center justify-between">
+                    <span className="text-xs text-gray-400">¿No has seguido el plan?</span>
+                    <button
+                      onClick={() => setShowReplan(true)}
+                      className="flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Regenerar desde {DAY_LABELS[replanFromDay]}
+                    </button>
+                  </div>
+                )}
                 <WeekKPIs
                   weekDoc={currentWeek}
                   hasAiAccess={hasAiAccess}
@@ -216,6 +245,17 @@ export default function WeekView({
           </div>
         )}
       </main>
+
+      <ReplanModal
+        isOpen={showReplan}
+        onClose={() => setShowReplan(false)}
+        weekDoc={currentWeek}
+        foodHistory={foodHistory}
+        savedRecipes={savedRecipes}
+        kpiConfig={kpiConfig}
+        hasAiAccess={hasAiAccess}
+        onApply={onReplanWeek}
+      />
 
       <NewWeekModal
         isOpen={showNewWeekModal}
