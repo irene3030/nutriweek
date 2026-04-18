@@ -2,7 +2,7 @@ import { useState } from 'react';
 import WeekHeader from './WeekHeader';
 import WeekKPIs from './WeekKPIs';
 import DayCard from './DayCard';
-import BatchCooking from './BatchCooking';
+import MealPrep from './MealPrep';
 import NewWeekModal from './NewWeekModal';
 import ReplanModal from './ReplanModal';
 import LoadingSpinner from '../ui/LoadingSpinner';
@@ -35,6 +35,7 @@ export default function WeekView({
   onDayClick,
   onAddMealToSlot,
   onUpdateBatchCooking,
+  onUpdateMealPrep,
   onApplyFixes,
   foodHistory,
   savedRecipes,
@@ -193,16 +194,17 @@ export default function WeekView({
                       onClear={() => onClearDay?.(dayData.day)}
                       highlightedMeals={pendingFixMeals?.filter(m => m.day === dayData.day) ?? null}
                       ingredientsMode={ingredientsMode}
+                      mealBadges={currentWeek?.mealPrep?.mealBadges ?? null}
                     />
                   ))}
                 </div>
               </div>
             </div>
 
-            <BatchCooking
+            <MealPrep
               weekDoc={currentWeek}
               hasAiAccess={hasAiAccess}
-              onUpdate={(items) => onUpdateBatchCooking(currentWeek.id, items)}
+              onUpdate={(data) => onUpdateMealPrep(currentWeek.id, data)}
             />
 
             <div className="px-4 pb-4">
