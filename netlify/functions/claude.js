@@ -1036,9 +1036,11 @@ Devuelve SOLO este JSON (sin texto adicional):
       };
     }
 
+    const maxTokens = ['generate_week', 'regenerate_day'].includes(type) ? 8192 : 4096;
+
     const message = await client.messages.create({
       model: 'claude-haiku-4-5',
-      max_tokens: 4096,
+      max_tokens: maxTokens,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userMessage }],
     });
