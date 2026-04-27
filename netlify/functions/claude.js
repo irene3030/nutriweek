@@ -221,7 +221,7 @@ export const handler = async (event) => {
       };
     }
 
-    const client = new Anthropic({ apiKey: resolvedKey });
+    const client = new Anthropic({ apiKey: resolvedKey, baseURL: 'https://api.anthropic.com' });
 
     let userMessage = '';
 
@@ -298,7 +298,7 @@ El alternativo debe ser de la misma categoría nutricional (${safeCategory}), f�
 Devuelve SOLO este JSON: { "alternative": "nombre del ingrediente" }`;
 
     } else if (type === 'generate_week') {
-      const { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, kpiOverrides, season, vetoedIngredients, babyProfile, consumedMeals, daysToGenerate } = payload;
+      const { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, kpiOverrides, season, vetoedIngredients, babyProfile, consumedMeals, daysToGenerate, weekVarietyStyle } = payload;
 
       // Build baby context from profile
       let babyContext = 'bebé de ~12 meses';
@@ -425,8 +425,15 @@ Devuelve SOLO este JSON: { "alternative": "nombre del ingrediente" }`;
         ? `\nIngredientes PROHIBIDOS (NO los uses bajo ningún concepto en ninguna comida): ${safeVetoed.join(', ')}`
         : '';
 
+      const safeVarietyStyle = ['high', 'balanced', 'optimized'].includes(weekVarietyStyle) ? weekVarietyStyle : 'balanced';
+      const varietyStyleSection = safeVarietyStyle === 'high'
+        ? '\nVariedad semanal: ALTA — no repitas ningún plato. Excepción: puedes repetir hasta 2 veces un plato de legumbre o guiso si la semana lo requiere nutricionalmente.'
+        : safeVarietyStyle === 'optimized'
+        ? '\nVariedad semanal: OPTIMIZADA para eficiencia — puedes repetir platos de legumbre o guiso hasta 3 veces a lo largo de la semana. Puedes repetir otros platos hasta 2 veces. Varía siempre las verduras, guarniciones y métodos de cocción para evitar monotonía.'
+        : '\nVariedad semanal: EQUILIBRADA (default) — puedes repetir platos de legumbre o guiso hasta 2 veces. No repitas platos de huevo o pescado.';
+
       userMessage = `Genera un menú completo para 7 días para: ${babyContext}.
-${ingredientsSection}${recurringSection}${fixedSection}${slotsSection}${seasonSection}${kpiSection}${vetoedSection}${consumedSection}${daysToGenerateSection}
+${ingredientsSection}${recurringSection}${fixedSection}${slotsSection}${seasonSection}${kpiSection}${vetoedSection}${consumedSection}${daysToGenerateSection}${varietyStyleSection}
 
 Historial de alimentos últimas semanas: ${foodHistory ? JSON.stringify(foodHistory).slice(0, 1000) : 'sin historial'}
 
@@ -443,7 +450,8 @@ Devuelve un JSON con esta estructura exacta:
           "baby": "descripción de la comida",
           "babyShort": "nombre corto",
           "ingredients": ["ingrediente1", "ingrediente2"],
-          "tags": ["tag1", "tag2"]
+          "tags": ["tag1", "tag2"],
+          "repeatability_score": "high"
         },
         { "tipo": "snack", ... },
         { "tipo": "comida", ... },
@@ -455,7 +463,12 @@ Devuelve un JSON con esta estructura exacta:
   ]
 }
 
-El campo "ingredients" debe contener la lista de ingredientes principales en crudo (nombres simples, sin preparación): p.ej. para "tortilla de patata con calabacín" → ["huevo", "patata", "calabacín"].`;
+El campo "ingredients" debe contener la lista de ingredientes principales en crudo (nombres simples, sin preparación): p.ej. para "tortilla de patata con calabacín" → ["huevo", "patata", "calabacín"].
+
+El campo "repeatability_score" indica si la receta es buena candidata para batch cooking (preparar en lote y reutilizar varios días):
+- "high" → ideal para lote: legumbres, guisos, estofados, cremas, sopas (aguantan bien en nevera y recalientan bien)
+- "medium" → aceptable: pasta, arroz, platos de cereal con verdura
+- "low" → no apto para lote: huevo (tortilla, revuelto), pescado fresco, platos que no aguantan o no recalientan bien`;
     } else if (type === 'regenerate_day') {
       const { dayName, weekContext, availableIngredients, fixedMeals } = payload;
 
@@ -481,15 +494,16 @@ Devuelve SOLO el JSON de ese día:
 {
   "day": "${safeDayName}",
   "meals": [
-    { "tipo": "desayuno", "baby": "...", "babyShort": "...", "ingredients": ["ing1", "ing2"], "tags": [...] },
-    { "tipo": "snack", "baby": "...", "babyShort": "...", "ingredients": ["ing1", "ing2"], "tags": [...] },
-    { "tipo": "comida", "baby": "...", "babyShort": "...", "ingredients": ["ing1", "ing2"], "tags": [...] },
-    { "tipo": "merienda", "baby": "...", "babyShort": "...", "ingredients": ["ing1", "ing2"], "tags": [...] },
-    { "tipo": "cena", "baby": "...", "babyShort": "...", "ingredients": ["ing1", "ing2"], "tags": [...] }
+    { "tipo": "desayuno", "baby": "...", "babyShort": "...", "ingredients": ["ing1", "ing2"], "tags": [...], "repeatability_score": "low" },
+    { "tipo": "snack", "baby": "...", "babyShort": "...", "ingredients": ["ing1", "ing2"], "tags": [...], "repeatability_score": "low" },
+    { "tipo": "comida", "baby": "...", "babyShort": "...", "ingredients": ["ing1", "ing2"], "tags": [...], "repeatability_score": "high" },
+    { "tipo": "merienda", "baby": "...", "babyShort": "...", "ingredients": ["ing1", "ing2"], "tags": [...], "repeatability_score": "low" },
+    { "tipo": "cena", "baby": "...", "babyShort": "...", "ingredients": ["ing1", "ing2"], "tags": [...], "repeatability_score": "medium" }
   ]
 }
 
-El campo "ingredients" debe contener la lista de ingredientes principales en crudo (nombres simples, sin preparación).`;
+El campo "ingredients" debe contener la lista de ingredientes principales en crudo (nombres simples, sin preparación).
+El campo "repeatability_score": "high" para legumbres/guisos, "medium" para cereales/arroz/pasta, "low" para huevo/pescado/fruta.`;
     } else if (type === 'suggest_meal') {
       const { dayName, mealType, weekContext, ingredients, requirements } = payload;
       const safeDayName = sanitize(dayName, 10);
@@ -906,6 +920,114 @@ Si no puedes identificar el plato, devuelve name:"" y tags:[].`,
         headers: { ...cors, 'Content-Type': 'application/json' },
         body: JSON.stringify({ result: photoResult }),
       };
+    } else if (type === 'generate_meal_prep') {
+      const { weekMenu, prepWindows, maxResolvedUses } = payload;
+
+      const safeWeekMenu = Array.isArray(weekMenu)
+        ? weekMenu.map(day => ({
+            day: sanitize(day.day, 10),
+            meals: Array.isArray(day.meals)
+              ? day.meals
+                  .filter(m => m.baby)
+                  .map(m => ({
+                    tipo: sanitize(m.tipo, 20),
+                    baby: sanitize(m.baby, 300),
+                    tags: Array.isArray(m.tags) ? m.tags.map(t => sanitize(t, 30)) : [],
+                    repeatability_score: ['high', 'medium', 'low'].includes(m.repeatability_score) ? m.repeatability_score : 'medium',
+                  }))
+              : [],
+          }))
+        : [];
+
+      const safePrepWindows = Array.isArray(prepWindows)
+        ? prepWindows
+            .filter(w => w.day && w.durationMinutes)
+            .map(w => ({
+              day: sanitize(w.day, 20),
+              durationMinutes: Math.min(Math.max(parseInt(w.durationMinutes) || 60, 15), 300),
+            }))
+        : [];
+
+      const safeMaxResolvedUses = [2, 3].includes(Number(maxResolvedUses)) ? Number(maxResolvedUses) : 3;
+
+      const prepWindowsDesc = safePrepWindows.length > 0
+        ? safePrepWindows.map(w => `- ${w.day}: ${w.durationMinutes} minutos disponibles`).join('\n')
+        : '- Sin ventanas definidas: crea una única sesión "inicio_semana" sin límite de tiempo.';
+
+      userMessage = `Eres un planificador de meal prep para bebé BLW ~12 meses y familia.
+
+Analiza el siguiente menú semanal y crea un plan de preparación anticipada que optimice el tiempo en la cocina.
+
+Menú semanal:
+${JSON.stringify(safeWeekMenu, null, 2)}
+
+Ventanas de preparación:
+${prepWindowsDesc}
+Máx. usos por comida resuelta: ${safeMaxResolvedUses}
+
+CONCEPTOS:
+- Comida resuelta (resolved_meal): receta que se cocina UNA VEZ en lote y cubre varios slots del MISMO tipo (comida→comida, cena→cena). Ideal cuando repeatability_score es "high": legumbres, guisos, cremas, estofados.
+- Acelerador (accelerator): ingrediente base precocinado que reduce el tiempo de preparación de futuras comidas. Ejemplos: patatas cocidas → tortilla o puré; arroz cocido → salteados; verduras asadas → múltiples cenas; proteína cocida → ensaladas o wok.
+
+REGLAS ESTRICTAS:
+1. Comidas resueltas: solo repeatability_score "high" o "medium". Max ${safeMaxResolvedUses} slots del mismo tipo (comida→comida, cena→cena). Respeta siempre daysFresh (lentejas/garbanzos=4, guiso carne=3, pescado=2, verdura=3, arroz=3).
+2. Aceleradores: detecta ingredientes base que aparecen en 2+ comidas distintas de la semana. Solo incluye si el ahorro de tiempo es real.
+3. No dupliques: si un plato ya es comida resuelta, no crees aceleradores para sus ingredientes principales.
+4. Solo preparaciones con cocción activa: NO incluyas yogur, fruta fresca, queso, pan, leche u otros que se consumen sin cocinar.
+5. Sesiones: distribuye las tareas en las ventanas sin superar su duración. Prioriza tareas de mayor impacto (más slots cubiertos). Si no hay ventanas, id de sesión "s_inicio", day "inicio_semana", durationMinutes null.
+6. mealBadges debe cubrir TODOS los slots que se benefician del plan (resolved o accelerated). Los slots sin badge son "normal".
+
+Devuelve SOLO este JSON (sin texto adicional):
+{
+  "sessions": [
+    {
+      "id": "s1",
+      "day": "Lun",
+      "durationMinutes": 45,
+      "tasks": [
+        {
+          "id": "t1",
+          "type": "resolved_meal",
+          "name": "Lentejas con verduras",
+          "durationMinutes": 25,
+          "outputServings": 3,
+          "daysFresh": 4,
+          "impactedSlots": [
+            { "day": "Lun", "tipo": "comida" },
+            { "day": "Mar", "tipo": "comida" }
+          ],
+          "minutesSaved": 25
+        },
+        {
+          "id": "t2",
+          "type": "accelerator",
+          "name": "Patatas cocidas",
+          "durationMinutes": 20,
+          "outputUses": 2,
+          "daysFresh": 4,
+          "impactedSlots": [
+            { "day": "Mar", "tipo": "cena" },
+            { "day": "Jue", "tipo": "cena" }
+          ],
+          "minutesSaved": 15
+        }
+      ]
+    }
+  ],
+  "mealBadges": [
+    { "day": "Lun", "tipo": "comida", "badge": "resolved", "taskId": "t1" },
+    { "day": "Mar", "tipo": "comida", "badge": "resolved", "taskId": "t1" },
+    { "day": "Mar", "tipo": "cena", "badge": "accelerated", "taskId": "t2" },
+    { "day": "Jue", "tipo": "cena", "badge": "accelerated", "taskId": "t2" }
+  ],
+  "summary": {
+    "resolvedCount": 2,
+    "acceleratedCount": 2,
+    "totalMinutesSaved": 55,
+    "sessionCount": 1
+  }
+}`;
+
     } else {
       return {
         statusCode: 400,
@@ -914,9 +1036,11 @@ Si no puedes identificar el plato, devuelve name:"" y tags:[].`,
       };
     }
 
+    const maxTokens = ['generate_week', 'regenerate_day'].includes(type) ? 8192 : 4096;
+
     const message = await client.messages.create({
       model: 'claude-haiku-4-5',
-      max_tokens: 4096,
+      max_tokens: maxTokens,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userMessage }],
     });

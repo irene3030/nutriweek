@@ -87,6 +87,7 @@ function AppContent() {
     updateAllDays,
     updateWeekLabel,
     updateBatchCooking,
+    updateMealPrep,
     trackMeal,
     copyMeal,
     swapMeals,
@@ -298,6 +299,7 @@ function AppContent() {
               onDayClick={handleDayClick}
               onAddMealToSlot={handleAddMealToSlot}
               onUpdateBatchCooking={updateBatchCooking}
+              onUpdateMealPrep={updateMealPrep}
               onApplyFixes={handleApplyFixes}
               onClearDay={(dayName) => clearDay(currentWeek.id, dayName)}
               foodHistory={foodHistory}

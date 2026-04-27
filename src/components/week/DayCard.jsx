@@ -56,7 +56,12 @@ function summaryText(meal, ingredientsMode) {
   return baseName;
 }
 
-export default function DayCard({ dayData, onClick, isToday, onClear, highlightedMeals, ingredientsMode }) {
+const PREP_BADGE_COLORS = {
+  resolved: 'bg-green-500',
+  accelerated: 'bg-orange-400',
+};
+
+export default function DayCard({ dayData, onClick, isToday, onClear, highlightedMeals, ingredientsMode, mealBadges }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -134,6 +139,7 @@ export default function DayCard({ dayData, onClick, isToday, onClear, highlighte
         {meals && meals.map((meal) => {
           const MealIcon = MEAL_ICONS[meal.tipo];
           const isHighlighted = highlightedMeals?.some(m => m.tipo === meal.tipo);
+          const prepBadge = mealBadges?.find(b => b.day === day && b.tipo === meal.tipo);
           return (
             <div key={meal.tipo} className={`flex items-center gap-1.5 rounded px-0.5 -mx-0.5 transition-colors ${isHighlighted ? 'bg-amber-50 ring-1 ring-amber-300' : ''}`}>
               <span className={`w-4 flex items-center justify-center ${isHighlighted ? 'text-amber-500' : 'text-gray-400'}`}>
@@ -146,6 +152,12 @@ export default function DayCard({ dayData, onClick, isToday, onClear, highlighte
                   <div className="h-2.5 bg-gray-100 rounded w-3/4" />
                 )}
               </div>
+              {prepBadge && meal.baby && (
+                <span
+                  title={prepBadge.badge === 'resolved' ? 'Comida resuelta' : 'Acelerada'}
+                  className={`w-2 h-2 rounded-full shrink-0 ${PREP_BADGE_COLORS[prepBadge.badge] || 'bg-gray-300'}`}
+                />
+              )}
               {meal.track?.status === 'partial' ? (
                 <Circle className="w-3 h-3 text-orange-400 shrink-0 opacity-50" />
               ) : meal.track?.status === 'other' ? (

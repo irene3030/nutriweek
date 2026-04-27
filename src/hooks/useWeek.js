@@ -173,6 +173,10 @@ export function useWeek(householdId) {
     await updateWeek(weekId, { batchCooking });
   }, [updateWeek]);
 
+  const updateMealPrep = useCallback(async (weekId, mealPrep) => {
+    await updateWeek(weekId, { mealPrep });
+  }, [updateWeek]);
+
   const trackMeal = useCallback(async (weekId, dayIndex, mealIndex, trackData) => {
     await updateMeal(weekId, dayIndex, mealIndex, { track: trackData });
   }, [updateMeal]);
@@ -278,6 +282,7 @@ export function useWeek(householdId) {
     updateDayMeals,
     updateWeekLabel,
     updateBatchCooking,
+    updateMealPrep,
     trackMeal,
     updateAllDays,
     applyMealFixes,

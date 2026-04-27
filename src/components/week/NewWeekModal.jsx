@@ -187,6 +187,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
   const [includeWeekend, setIncludeWeekend] = useState(true);
   const [kpiOverrides, setKpiOverrides] = useState(() => initKpiOverrides(kpiConfig));
   useEffect(() => { setKpiOverrides(initKpiOverrides(kpiConfig)); }, [kpiConfig]);
+  const [weekVarietyStyle, setWeekVarietyStyle] = useState('balanced');
 
   // Ingredient review state
   const [ingredientsList, setIngredientsList] = useState([]); // [{id, name, category, reason, removed, vetoed, vetoReason, customName, editing, altLoading}]
@@ -265,6 +266,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
         season: getSeason(mondayDate),
         vetoedIngredients,
         babyProfile,
+        weekVarietyStyle,
       });
       let proposed = enforceSlots(result, mealSlots);
       if (!includeWeekend) {
@@ -277,6 +279,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
           baby: meal.baby ?? '',
           ...(meal.babyShort ? { babyShort: meal.babyShort } : {}),
           ...(meal.ingredients ? { ingredients: meal.ingredients } : {}),
+          ...(meal.repeatability_score ? { repeatability_score: meal.repeatability_score } : {}),
           adult: meal.adult ?? '',
           tags: meal.tags ?? [],
           track: meal.track ?? null,
@@ -412,6 +415,7 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
     setRecurringMeals([]);
     setMealSlots(DEFAULT_SLOTS);
     setIncludeWeekend(true);
+    setWeekVarietyStyle('balanced');
     onClose();
   };
 
@@ -562,6 +566,34 @@ export default function NewWeekModal({ isOpen, onClose, onSave, existingWeekIds 
               La IA los priorizará cuanto antes (cada alimento para una comida), sin limitarse solo a ellos.
             </p>
           </div>
+
+          {/* Variedad semanal */}
+          {hasAiAccess && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Variedad semanal</label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { value: 'high', label: 'Alta variedad', desc: 'Sin repeticiones' },
+                  { value: 'balanced', label: 'Equilibrada', desc: 'Alguna repetición' },
+                  { value: 'optimized', label: 'Optimizada', desc: 'Más repetición, menos prep' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setWeekVarietyStyle(opt.value)}
+                    className={`flex flex-col items-start px-3 py-2.5 rounded-xl border text-left transition-colors ${
+                      weekVarietyStyle === opt.value
+                        ? 'border-brand-400 bg-brand-50 text-brand-700'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="text-xs font-semibold">{opt.label}</span>
+                    <span className="text-[10px] text-gray-400 mt-0.5">{opt.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* KPIs que intentará cumplir la IA */}
           {hasAiAccess && <KPIPreview kpiConfig={kpiConfig} mealSlots={mealSlots} includeWeekend={includeWeekend} kpiOverrides={kpiOverrides} onUpdate={updateKpiOverride} />}

@@ -30,8 +30,8 @@ async function callClaude(type, payload) {
   return data.result;
 }
 
-export async function generateWeekMenu({ availableIngredients = '', fixedMeals = [], recurringMeals = [], mealSlots = null, foodHistory = [], savedRecipes = [], requiredIngredients = null, kpiOverrides = null, season = null, vetoedIngredients = null, babyProfile = null, consumedMeals = null, daysToGenerate = null } = {}) {
-  const result = await callClaude('generate_week', { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, kpiOverrides, season, vetoedIngredients, babyProfile, consumedMeals, daysToGenerate });
+export async function generateWeekMenu({ availableIngredients = '', fixedMeals = [], recurringMeals = [], mealSlots = null, foodHistory = [], savedRecipes = [], requiredIngredients = null, kpiOverrides = null, season = null, vetoedIngredients = null, babyProfile = null, consumedMeals = null, daysToGenerate = null, weekVarietyStyle = 'balanced' } = {}) {
+  const result = await callClaude('generate_week', { availableIngredients, fixedMeals, recurringMeals, mealSlots, foodHistory, savedRecipes, requiredIngredients, kpiOverrides, season, vetoedIngredients, babyProfile, consumedMeals, daysToGenerate, weekVarietyStyle });
   track('ai_week_generated');
   return result;
 }
@@ -89,6 +89,12 @@ export async function generateBatchCooking({ weekMenu }) {
 export async function generateBatchCookingOptimized({ weekMenu, timeSessions }) {
   const result = await callClaude('batch_cooking_optimized', { weekMenu, timeSessions });
   track('ai_batch_cooking_generated');
+  return result;
+}
+
+export async function generateMealPrep({ weekMenu, prepWindows = [], maxResolvedUses = 3 }) {
+  const result = await callClaude('generate_meal_prep', { weekMenu, prepWindows, maxResolvedUses });
+  track('ai_meal_prep_generated');
   return result;
 }
 
