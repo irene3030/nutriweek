@@ -221,7 +221,7 @@ export const handler = async (event) => {
       };
     }
 
-    const client = new Anthropic({ apiKey: resolvedKey });
+    const client = new Anthropic({ apiKey: resolvedKey, baseURL: 'https://api.anthropic.com' });
 
     let userMessage = '';
 
