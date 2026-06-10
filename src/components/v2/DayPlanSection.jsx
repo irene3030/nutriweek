@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import PlanSlotRow from './PlanSlotRow';
 import SlotPickerSheet from './SlotPickerSheet';
+import MealProposalSheet from './MealProposalSheet';
 
 const SLOTS = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
 
@@ -18,6 +19,8 @@ export default function DayPlanSection({
   offsetLabel,
   plan,
   inventoryItems,
+  weeklyKpis,
+  hasAiAccess,
   defaultExpanded,
   onAddSlotItem,
   onRemoveSlotItem,
@@ -27,6 +30,7 @@ export default function DayPlanSection({
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [pickerSlot, setPickerSlot] = useState(null);
+  const [proposalSlot, setProposalSlot] = useState(null);
 
   const slots = plan?.slots || {};
 
@@ -72,17 +76,22 @@ export default function DayPlanSection({
       {/* Slots */}
       {expanded && (
         <div className="px-4 pb-3">
-          {SLOTS.map((slotId) => (
-            <PlanSlotRow
-              key={slotId}
-              slotId={slotId}
-              slot={slots[slotId] || null}
-              onAddItem={() => setPickerSlot(slotId)}
-              onRemoveItem={(idx) => onRemoveSlotItem(date, slotId, idx)}
-              onConfirm={() => onConfirmSlot(date, slotId)}
-              onUpdatePortions={(idx, adult, baby) => onUpdateSlotItemPortions(date, slotId, idx, adult, baby)}
-            />
-          ))}
+          {SLOTS.map((slotId) => {
+            const slot = slots[slotId] || null;
+            const canAiPropose = hasAiAccess && !slot?.confirmedAt;
+            return (
+              <PlanSlotRow
+                key={slotId}
+                slotId={slotId}
+                slot={slot}
+                onAddItem={() => setPickerSlot(slotId)}
+                onRemoveItem={(idx) => onRemoveSlotItem(date, slotId, idx)}
+                onConfirm={() => onConfirmSlot(date, slotId)}
+                onUpdatePortions={(idx, adult, baby) => onUpdateSlotItemPortions(date, slotId, idx, adult, baby)}
+                onAiPropose={canAiPropose ? () => setProposalSlot(slotId) : undefined}
+              />
+            );
+          })}
         </div>
       )}
 
@@ -96,6 +105,22 @@ export default function DayPlanSection({
             setPickerSlot(null);
           }}
           onClose={() => setPickerSlot(null)}
+        />
+      )}
+
+      {/* AI meal proposal sheet */}
+      {proposalSlot && (
+        <MealProposalSheet
+          slotId={proposalSlot}
+          date={date}
+          inventoryItems={inventoryItems}
+          todaySlots={slots}
+          weeklyKpis={weeklyKpis}
+          onSelect={(entry) => {
+            onAddSlotItem(date, proposalSlot, entry);
+            setProposalSlot(null);
+          }}
+          onClose={() => setProposalSlot(null)}
         />
       )}
     </div>

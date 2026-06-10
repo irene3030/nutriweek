@@ -1028,6 +1028,110 @@ Devuelve SOLO este JSON (sin texto adicional):
   }
 }`;
 
+    } else if (type === 'propose_meal') {
+      const { slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis } = payload;
+
+      const SLOT_LABELS_ES = { comida: 'comida', cena: 'cena', desayuno: 'desayuno', snack: 'snack', merienda: 'merienda' };
+      const safeSlot = SLOT_LABELS_ES[sanitize(slotId, 20)] || 'comida';
+      const safeDateStr = sanitize(dateStr, 12);
+      const safeBraindump = sanitize(braindump, 200);
+
+      // Limit to 15 most relevant items (expiring soonest first, then others)
+      const safeItems = Array.isArray(inventoryItems)
+        ? inventoryItems
+            .slice(0, 15)
+            .map(item => ({
+              id: sanitize(item.id, 50),
+              name: sanitize(item.name, 100),
+              type: sanitize(item.type, 30),
+              adultPortions: Math.max(0, parseInt(item.adultPortions) || 0),
+              babyPortions: Math.max(0, parseInt(item.babyPortions) || 0),
+              daysLeft: item.daysLeft != null ? Math.max(0, parseInt(item.daysLeft) || 0) : null,
+              tags: Array.isArray(item.tags) ? item.tags.map(t => sanitize(t, 30)).filter(Boolean) : [],
+            }))
+        : [];
+
+      const inventoryLines = safeItems.length > 0
+        ? safeItems.map(i => {
+            const freshness = i.daysLeft != null ? `, ${i.daysLeft}d frescura` : '';
+            const portions = (i.type === 'ya-preparado' || i.type === 'acelerador')
+              ? `, ${i.adultPortions}r adulto / ${i.babyPortions}r bebé`
+              : '';
+            const tags = i.tags.length ? `, tags: ${i.tags.join(',')}` : '';
+            return `- [${i.id}] ${i.name} (${i.type})${portions}${freshness}${tags}`;
+          }).join('\n')
+        : '- (inventario vacío)';
+
+      // Build today's planned slots context
+      const safeSlots = todaySlots && typeof todaySlots === 'object' ? todaySlots : {};
+      const slotLines = Object.entries(safeSlots)
+        .filter(([sid]) => sid !== safeSlot)
+        .map(([sid, slot]) => {
+          const items = Array.isArray(slot?.items) ? slot.items : [];
+          if (items.length === 0) return null;
+          const names = items.map(i => sanitize(i.label, 100)).join(', ');
+          return `- ${sid}: ${names}`;
+        })
+        .filter(Boolean);
+      const slotsContext = slotLines.length > 0 ? slotLines.join('\n') : '(ningún otro slot planificado hoy)';
+
+      // KPI context
+      const kpi = weeklyKpis || {};
+      const ironDays = parseInt(kpi.ironDays) || 0;
+      const fishDays = parseInt(kpi.fishDays) || 0;
+      const legumedDays = parseInt(kpi.legumedDays) || 0;
+      const distinctVeggies = parseInt(kpi.distinctVeggies) || 0;
+      const veggieList = Array.isArray(kpi.veggieList) ? kpi.veggieList.map(v => sanitize(v, 30)).join(', ') : '';
+
+      userMessage = `Propón exactamente 3 opciones concretas para la ${safeSlot} del día ${safeDateStr || 'hoy'} en una familia BLW.
+
+Inventario disponible (usa el id para referenciarlo):
+${inventoryLines}
+
+Ingredientes extra que el usuario menciona (sin registrar en inventario):
+${safeBraindump || 'ninguno'}
+
+Otros slots planificados hoy:
+${slotsContext}
+
+Estado nutricional de la semana (hits confirmados hasta ahora):
+- Hierro: ${ironDays} días esta semana
+- Pescado azul: ${fishDays} días esta semana
+- Legumbre: ${legumedDays} días esta semana
+- Verduras distintas: ${distinctVeggies}${veggieList ? ` (${veggieList})` : ''}
+
+INSTRUCCIONES:
+1. Prioriza usar ingredientes del inventario disponible.
+2. Cada opción debe complementar nutricionalmente lo ya planificado hoy.
+3. Si algún KPI está bajo (hierro < 3, pescado < 2, legumbre < 2, verduras < 3), cubre uno con alguna de las opciones.
+4. Las opciones deben ser variadas entre sí (no 3 variantes del mismo plato).
+5. Para ingredients, usa "stock" solo si el ingrediente está en el inventario disponible e incluye su inventoryId.
+
+Devuelve SOLO este JSON:
+{
+  "proposals": [
+    {
+      "name": "Lentejas con zanahoria y arroz",
+      "description": "Calentar el batch de lentejas. Añadir zanahoria al vapor.",
+      "prepType": "ya-preparado",
+      "prepTime": "5 min",
+      "adultPortions": 2,
+      "babyPortions": 1,
+      "ingredients": [
+        {"name": "Lentejas", "source": "stock", "inventoryId": "abc123"},
+        {"name": "Zanahoria", "source": "despensa"},
+        {"name": "Arroz", "source": "despensa"}
+      ],
+      "tags": ["legume", "iron", "veggie:zanahoria"],
+      "kpiBoost": "legume"
+    }
+  ]
+}
+
+prepType debe ser: "ya-preparado" | "acelerador" | "justo-antes"
+source debe ser: "stock" (en inventario) | "despensa" (despensa base, siempre disponible) | "compra" (habría que comprar)
+kpiBoost: "legume" | "fish" | "iron" | "veggie" | null`;
+
     } else {
       return {
         statusCode: 400,

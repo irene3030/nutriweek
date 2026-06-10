@@ -24,7 +24,7 @@ function formatTodayHeader() {
   return `${DAY_NAMES_FULL[d.getDay()]} ${d.getDate()} de ${MONTH_NAMES[d.getMonth()]}`;
 }
 
-export default function TodayScreen({ householdId }) {
+export default function TodayScreen({ householdId, hasAiAccess }) {
   const {
     items: inventoryItems,
     expiringItems,
@@ -128,6 +128,8 @@ export default function TodayScreen({ householdId }) {
               offsetLabel={label}
               plan={getPlan(dateStr)}
               inventoryItems={inventoryItems}
+              weeklyKpis={weeklyKpis}
+              hasAiAccess={hasAiAccess}
               defaultExpanded={defaultExpanded}
               onAddSlotItem={addSlotItem}
               onRemoveSlotItem={removeSlotItem}

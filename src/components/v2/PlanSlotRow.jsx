@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, Check, User, Baby } from 'lucide-react';
+import { Plus, X, Check, User, Baby, Sparkles } from 'lucide-react';
 
 const SLOT_LABELS = {
   desayuno: 'Desayuno',
@@ -42,8 +42,10 @@ function PortionCounter({ icon, value, onChange }) {
   );
 }
 
+const AI_SLOTS = new Set(['comida', 'cena']);
+
 // slot = { items: SlotEntry[], confirmedAt: string|null } | null
-export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onConfirm, onUpdatePortions, disabled }) {
+export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onConfirm, onUpdatePortions, onAiPropose, disabled }) {
   const [editingIdx, setEditingIdx] = useState(null);
   const [draftAdult, setDraftAdult] = useState(0);
   const [draftBaby, setDraftBaby] = useState(0);
@@ -76,14 +78,26 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onC
       {/* Content */}
       <div className="flex-1 min-w-0">
         {isEmpty ? (
-          <button
-            onClick={onAddItem}
-            disabled={disabled}
-            className="flex items-center gap-1 text-sm text-gray-400 hover:text-brand-600 transition-colors group"
-          >
-            <Plus className="w-4 h-4 group-hover:text-brand-500" />
-            <span className="text-xs">Añadir</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onAddItem}
+              disabled={disabled}
+              className="flex items-center gap-1 text-sm text-gray-400 hover:text-brand-600 transition-colors group"
+            >
+              <Plus className="w-4 h-4 group-hover:text-brand-500" />
+              <span className="text-xs">Añadir</span>
+            </button>
+            {AI_SLOTS.has(slotId) && onAiPropose && (
+              <button
+                onClick={onAiPropose}
+                disabled={disabled}
+                className="flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700 transition-colors"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Proponer</span>
+              </button>
+            )}
+          </div>
         ) : (
           <div className="space-y-2.5">
             {items.map((item, idx) => {

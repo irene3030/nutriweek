@@ -361,7 +361,10 @@ function AppContent() {
           )}
 
           {activeTab === 'today' && (
-            <TodayScreen householdId={auth.userDoc?.householdId} />
+            <TodayScreen
+              householdId={auth.userDoc?.householdId}
+              hasAiAccess={!!householdApiKey || (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)}
+            />
           )}
 
           {activeTab === 'inventory' && (

@@ -76,6 +76,12 @@ export async function detectTags({ text }) {
   return callClaude('detect_tags', { text });
 }
 
+export async function proposeMeal({ slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis }) {
+  const result = await callClaude('propose_meal', { slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis });
+  track('ai_meal_proposed');
+  return result;
+}
+
 export async function analyzeMealPhoto({ imageBase64, mimeType = 'image/jpeg' }) {
   return callClaude('analyze_meal_photo', { imageBase64, mimeType });
 }
