@@ -37,6 +37,14 @@ function sortItems(items, slotId) {
   });
 }
 
+const DEFAULT_PORTIONS = {
+  desayuno: { adult: 0, baby: 1 },
+  snack:    { adult: 0, baby: 1 },
+  comida:   { adult: 2, baby: 1 },
+  merienda: { adult: 0, baby: 1 },
+  cena:     { adult: 2, baby: 1 },
+};
+
 export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onClose }) {
   const [manualMode, setManualMode] = useState(false);
   const [manualText, setManualText] = useState('');
@@ -54,6 +62,7 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
       setAccelPrepTime('');
       setManualMode(false);
     } else {
+      const def = DEFAULT_PORTIONS[slotId] || { adult: 1, baby: 1 };
       onSelect({
         inventoryItemId: item.id,
         label: item.name,
@@ -61,14 +70,15 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
         tags: item.tags || [],
         confirmedAt: null,
         prepTime: null,
-        portionsAdultConsumed: item.type === 'snack-batch' ? 0 : 1,
-        portionsBabyConsumed: item.type === 'snack-batch' || item.type === 'flotante' ? 0 : 1,
+        portionsAdultConsumed: item.type === 'flotante' ? 0 : def.adult,
+        portionsBabyConsumed: item.type === 'flotante' ? 0 : def.baby,
       });
     }
   };
 
   const handleAccelConfirm = () => {
     if (!pendingAccel) return;
+    const def = DEFAULT_PORTIONS[slotId] || { adult: 1, baby: 1 };
     onSelect({
       inventoryItemId: pendingAccel.id,
       label: accelMealName.trim() || pendingAccel.name,
@@ -77,8 +87,8 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
       confirmedAt: null,
       prepTime: accelPrepTime.trim() || null,
       accelBase: pendingAccel.name,
-      portionsAdultConsumed: 1,
-      portionsBabyConsumed: 1,
+      portionsAdultConsumed: def.adult,
+      portionsBabyConsumed: def.baby,
     });
   };
 

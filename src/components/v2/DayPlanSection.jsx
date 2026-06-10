@@ -38,6 +38,12 @@ export default function DayPlanSection({
     setPickerSlot(null);
   };
 
+  const handleUpdatePortions = (slotId, adult, baby) => {
+    const existing = slots[slotId];
+    if (!existing) return;
+    onSetSlot(date, slotId, { ...existing, portionsAdultConsumed: adult, portionsBabyConsumed: baby });
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
       {/* Header */}
@@ -82,6 +88,7 @@ export default function DayPlanSection({
               onPick={() => setPickerSlot(slotId)}
               onConfirm={() => onConfirmSlot(date, slotId)}
               onClear={() => onClearSlot(date, slotId)}
+              onUpdatePortions={(adult, baby) => handleUpdatePortions(slotId, adult, baby)}
             />
           ))}
         </div>
