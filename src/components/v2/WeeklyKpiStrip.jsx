@@ -1,10 +1,11 @@
-import { Droplets, Fish, Bean, Leaf } from 'lucide-react';
+import { Droplets, Fish, Bean, Leaf, Apple } from 'lucide-react';
 
 const KPI_DEFS = [
-  { id: 'iron',   icon: Droplets, label: 'Hierro',    getValue: (k) => k.ironDays,       target: 5 },
-  { id: 'fish',   icon: Fish,     label: 'Pescado',   getValue: (k) => k.fishDays,       target: 3 },
-  { id: 'legume', icon: Bean,     label: 'Legumbre',  getValue: (k) => k.legumedDays,    target: 3 },
+  { id: 'iron',   icon: Droplets, label: 'Hierro',    getValue: (k) => k.ironDays,        target: 5 },
+  { id: 'fish',   icon: Fish,     label: 'Pescado',   getValue: (k) => k.fishDays,        target: 3 },
+  { id: 'legume', icon: Bean,     label: 'Legumbre',  getValue: (k) => k.legumedDays,     target: 3 },
   { id: 'veggie', icon: Leaf,     label: 'Verduras',  getValue: (k) => k.distinctVeggies, target: 5, unit: 'tipos' },
+  { id: 'fruit',  icon: Apple,    label: 'Fruta',     getValue: (k) => k.fruitDays,       target: 5, unit: 'días' },
 ];
 
 function getStatus(value, target) {

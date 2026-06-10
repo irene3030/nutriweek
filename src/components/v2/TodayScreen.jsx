@@ -6,6 +6,7 @@ import DayPlanSection from './DayPlanSection';
 import WeeklyKpiStrip from './WeeklyKpiStrip';
 import AddPrepModal from './AddPrepModal';
 import FreshnessIndicator from './FreshnessIndicator';
+import KpiInsights from './KpiInsights';
 import { daysUntil } from '../../hooks/useInventory';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
@@ -95,6 +96,7 @@ export default function TodayScreen({ householdId }) {
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-4 pb-24">
         {/* KPI strip */}
         <WeeklyKpiStrip kpis={weeklyKpis} />
+        <KpiInsights kpis={weeklyKpis} />
 
         {/* Alerts */}
         {alertsVisible && (
