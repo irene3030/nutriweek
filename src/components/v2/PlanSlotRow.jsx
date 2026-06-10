@@ -41,14 +41,27 @@ export default function PlanSlotRow({ slotId, slotEntry, onPick, onConfirm, onCl
             <span className="text-xs">Añadir</span>
           </button>
         ) : (
-          <div className="flex items-center gap-2 min-w-0">
-            <span className={`text-sm font-medium truncate ${isConfirmed ? 'text-gray-400' : 'text-gray-800'}`}>
-              {slotEntry.label}
-            </span>
-            {badge && (
-              <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium ${badge.color}`}>
-                {badge.label}
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`text-sm font-medium truncate ${isConfirmed ? 'text-gray-400' : 'text-gray-800'}`}>
+                {slotEntry.label}
               </span>
+              {badge && (
+                <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium ${badge.color}`}>
+                  {badge.label}
+                </span>
+              )}
+            </div>
+            {(slotEntry.accelBase || slotEntry.prepTime) && (
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                {slotEntry.accelBase && (
+                  <span>Base: {slotEntry.accelBase}</span>
+                )}
+                {slotEntry.accelBase && slotEntry.prepTime && <span>·</span>}
+                {slotEntry.prepTime && (
+                  <span className="text-violet-500 font-medium">{slotEntry.prepTime}</span>
+                )}
+              </div>
             )}
           </div>
         )}
