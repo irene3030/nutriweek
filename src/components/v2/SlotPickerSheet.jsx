@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { X, PenLine, User, Baby, ChevronRight } from 'lucide-react';
 import FreshnessIndicator from './FreshnessIndicator';
+import TagConfirm from './TagConfirm';
 import { daysUntil } from '../../hooks/useInventory';
+import { inferLabels } from '../../lib/inventoryLabels';
 
 const SLOT_LABELS = {
   desayuno: 'Desayuno',
@@ -48,6 +50,8 @@ const DEFAULT_PORTIONS = {
 export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onClose }) {
   const [manualMode, setManualMode] = useState(false);
   const [manualText, setManualText] = useState('');
+  const [manualTagStep, setManualTagStep] = useState(false);
+  const [manualTags, setManualTags] = useState([]);
   // For aceleradores: which item is being expanded for the prep form
   const [pendingAccel, setPendingAccel] = useState(null); // item
   const [accelMealName, setAccelMealName] = useState('');
@@ -92,18 +96,30 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
     });
   };
 
-  const handleManualSave = () => {
+  const handleManualNext = () => {
     if (!manualText.trim()) return;
+    setManualTags(inferLabels(manualText));
+    setManualTagStep(true);
+  };
+
+  const handleManualConfirm = () => {
     onSelect({
       inventoryItemId: null,
       label: manualText.trim(),
       itemType: 'manual',
-      tags: [],
+      tags: manualTags,
       confirmedAt: null,
       prepTime: null,
       portionsAdultConsumed: 0,
       portionsBabyConsumed: 0,
     });
+  };
+
+  const resetManual = () => {
+    setManualMode(false);
+    setManualText('');
+    setManualTagStep(false);
+    setManualTags([]);
   };
 
   return (
@@ -251,28 +267,49 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
               <PenLine className="w-4 h-4" />
               Escribir a mano
             </button>
-          ) : (
+          ) : !manualTagStep ? (
             <div className="space-y-2 pt-1">
               <input
                 type="text"
                 value={manualText}
                 onChange={(e) => setManualText(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleManualSave()}
+                onKeyDown={(e) => e.key === 'Enter' && handleManualNext()}
                 placeholder="Ej: Tostada con hummus"
                 autoFocus
                 className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
               />
               <div className="flex gap-2">
                 <button
-                  onClick={() => { setManualMode(false); setManualText(''); }}
+                  onClick={resetManual}
                   className="flex-1 border border-gray-300 text-gray-600 rounded-xl py-2 text-sm hover:bg-gray-50 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
-                  onClick={handleManualSave}
+                  onClick={handleManualNext}
                   disabled={!manualText.trim()}
                   className="flex-1 bg-brand-600 text-white rounded-xl py-2 text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-40"
+                >
+                  Siguiente →
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3 pt-1 border border-gray-200 rounded-xl p-3">
+              <p className="text-xs text-gray-500">
+                Etiquetas para <span className="font-medium text-gray-800">{manualText}</span>. Ajusta si es necesario.
+              </p>
+              <TagConfirm value={manualTags} onChange={setManualTags} />
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => setManualTagStep(false)}
+                  className="flex-1 border border-gray-300 text-gray-600 rounded-xl py-2 text-sm hover:bg-gray-50 transition-colors"
+                >
+                  ← Atrás
+                </button>
+                <button
+                  onClick={handleManualConfirm}
+                  className="flex-1 bg-brand-600 text-white rounded-xl py-2 text-sm font-medium hover:bg-brand-700 transition-colors"
                 >
                   Añadir
                 </button>
