@@ -17,6 +17,7 @@ import Modal from './components/ui/Modal';
 import DayPlayground from './components/playground/DayPlayground';
 import QuickMealModal from './components/week/QuickMealModal';
 import InventoryScreen from './components/v2/InventoryScreen';
+import TodayScreen from './components/v2/TodayScreen';
 import {
   collection,
   onSnapshot,
@@ -31,6 +32,11 @@ import { db } from './lib/firebase';
 
 // Tab nav icons (inline SVG)
 const TabIcons = {
+  today: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+    </svg>
+  ),
   inventory: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z" />
@@ -65,7 +71,7 @@ const TabIcons = {
 
 function AppContent() {
   const auth = useAuth();
-  const [activeTab, setActiveTab] = useState('week');
+  const [activeTab, setActiveTab] = useState('today');
   const [selectedDayIndex, setSelectedDayIndex] = useState(null);
   const [savedRecipes, setSavedRecipes] = useState([]);
   const [usualMeals, setUsualMeals] = useState([]);
@@ -354,6 +360,10 @@ function AppContent() {
             <ProfileTab auth={auth} householdDoc={householdDoc} onShowFFWelcome={() => setShowFFWelcome(true)} />
           )}
 
+          {activeTab === 'today' && (
+            <TodayScreen householdId={auth.userDoc?.householdId} />
+          )}
+
           {activeTab === 'inventory' && (
             <InventoryScreen householdId={auth.userDoc?.householdId} />
           )}
@@ -440,11 +450,10 @@ function AppContent() {
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20 pb-[env(safe-area-inset-bottom)]">
           <div className="max-w-lg mx-auto flex">
             {[
-              { id: 'inventory', label: 'Inventario', tour: 'tab-inventory' },
-              { id: 'week', label: 'Semana', tour: 'tab-week' },
-              { id: 'day', label: 'Día', tour: 'tab-day' },
-              { id: 'recipes', label: 'Comidas', tour: 'tab-recipes' },
-              { id: 'profile', label: 'Perfil', tour: 'tab-profile' },
+              { id: 'today',     label: 'Hoy',        tour: 'tab-today' },
+              { id: 'inventory', label: 'Inventario',  tour: 'tab-inventory' },
+              { id: 'week',      label: 'Semana',      tour: 'tab-week' },
+              { id: 'profile',   label: 'Perfil',      tour: 'tab-profile' },
             ].map((tab) => (
               <button
                 key={tab.id}
