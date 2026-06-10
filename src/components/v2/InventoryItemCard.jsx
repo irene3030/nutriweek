@@ -13,7 +13,6 @@ const TYPE_CONFIG = {
 export default function InventoryItemCard({ item, onDelete }) {
   const typeConfig = TYPE_CONFIG[item.type] || { label: item.type, color: 'bg-gray-100 text-gray-600' };
   const isSnack = item.type === 'snack-batch';
-  const hasPortions = !isSnack && (item.portionsAdult > 0 || item.portionsBaby > 0);
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-start gap-3">
@@ -34,6 +33,12 @@ export default function InventoryItemCard({ item, onDelete }) {
               <span className="font-medium text-gray-800">{item.units ?? 0}</span>
               <span className="text-gray-400">unidades</span>
             </span>
+          ) : item.type === 'flotante' ? (
+            item.amount ? (
+              <span className="text-sm text-gray-700 font-medium">{item.amount}</span>
+            ) : (
+              <span className="text-gray-400 text-xs">Cantidad no especificada</span>
+            )
           ) : (
             <>
               {item.portionsAdult > 0 && (
@@ -47,9 +52,6 @@ export default function InventoryItemCard({ item, onDelete }) {
                   <Baby className="w-3.5 h-3.5 text-gray-400" />
                   <span className="font-medium text-gray-800">{item.portionsBaby}</span>
                 </span>
-              )}
-              {!hasPortions && item.type === 'flotante' && item.portionsAdult === 0 && (
-                <span className="text-gray-400 text-xs">Sin raciones definidas</span>
               )}
             </>
           )}

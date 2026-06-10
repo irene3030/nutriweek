@@ -23,6 +23,7 @@ const EMPTY = {
   portionsAdult: 2,
   portionsBaby: 1,
   units: 6,
+  amount: '',
   shelfLifeDays: 4,
   tags: [],
   notes: '',
@@ -62,9 +63,10 @@ export default function AddPrepModal({ isOpen, onClose, onSave }) {
       await onSave({
         name: form.name.trim(),
         type: form.type,
-        portionsAdult: isSnack ? 0 : Number(form.portionsAdult) || 0,
+        portionsAdult: (isSnack || isFlotante) ? 0 : Number(form.portionsAdult) || 0,
         portionsBaby: (isSnack || isFlotante) ? 0 : Number(form.portionsBaby) || 0,
         units: isSnack ? Number(form.units) || 0 : 0,
+        amount: isFlotante ? form.amount.trim() : '',
         shelfLifeDays: Number(form.shelfLifeDays) || 3,
         tags: form.tags,
         notes: form.notes.trim(),
@@ -138,6 +140,17 @@ export default function AddPrepModal({ isOpen, onClose, onSave }) {
                   className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
                 />
               </div>
+            ) : isFlotante ? (
+              <div className="col-span-2">
+                <label className="block text-xs text-gray-500 mb-1.5">Cantidad disponible</label>
+                <input
+                  type="text"
+                  value={form.amount}
+                  onChange={(e) => set('amount', e.target.value)}
+                  placeholder="Ej: 500g, 1 pack, 3 filetes, 2 aguacates…"
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+                />
+              </div>
             ) : (
               <>
                 <div>
@@ -150,18 +163,16 @@ export default function AddPrepModal({ isOpen, onClose, onSave }) {
                     className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
                   />
                 </div>
-                {!isFlotante && (
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1.5">Raciones bebé</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={form.portionsBaby}
-                      onChange={(e) => set('portionsBaby', e.target.value)}
-                      className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
-                    />
-                  </div>
-                )}
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1.5">Raciones bebé</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.portionsBaby}
+                    onChange={(e) => set('portionsBaby', e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
+                  />
+                </div>
               </>
             )}
           </div>
