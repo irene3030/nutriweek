@@ -17,7 +17,6 @@ const TYPE_BADGES = {
   manual:         { label: 'Manual',      color: 'bg-gray-100 text-gray-600' },
 };
 
-// Types that track portions (adult + baby)
 const SHOWS_PORTIONS = new Set(['ya-preparado', 'acelerador', 'snack-batch']);
 
 function PortionCounter({ icon, value, onChange }) {
@@ -43,40 +42,42 @@ function PortionCounter({ icon, value, onChange }) {
   );
 }
 
-export default function PlanSlotRow({ slotId, slotEntry, onPick, onConfirm, onClear, onUpdatePortions, disabled }) {
-  const label = SLOT_LABELS[slotId] || slotId;
-  const isConfirmed = !!slotEntry?.confirmedAt;
-  const isPlanned = slotEntry && !isConfirmed;
-  const badge = slotEntry ? TYPE_BADGES[slotEntry.itemType] : null;
-  const showPortions = slotEntry && SHOWS_PORTIONS.has(slotEntry.itemType);
-
-  const [editingPortions, setEditingPortions] = useState(false);
+// slot = { items: SlotEntry[], confirmedAt: string|null } | null
+export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onConfirm, onUpdatePortions, disabled }) {
+  const [editingIdx, setEditingIdx] = useState(null);
   const [draftAdult, setDraftAdult] = useState(0);
   const [draftBaby, setDraftBaby] = useState(0);
 
-  const openPortionEditor = () => {
-    setDraftAdult(slotEntry.portionsAdultConsumed ?? 0);
-    setDraftBaby(slotEntry.portionsBabyConsumed ?? 0);
-    setEditingPortions(true);
+  const label = SLOT_LABELS[slotId] || slotId;
+  const items = slot?.items || [];
+  const isEmpty = !slot || items.length === 0;
+  const isConfirmed = !!slot?.confirmedAt;
+  const isPlanned = !isEmpty && !isConfirmed;
+
+  const openPortionEditor = (idx) => {
+    const item = items[idx];
+    setDraftAdult(item.portionsAdultConsumed ?? 0);
+    setDraftBaby(item.portionsBabyConsumed ?? 0);
+    setEditingIdx(idx);
   };
 
   const savePortions = () => {
-    onUpdatePortions?.(draftAdult, draftBaby);
-    setEditingPortions(false);
+    onUpdatePortions?.(editingIdx, draftAdult, draftBaby);
+    setEditingIdx(null);
   };
 
   return (
     <div className={`flex items-start gap-3 py-2.5 border-b border-gray-50 last:border-0 ${disabled ? 'opacity-50' : ''}`}>
-      {/* Slot label — align top */}
-      <span className="w-20 shrink-0 text-xs font-medium text-gray-400 uppercase tracking-wide pt-0.5">
+      {/* Slot label */}
+      <span className="w-20 shrink-0 text-xs font-medium text-gray-400 uppercase tracking-wide pt-1">
         {label}
       </span>
 
       {/* Content */}
-      <div className="flex-1 min-w-0 space-y-1">
-        {!slotEntry ? (
+      <div className="flex-1 min-w-0">
+        {isEmpty ? (
           <button
-            onClick={onPick}
+            onClick={onAddItem}
             disabled={disabled}
             className="flex items-center gap-1 text-sm text-gray-400 hover:text-brand-600 transition-colors group"
           >
@@ -84,110 +85,120 @@ export default function PlanSlotRow({ slotId, slotEntry, onPick, onConfirm, onCl
             <span className="text-xs">Añadir</span>
           </button>
         ) : (
-          <>
-            {/* Label + badge */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className={`text-sm font-medium truncate ${isConfirmed ? 'text-gray-400' : 'text-gray-800'}`}>
-                {slotEntry.label}
-              </span>
-              {badge && (
-                <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium ${badge.color}`}>
-                  {badge.label}
-                </span>
-              )}
-            </div>
+          <div className="space-y-2.5">
+            {items.map((item, idx) => {
+              const badge = TYPE_BADGES[item.itemType];
+              const showPortions = SHOWS_PORTIONS.has(item.itemType);
+              const isEditingThis = editingIdx === idx;
 
-            {/* Acelerador meta */}
-            {(slotEntry.accelBase || slotEntry.prepTime) && (
-              <div className="flex items-center gap-2 text-xs text-gray-400">
-                {slotEntry.accelBase && <span>Base: {slotEntry.accelBase}</span>}
-                {slotEntry.accelBase && slotEntry.prepTime && <span>·</span>}
-                {slotEntry.prepTime && (
-                  <span className="text-violet-500 font-medium">{slotEntry.prepTime}</span>
-                )}
-              </div>
-            )}
+              return (
+                <div key={idx} className="flex items-start gap-2">
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    {/* Label + badge */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-sm font-medium ${isConfirmed ? 'text-gray-400' : 'text-gray-800'}`}>
+                        {item.label}
+                      </span>
+                      {badge && (
+                        <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium ${badge.color}`}>
+                          {badge.label}
+                        </span>
+                      )}
+                    </div>
 
-            {/* Portions row — editable when planned */}
-            {showPortions && !isConfirmed && (
-              <div className="flex items-center gap-3">
-                {editingPortions ? (
-                  <>
-                    <PortionCounter
-                      icon={<User className="w-3 h-3" />}
-                      value={draftAdult}
-                      onChange={setDraftAdult}
-                    />
-                    <PortionCounter
-                      icon={<Baby className="w-3 h-3" />}
-                      value={draftBaby}
-                      onChange={setDraftBaby}
-                    />
+                    {/* Acelerador meta */}
+                    {(item.accelBase || item.prepTime) && (
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        {item.accelBase && <span>Base: {item.accelBase}</span>}
+                        {item.accelBase && item.prepTime && <span>·</span>}
+                        {item.prepTime && (
+                          <span className="text-violet-500 font-medium">{item.prepTime}</span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Portions — editable when planned */}
+                    {showPortions && !isConfirmed && (
+                      <div className="flex items-center gap-3">
+                        {isEditingThis ? (
+                          <>
+                            <PortionCounter icon={<User className="w-3 h-3" />} value={draftAdult} onChange={setDraftAdult} />
+                            <PortionCounter icon={<Baby className="w-3 h-3" />} value={draftBaby} onChange={setDraftBaby} />
+                            <button onClick={savePortions} className="text-xs text-brand-600 font-medium hover:underline">
+                              Listo
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => openPortionEditor(idx)}
+                            className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            <span className="flex items-center gap-0.5">
+                              <User className="w-3 h-3" /> {item.portionsAdultConsumed ?? 0}
+                            </span>
+                            <span className="flex items-center gap-0.5">
+                              <Baby className="w-3 h-3" /> {item.portionsBabyConsumed ?? 0}
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Portions — read-only when confirmed */}
+                    {showPortions && isConfirmed && (
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        <span className="flex items-center gap-0.5">
+                          <User className="w-3 h-3" /> {item.portionsAdultConsumed ?? 0}
+                        </span>
+                        <span className="flex items-center gap-0.5">
+                          <Baby className="w-3 h-3" /> {item.portionsBabyConsumed ?? 0}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Per-item remove (planned state only) */}
+                  {isPlanned && (
                     <button
-                      onClick={savePortions}
-                      className="text-xs text-brand-600 font-medium hover:underline"
+                      onClick={() => onRemoveItem?.(idx)}
+                      className="shrink-0 flex items-center justify-center w-6 h-6 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors mt-0.5"
+                      aria-label="Quitar"
                     >
-                      Listo
+                      <X className="w-3.5 h-3.5" />
                     </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={openPortionEditor}
-                    className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <span className="flex items-center gap-0.5">
-                      <User className="w-3 h-3" />
-                      {slotEntry.portionsAdultConsumed ?? 0}
-                    </span>
-                    <span className="flex items-center gap-0.5">
-                      <Baby className="w-3 h-3" />
-                      {slotEntry.portionsBabyConsumed ?? 0}
-                    </span>
-                  </button>
-                )}
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Bottom row: add another + confirm */}
+            {isPlanned && (
+              <div className="flex items-center justify-between pt-0.5">
+                <button
+                  onClick={onAddItem}
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-brand-600 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Añadir otro</span>
+                </button>
+                <button
+                  onClick={onConfirm}
+                  className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors min-h-[32px]"
+                >
+                  Confirmar
+                </button>
               </div>
             )}
 
-            {/* Confirmed portions (read-only) */}
-            {showPortions && isConfirmed && (
-              <div className="flex items-center gap-2 text-xs text-gray-400">
-                <span className="flex items-center gap-0.5">
-                  <User className="w-3 h-3" />
-                  {slotEntry.portionsAdultConsumed ?? 0}
-                </span>
-                <span className="flex items-center gap-0.5">
-                  <Baby className="w-3 h-3" />
-                  {slotEntry.portionsBabyConsumed ?? 0}
+            {/* Confirmed checkmark */}
+            {isConfirmed && (
+              <div className="flex justify-end">
+                <span className="flex items-center justify-center w-7 h-7 rounded-full bg-green-100">
+                  <Check className="w-4 h-4 text-green-600" />
                 </span>
               </div>
             )}
-          </>
-        )}
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center gap-1 shrink-0 pt-0.5">
-        {isConfirmed && (
-          <span className="flex items-center justify-center w-7 h-7 rounded-full bg-green-100">
-            <Check className="w-4 h-4 text-green-600" />
-          </span>
-        )}
-        {isPlanned && (
-          <>
-            <button
-              onClick={onClear}
-              className="flex items-center justify-center w-7 h-7 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors"
-              aria-label="Quitar"
-            >
-              <X className="w-4 h-4" />
-            </button>
-            <button
-              onClick={onConfirm}
-              className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors min-h-[32px]"
-            >
-              Confirmar
-            </button>
-          </>
+          </div>
         )}
       </div>
     </div>

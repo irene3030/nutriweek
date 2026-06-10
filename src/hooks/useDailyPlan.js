@@ -28,7 +28,7 @@ export function offsetDateStr(deltaDays) {
 
 function getMondayStr() {
   const d = new Date();
-  const day = d.getDay(); // 0 = Sun
+  const day = d.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
   return toDateStr(d);
@@ -41,10 +41,20 @@ function dayLabel(dateStr) {
   return DAY_LABELS[d.getDay()];
 }
 
+// ── Slot structure ────────────────────────────────────────────────────────────
+//
+// slots.{slotId} = { items: SlotEntry[], confirmedAt: string | null }
+//
+// SlotEntry = {
+//   inventoryItemId, label, itemType, tags,
+//   prepTime, accelBase,
+//   portionsAdultConsumed, portionsBabyConsumed
+// }
+
 // ── hook ──────────────────────────────────────────────────────────────────────
 
 export function useDailyPlan(householdId) {
-  const [plans, setPlans] = useState({}); // { 'YYYY-MM-DD': { date, slots, updatedAt } }
+  const [plans, setPlans] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -70,44 +80,59 @@ export function useDailyPlan(householdId) {
   const today = todayStr();
   const todayPlan = plans[today] || null;
 
+  // ── helpers ─────────────────────────────────────────────────────────────────
+
+  const writeSlot = useCallback(async (dateStr, slotId, slotContainer) => {
+    if (!householdId) return;
+    const ref = doc(db, 'households', householdId, 'dailyPlans', dateStr);
+    await setDoc(
+      ref,
+      { date: dateStr, slots: { [slotId]: slotContainer }, updatedAt: new Date().toISOString() },
+      { merge: true }
+    );
+  }, [householdId]);
+
   // ── mutations ───────────────────────────────────────────────────────────────
 
-  const setSlot = useCallback(async (dateStr, slotId, entry) => {
-    if (!householdId) return;
-    const ref = doc(db, 'households', householdId, 'dailyPlans', dateStr);
-    await setDoc(
-      ref,
-      { date: dateStr, slots: { [slotId]: entry }, updatedAt: new Date().toISOString() },
-      { merge: true }
+  const addSlotItem = useCallback(async (dateStr, slotId, itemEntry) => {
+    const plan = plans[dateStr];
+    const existing = plan?.slots?.[slotId];
+    const newSlot = {
+      items: [...(existing?.items || []), itemEntry],
+      confirmedAt: existing?.confirmedAt || null,
+    };
+    await writeSlot(dateStr, slotId, newSlot);
+  }, [plans, writeSlot]);
+
+  const removeSlotItem = useCallback(async (dateStr, slotId, itemIndex) => {
+    const plan = plans[dateStr];
+    const existing = plan?.slots?.[slotId];
+    if (!existing?.items) return;
+    const newItems = existing.items.filter((_, i) => i !== itemIndex);
+    // If last item removed, set slot to null to clean up
+    await writeSlot(dateStr, slotId, newItems.length === 0 ? null : { ...existing, items: newItems });
+  }, [plans, writeSlot]);
+
+  const updateSlotItemPortions = useCallback(async (dateStr, slotId, itemIndex, adult, baby) => {
+    const plan = plans[dateStr];
+    const existing = plan?.slots?.[slotId];
+    if (!existing?.items) return;
+    const newItems = existing.items.map((item, i) =>
+      i === itemIndex ? { ...item, portionsAdultConsumed: adult, portionsBabyConsumed: baby } : item
     );
-  }, [householdId]);
+    await writeSlot(dateStr, slotId, { ...existing, items: newItems });
+  }, [plans, writeSlot]);
 
   const confirmSlot = useCallback(async (dateStr, slotId) => {
-    if (!householdId) return;
     const plan = plans[dateStr];
     const slot = plan?.slots?.[slotId];
-    if (!slot || slot.confirmedAt) return;
-    const ref = doc(db, 'households', householdId, 'dailyPlans', dateStr);
-    await setDoc(
-      ref,
-      {
-        date: dateStr,
-        slots: { [slotId]: { ...slot, confirmedAt: new Date().toISOString() } },
-        updatedAt: new Date().toISOString(),
-      },
-      { merge: true }
-    );
-  }, [householdId, plans]);
+    if (!slot?.items?.length || slot.confirmedAt) return;
+    await writeSlot(dateStr, slotId, { ...slot, confirmedAt: new Date().toISOString() });
+  }, [plans, writeSlot]);
 
   const clearSlot = useCallback(async (dateStr, slotId) => {
-    if (!householdId) return;
-    const ref = doc(db, 'households', householdId, 'dailyPlans', dateStr);
-    await setDoc(
-      ref,
-      { date: dateStr, slots: { [slotId]: null }, updatedAt: new Date().toISOString() },
-      { merge: true }
-    );
-  }, [householdId]);
+    await writeSlot(dateStr, slotId, null);
+  }, [writeSlot]);
 
   // ── weekly KPIs from confirmed slots ────────────────────────────────────────
 
@@ -124,12 +149,14 @@ export function useDailyPlan(householdId) {
         const plan = plans[dateStr];
         const meals = Object.entries(plan?.slots || {})
           .filter(([, slot]) => slot?.confirmedAt)
-          .map(([tipo, slot]) => ({
-            tipo,
-            baby: slot.label,
-            adult: slot.label,
-            tags: slot.tags || [],
-          }));
+          .flatMap(([tipo, slot]) =>
+            (slot.items || []).map((item) => ({
+              tipo,
+              baby: item.label,
+              adult: item.label,
+              tags: item.tags || [],
+            }))
+          );
         return { day: dayLabel(dateStr), meals };
       }),
     };
@@ -142,7 +169,9 @@ export function useDailyPlan(householdId) {
     getPlan,
     todayPlan,
     loading,
-    setSlot,
+    addSlotItem,
+    removeSlotItem,
+    updateSlotItemPortions,
     confirmSlot,
     clearSlot,
     weeklyKpis,

@@ -38,7 +38,9 @@ export default function TodayScreen({ householdId }) {
     getPlan,
     weeklyKpis,
     loading: planLoading,
-    setSlot,
+    addSlotItem,
+    removeSlotItem,
+    updateSlotItemPortions,
     confirmSlot,
     clearSlot,
     offsetDateStr,
@@ -59,20 +61,20 @@ export default function TodayScreen({ householdId }) {
   const handleConfirmSlot = async (dateStr, slotId) => {
     const plan = getPlan(dateStr);
     const slot = plan?.slots?.[slotId];
-    if (!slot || slot.confirmedAt) return;
+    if (!slot?.items?.length || slot.confirmedAt) return;
 
-    // Mark confirmed in plan
     await confirmSlot(dateStr, slotId);
 
-    // Decrement inventory
-    if (slot.inventoryItemId) {
-      if (slot.itemType === 'snack-batch') {
-        await consumeUnits(slot.inventoryItemId, 1);
-      } else if (slot.itemType !== 'manual' && slot.itemType !== 'flotante') {
+    // Decrement inventory for each item in the slot
+    for (const item of slot.items) {
+      if (!item.inventoryItemId) continue;
+      if (item.itemType === 'snack-batch') {
+        await consumeUnits(item.inventoryItemId, 1);
+      } else if (item.itemType !== 'manual' && item.itemType !== 'flotante') {
         await consumePortions(
-          slot.inventoryItemId,
-          slot.portionsAdultConsumed || 0,
-          slot.portionsBabyConsumed || 0
+          item.inventoryItemId,
+          item.portionsAdultConsumed || 0,
+          item.portionsBabyConsumed || 0
         );
       }
     }
@@ -125,9 +127,11 @@ export default function TodayScreen({ householdId }) {
               plan={getPlan(dateStr)}
               inventoryItems={inventoryItems}
               defaultExpanded={defaultExpanded}
-              onSetSlot={setSlot}
+              onAddSlotItem={addSlotItem}
+              onRemoveSlotItem={removeSlotItem}
               onConfirmSlot={handleConfirmSlot}
               onClearSlot={clearSlot}
+              onUpdateSlotItemPortions={updateSlotItemPortions}
             />
           );
         })}
