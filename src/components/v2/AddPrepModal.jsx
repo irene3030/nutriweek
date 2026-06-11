@@ -29,18 +29,18 @@ const EMPTY = {
   notes: '',
 };
 
-export default function AddPrepModal({ isOpen, onClose, onSave }) {
+export default function AddPrepModal({ isOpen, onClose, onSave, initialData }) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
 
-  // Reset when modal opens
+  // Reset when modal opens; apply initialData if provided
   useEffect(() => {
     if (isOpen) {
       setStep(1);
-      setForm(EMPTY);
+      setForm(initialData ? { ...EMPTY, ...initialData } : EMPTY);
     }
-  }, [isOpen]);
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-infer tags when moving to step 2
   const handleNextStep = () => {

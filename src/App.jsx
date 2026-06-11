@@ -368,7 +368,10 @@ function AppContent() {
           )}
 
           {activeTab === 'inventory' && (
-            <InventoryScreen householdId={auth.userDoc?.householdId} />
+            <InventoryScreen
+              householdId={auth.userDoc?.householdId}
+              hasAiAccess={!!householdApiKey || (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)}
+            />
           )}
 
           {activeTab === 'day' && (

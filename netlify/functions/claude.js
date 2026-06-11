@@ -1132,6 +1132,281 @@ prepType debe ser: "ya-preparado" | "acelerador" | "justo-antes"
 source debe ser: "stock" (en inventario) | "despensa" (despensa base, siempre disponible) | "compra" (habría que comprar)
 kpiBoost: "legume" | "fish" | "iron" | "veggie" | null`;
 
+    } else if (type === 'resolve_floating') {
+      const { floatingItem, inventoryItems, weeklyKpis } = payload;
+      const safeName = sanitize(floatingItem?.name, 100);
+      const safeAmount = sanitize(floatingItem?.amount, 50);
+
+      const safeItems = Array.isArray(inventoryItems)
+        ? inventoryItems.slice(0, 15).map(item => ({
+            id: sanitize(item.id, 50),
+            name: sanitize(item.name, 100),
+            type: sanitize(item.type, 30),
+            adultPortions: Math.max(0, parseInt(item.adultPortions) || 0),
+            babyPortions: Math.max(0, parseInt(item.babyPortions) || 0),
+            daysLeft: item.daysLeft != null ? Math.max(0, parseInt(item.daysLeft) || 0) : null,
+            tags: Array.isArray(item.tags) ? item.tags.map(t => sanitize(t, 30)).filter(Boolean) : [],
+          }))
+        : [];
+
+      const kpi = weeklyKpis || {};
+      const kpiCtx = `Hierro: ${parseInt(kpi.ironDays) || 0} días · Pescado azul: ${parseInt(kpi.fishDays) || 0} días · Legumbre: ${parseInt(kpi.legumedDays) || 0} días · Verduras distintas: ${parseInt(kpi.distinctVeggies) || 0}`;
+
+      const inventoryLines = safeItems.length > 0
+        ? safeItems.map(i => {
+            const freshness = i.daysLeft != null ? `, ${i.daysLeft}d` : '';
+            const portions = (i.type === 'ya-preparado' || i.type === 'acelerador') ? `, ${i.adultPortions}r adulto/${i.babyPortions}r bebé` : '';
+            return `- [${i.id}] ${i.name} (${i.type})${portions}${freshness}`;
+          }).join('\n')
+        : '- (inventario vacío)';
+
+      userMessage = `El usuario tiene un ingrediente sin plan: "${safeName}"${safeAmount ? ` (${safeAmount})` : ''}.
+Propón exactamente 3 formas de cocinarlo o usarlo, pensando en una familia BLW con bebé ~12 meses.
+
+Inventario disponible actualmente:
+${inventoryLines}
+
+Estado nutricional de la semana: ${kpiCtx}
+
+INSTRUCCIONES:
+1. Varía los tipos: al menos una opción batch (cocinas una vez, comes varios días) y al menos una justo-antes (resuelves una comida rápido).
+2. Para cada opción, marca los ingredientes extra necesarios: "stock" si está en inventario (usa su id), "despensa" si es básico de cocina, "compra" si habría que comprarlo.
+3. Prioriza las opciones que cubran gaps nutricionales de la semana.
+4. Todas las opciones deben ser aptas para BLW (bebé ~12 meses y familia comen lo mismo).
+
+Devuelve SOLO este JSON:
+{
+  "proposals": [
+    {
+      "name": "Albóndigas de ternera",
+      "description": "Mezclar con pan rallado, huevo y perejil. Hornear 20 min a 180°.",
+      "prepType": "ya-preparado",
+      "prepTime": "30 min",
+      "adultPortions": 3,
+      "babyPortions": 2,
+      "ingredients": [
+        {"name": "Carne picada", "source": "stock", "inventoryId": "flotante-id"},
+        {"name": "Huevo", "source": "despensa"},
+        {"name": "Pan rallado", "source": "despensa"}
+      ],
+      "tags": ["iron"],
+      "kpiBoost": "iron"
+    }
+  ]
+}
+prepType: "ya-preparado" | "acelerador" | "snack-batch" | "justo-antes"
+source: "stock" | "despensa" | "compra"
+kpiBoost: "legume" | "fish" | "iron" | "veggie" | null`;
+
+    } else if (type === 'suggest_snack') {
+      const { recentSnacks, inventoryItems } = payload;
+      const safeRecent = Array.isArray(recentSnacks)
+        ? recentSnacks.map(s => sanitize(s, 100)).filter(Boolean)
+        : [];
+      const safeItems = Array.isArray(inventoryItems)
+        ? inventoryItems.slice(0, 15).map(i => ({
+            id: sanitize(i.id, 50),
+            name: sanitize(i.name, 100),
+            type: sanitize(i.type, 30),
+            daysLeft: i.daysLeft != null ? Math.max(0, parseInt(i.daysLeft) || 0) : null,
+          }))
+        : [];
+
+      const inventoryLines = safeItems.length > 0
+        ? safeItems.map(i => `- [${i.id}] ${i.name} (${i.type})${i.daysLeft != null ? `, ${i.daysLeft}d` : ''}`).join('\n')
+        : '- (inventario vacío)';
+
+      const recentNote = safeRecent.length > 0
+        ? `\nÚltimos snacks hechos (NO repetir ni algo muy similar): ${safeRecent.join(', ')}`
+        : '';
+
+      userMessage = `El stock de snacks está agotándose. Propón exactamente 3 opciones de snack batch para bebé BLW (~12 meses) y familia.
+
+Inventario actual:
+${inventoryLines}
+${recentNote}
+
+INSTRUCCIONES:
+1. Las opciones deben ser distintas entre sí y distintas a los últimos snacks.
+2. Prioriza lo que se puede hacer con ingredientes de despensa básica (harina, avena, huevo, plátano, zanahoria, manzana…).
+3. Incluye el número de unidades que genera cada preparación en "unitsGenerated".
+4. Snacks aptos para BLW: sin sal, sin azúcar añadida (máx miel si el bebé tiene más de 12 meses), textura que permita agarrar.
+
+Devuelve SOLO este JSON:
+{
+  "proposals": [
+    {
+      "name": "Muffins de zanahoria y avena",
+      "description": "Mezclar avena, zanahoria rallada, huevo y plátano. Hornear 20 min a 180°.",
+      "prepType": "snack-batch",
+      "prepTime": "30 min",
+      "unitsGenerated": 12,
+      "adultPortions": 0,
+      "babyPortions": 0,
+      "ingredients": [
+        {"name": "Avena", "source": "despensa"},
+        {"name": "Zanahoria", "source": "despensa"},
+        {"name": "Huevo", "source": "despensa"},
+        {"name": "Plátano", "source": "despensa"}
+      ],
+      "tags": ["fruit", "cereal", "veggie:zanahoria"],
+      "kpiBoost": null
+    }
+  ]
+}`;
+
+    } else if (type === 'cooking_time_suggestions') {
+      const { minutes, inventoryItems, weeklyKpis, recentPreps } = payload;
+      const VALID_MINUTES = [15, 30, 60, 'más'];
+      const safeMinutes = VALID_MINUTES.includes(minutes) ? minutes : 30;
+
+      const safeItems = Array.isArray(inventoryItems)
+        ? inventoryItems.slice(0, 15).map(item => ({
+            id: sanitize(item.id, 50),
+            name: sanitize(item.name, 100),
+            type: sanitize(item.type, 30),
+            adultPortions: Math.max(0, parseInt(item.adultPortions) || 0),
+            babyPortions: Math.max(0, parseInt(item.babyPortions) || 0),
+            daysLeft: item.daysLeft != null ? Math.max(0, parseInt(item.daysLeft) || 0) : null,
+            tags: Array.isArray(item.tags) ? item.tags.map(t => sanitize(t, 30)).filter(Boolean) : [],
+          }))
+        : [];
+
+      const safeRecent = Array.isArray(recentPreps)
+        ? recentPreps.map(r => sanitize(r, 100)).filter(Boolean)
+        : [];
+
+      const kpi = weeklyKpis || {};
+      const ironDays = parseInt(kpi.ironDays) || 0;
+      const fishDays = parseInt(kpi.fishDays) || 0;
+      const legumedDays = parseInt(kpi.legumedDays) || 0;
+      const distinctVeggies = parseInt(kpi.distinctVeggies) || 0;
+
+      const gaps = [];
+      if (ironDays < 3) gaps.push('hierro (faltan días con carne roja, legumbre o pescado azul)');
+      if (fishDays < 2) gaps.push('pescado azul');
+      if (legumedDays < 2) gaps.push('legumbre');
+      if (distinctVeggies < 3) gaps.push(`variedad de verduras (solo ${distinctVeggies} distintas esta semana)`);
+      const gapText = gaps.length > 0 ? `KPIs bajos esta semana: ${gaps.join(', ')}.` : 'KPIs en buen estado esta semana.';
+
+      const inventoryLines = safeItems.length > 0
+        ? safeItems.map(i => {
+            const freshness = i.daysLeft != null ? `, ${i.daysLeft}d` : '';
+            const portions = (i.type === 'ya-preparado' || i.type === 'acelerador') ? `, ${i.adultPortions}r adulto/${i.babyPortions}r bebé` : '';
+            return `- [${i.id}] ${i.name} (${i.type})${portions}${freshness}`;
+          }).join('\n')
+        : '- (inventario vacío)';
+
+      const recentNote = safeRecent.length > 0 ? `\nPreparaciones recientes (evita repetir): ${safeRecent.join(', ')}` : '';
+
+      const timeLabel = safeMinutes === 'más' ? 'más de 1 hora' : `${safeMinutes} minutos`;
+
+      userMessage = `El usuario tiene ${timeLabel} disponibles para cocinar. Propón exactamente 3 preparaciones que sean más útiles para la semana.
+
+${gapText}
+
+Inventario actual:
+${inventoryLines}
+${recentNote}
+
+INSTRUCCIONES:
+1. Ordena las opciones por impacto: primero las que cubren más gaps nutricionales y más slots de comida.
+2. Solo propón preparaciones que se puedan hacer en ${timeLabel} o menos.
+3. Prioriza batch cooking cuando tiene sentido (legumbres, guisos, cremas que duran varios días).
+4. Varía las opciones: no 3 variantes del mismo tipo.
+5. Todas deben ser aptas para BLW (bebé ~12 meses y familia).
+
+Devuelve SOLO este JSON:
+{
+  "proposals": [
+    {
+      "name": "Lentejas con verduras",
+      "description": "Guiso de lentejas con zanahoria, puerro y tomate. Rinde para 3 comidas.",
+      "prepType": "ya-preparado",
+      "prepTime": "25 min",
+      "adultPortions": 3,
+      "babyPortions": 2,
+      "ingredients": [
+        {"name": "Lentejas", "source": "despensa"},
+        {"name": "Zanahoria", "source": "despensa"},
+        {"name": "Tomate", "source": "despensa"}
+      ],
+      "tags": ["legume", "iron", "veggie:zanahoria"],
+      "kpiBoost": "legume"
+    }
+  ]
+}
+prepType: "ya-preparado" | "acelerador" | "snack-batch" | "justo-antes"
+kpiBoost: "legume" | "fish" | "iron" | "veggie" | null`;
+
+    } else if (type === 'generate_recipe') {
+      const { prepName, prepType, ingredients, adultPortions, babyPortions } = payload;
+      const safeName = sanitize(prepName, 100);
+      const safePrepType = sanitize(prepType, 30);
+      const safeIngredients = Array.isArray(ingredients)
+        ? ingredients.map(i => ({
+            name: sanitize(i.name, 100),
+            source: sanitize(i.source, 20),
+          }))
+        : [];
+      const safeAdult = Math.max(0, parseInt(adultPortions) || 2);
+      const safeBaby = Math.max(0, parseInt(babyPortions) || 1);
+
+      const ingredientsList = safeIngredients.map(i => `- ${i.name}`).join('\n');
+
+      userMessage = `Genera los pasos de preparación para: "${safeName}" (tipo: ${safePrepType}).
+Para ${safeAdult} raciones adulto y ${safeBaby} raciones bebé BLW (~12 meses).
+
+Ingredientes:
+${ingredientsList || '- (no especificados)'}
+
+INSTRUCCIONES:
+1. Pasos concretos y breves, en orden. Máximo 8 pasos.
+2. Indica cantidades aproximadas cuando sea útil (ej: "200g de lentejas").
+3. Menciona el formato BLW cuando aplique (trozos grandes para agarrar, sin triturar).
+4. Si hay notas importantes (conservación, variantes, temperatura de servicio), inclúyelas en "notes".
+5. Sin sal añadida en la versión bebé.
+
+Devuelve SOLO este JSON:
+{
+  "steps": [
+    "Cocer las lentejas en agua sin sal durante 20 minutos hasta que estén tiernas.",
+    "Sofreír la cebolla y el ajo en aceite de oliva a fuego medio.",
+    "Añadir la zanahoria cortada en dados y rehogar 5 minutos.",
+    "Incorporar las lentejas cocidas y el tomate triturado. Cocinar 10 minutos más.",
+    "Servir al bebé en trozos o en cuchara. Los adultos añaden sal al gusto."
+  ],
+  "notes": "Aguanta 4 días en nevera. Se puede congelar en porciones."
+}`;
+
+    } else if (type === 'recipe_chat') {
+      const { recipe, question, inventoryItems } = payload;
+      const safeQuestion = sanitize(question, 300);
+      const safeSteps = Array.isArray(recipe?.steps)
+        ? recipe.steps.map((s, i) => `${i + 1}. ${sanitize(s, 200)}`).join('\n')
+        : '';
+      const safeNotes = recipe?.notes ? sanitize(recipe.notes, 200) : '';
+      const safeName = sanitize(recipe?.name, 100);
+      const safeInventory = Array.isArray(inventoryItems)
+        ? inventoryItems.slice(0, 10).map(i => sanitize(i.name, 80)).filter(Boolean).join(', ')
+        : '';
+
+      userMessage = `El usuario está preparando "${safeName}" y tiene esta receta:
+
+${safeSteps}
+${safeNotes ? `\nNotas: ${safeNotes}` : ''}
+
+Inventario disponible del usuario: ${safeInventory || '(no especificado)'}
+
+El usuario pregunta: "${safeQuestion}"
+
+Responde de forma concreta y directa, en el contexto de esta receta específica. Si la pregunta involucra un ingrediente del inventario, dile exactamente cómo incorporarlo (cantidad, en qué paso, qué cambia). Si no es posible o no tiene sentido, explica por qué brevemente.
+
+Devuelve SOLO este JSON:
+{
+  "answer": "Sí, puedes añadir el boniato. Córtalo en dados de 1-2cm y añádelo en el paso 3 junto con la zanahoria. Necesitará unos 8-10 minutos de cocción. El resultado será más dulce y cremoso."
+}`;
+
     } else {
       return {
         statusCode: 400,
@@ -1140,7 +1415,10 @@ kpiBoost: "legume" | "fish" | "iron" | "veggie" | null`;
       };
     }
 
-    const maxTokens = ['generate_week', 'regenerate_day'].includes(type) ? 8192 : 4096;
+    const maxTokens = ['generate_week', 'regenerate_day'].includes(type) ? 8192
+      : ['generate_recipe'].includes(type) ? 2048
+      : ['recipe_chat'].includes(type) ? 1024
+      : 4096;
 
     const message = await client.messages.create({
       model: 'claude-haiku-4-5',
