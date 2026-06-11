@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, AlertTriangle, MapPin } from 'lucide-react';
+import { Plus, AlertTriangle, MapPin, ShoppingCart } from 'lucide-react';
 import { useInventory } from '../../hooks/useInventory';
 import { useDailyPlan } from '../../hooks/useDailyPlan';
 import DayPlanSection from './DayPlanSection';
@@ -7,6 +7,7 @@ import WeeklyKpiStrip from './WeeklyKpiStrip';
 import AddPrepModal from './AddPrepModal';
 import FreshnessIndicator from './FreshnessIndicator';
 import KpiInsights from './KpiInsights';
+import ShoppingSuggestionSheet from './ShoppingSuggestionSheet';
 import { daysUntil } from '../../hooks/useInventory';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
@@ -49,6 +50,7 @@ export default function TodayScreen({ householdId, hasAiAccess }) {
   } = useDailyPlan(householdId);
 
   const [showAddPrep, setShowAddPrep] = useState(false);
+  const [showShopping, setShowShopping] = useState(false);
 
   const loading = invLoading || planLoading;
 
@@ -88,9 +90,20 @@ export default function TodayScreen({ householdId, hasAiAccess }) {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-3">
-          <p className="text-xs text-gray-400 capitalize">{formatTodayHeader()}</p>
-          <h1 className="text-lg font-bold text-gray-900">Hoy</h1>
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-end justify-between">
+          <div>
+            <p className="text-xs text-gray-400 capitalize">{formatTodayHeader()}</p>
+            <h1 className="text-lg font-bold text-gray-900">Hoy</h1>
+          </div>
+          {hasAiAccess && (
+            <button
+              onClick={() => setShowShopping(true)}
+              className="flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-xl transition-colors"
+            >
+              <ShoppingCart className="w-3.5 h-3.5" />
+              Voy a comprar
+            </button>
+          )}
         </div>
       </header>
 
@@ -158,6 +171,16 @@ export default function TodayScreen({ householdId, hasAiAccess }) {
         onClose={() => setShowAddPrep(false)}
         onSave={addItem}
       />
+
+      {showShopping && (
+        <ShoppingSuggestionSheet
+          inventoryItems={inventoryItems}
+          expiringItems={expiringItems}
+          floatingItems={floatingItems}
+          weeklyKpis={weeklyKpis}
+          onClose={() => setShowShopping(false)}
+        />
+      )}
     </div>
   );
 }

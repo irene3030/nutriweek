@@ -82,6 +82,12 @@ export async function proposeMeal({ slotId, dateStr, inventoryItems, braindump, 
   return result;
 }
 
+export async function suggestShopping({ inventoryItems, weeklyKpis, expiringItems, floatingItems }) {
+  const result = await callClaude('suggest_shopping', { inventoryItems, weeklyKpis, expiringItems, floatingItems });
+  track('ai_shopping_suggested');
+  return result;
+}
+
 export async function analyzeMealPhoto({ imageBase64, mimeType = 'image/jpeg' }) {
   return callClaude('analyze_meal_photo', { imageBase64, mimeType });
 }

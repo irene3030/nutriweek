@@ -1156,6 +1156,103 @@ prepType debe ser: "ya-preparado" | "acelerador" | "justo-antes"
 source debe ser: "stock" (en inventario) | "despensa" (despensa base, siempre disponible) | "compra" (habría que comprar)
 kpiBoost: "legume" | "fish" | "iron" | "veggie" | null`;
 
+    } else if (type === 'suggest_shopping') {
+      const { inventoryItems, weeklyKpis, expiringItems, floatingItems } = payload;
+
+      const safeItems = Array.isArray(inventoryItems)
+        ? inventoryItems.slice(0, 20).map(item => ({
+            name: sanitize(item.name, 100),
+            type: sanitize(item.type, 30),
+            daysLeft: item.daysLeft != null ? Math.max(0, parseInt(item.daysLeft) || 0) : null,
+            tags: Array.isArray(item.tags) ? item.tags.map(t => sanitize(t, 30)).filter(Boolean) : [],
+          }))
+        : [];
+
+      const safeExpiring = Array.isArray(expiringItems)
+        ? expiringItems.slice(0, 5).map(i => ({
+            name: sanitize(i.name, 100),
+            daysLeft: i.daysLeft != null ? Math.max(0, parseInt(i.daysLeft) || 0) : null,
+          }))
+        : [];
+
+      const safeFloating = Array.isArray(floatingItems)
+        ? floatingItems.slice(0, 5).map(i => ({ name: sanitize(i.name, 100) }))
+        : [];
+
+      const kpi = weeklyKpis && typeof weeklyKpis === 'object' ? weeklyKpis : {};
+      const ironDays = Math.max(0, parseInt(kpi.ironDays) || 0);
+      const fishDays = Math.max(0, parseInt(kpi.fishDays) || 0);
+      const legumedDays = Math.max(0, parseInt(kpi.legumedDays) || 0);
+      const distinctVeggies = Math.max(0, parseInt(kpi.distinctVeggies) || 0);
+      const veggieList = Array.isArray(kpi.veggieList) ? kpi.veggieList.map(v => sanitize(v, 30)).join(', ') : '';
+
+      const today = new Date();
+      const dayOfWeek = today.getDay(); // 0=Dom, 1=Lun...
+      const daysLeftInWeek = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+      const DAY_NAMES_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+      const todayName = DAY_NAMES_ES[dayOfWeek];
+
+      const inventoryLines = safeItems.length > 0
+        ? safeItems.map(i => {
+            const freshness = i.daysLeft != null ? ` (${i.daysLeft}d)` : '';
+            const tags = i.tags.length ? ` [${i.tags.join(',')}]` : '';
+            return `- ${i.name} (${i.type})${freshness}${tags}`;
+          }).join('\n')
+        : '- (inventario vacío)';
+
+      const expiringLines = safeExpiring.length > 0
+        ? safeExpiring.map(i => `- ${i.name} (caduca en ${i.daysLeft ?? '?'} día${i.daysLeft !== 1 ? 's' : ''})`).join('\n')
+        : 'ninguno';
+
+      const floatingLines = safeFloating.length > 0
+        ? safeFloating.map(i => `- ${i.name}`).join('\n')
+        : 'ninguno';
+
+      userMessage = `Eres un asistente de logística culinaria para familias BLW. El usuario va a hacer la compra ahora.
+
+Hoy es ${todayName}. Quedan ${daysLeftInWeek} días en la semana actual. El horizonte de compra son los próximos 3 días.
+
+Estado nutricional de la semana hasta ahora:
+- Hierro: ${ironDays} días (objetivo: ≥5 días/semana)
+- Pescado azul: ${fishDays} veces (objetivo: ≥3 veces/semana)
+- Legumbres: ${legumedDays} días (objetivo: ≥3 días/semana)
+- Verduras distintas: ${distinctVeggies}${veggieList ? ` (${veggieList})` : ''} (objetivo: ≥5 tipos/semana)
+
+Inventario actual en casa:
+${inventoryLines}
+
+Items que caducan pronto (urgente usarlos, no hace falta comprar más):
+${expiringLines}
+
+Ingredientes flotantes sin plan:
+${floatingLines}
+
+INSTRUCCIONES:
+1. Calcula los gaps nutricionales reales para los próximos 3 días teniendo en cuenta lo que queda de semana.
+2. Solo sugiere comprar lo que realmente falta. No repitas categorías ya bien cubiertas.
+3. Para cada categoría: indica POR QUÉ hace falta (menciona el número actual vs objetivo) y da 2-3 ejemplos concretos y fáciles de encontrar en un supermercado español.
+4. Los items que ya están en el inventario vigente NO son necesarios comprar.
+5. Si los KPIs están bien cubiertos para los días restantes, devuelve categories vacío o con solo pantry (reposición básica).
+6. Prioridad "alta" = gap crítico (objetivo no alcanzable sin comprar). Prioridad "media" = recomendable.
+
+Devuelve SOLO este JSON:
+{
+  "categories": [
+    {
+      "id": "fish",
+      "emoji": "🐟",
+      "label": "Pescado azul",
+      "priority": "alta",
+      "why": "solo ${fishDays} vez esta semana, objetivo 3",
+      "items": ["salmón", "caballa", "sardinas en lata"]
+    }
+  ]
+}
+
+IDs válidos: "fish", "iron", "legume", "veggie", "fruit", "pantry"
+priority válidos: "alta", "media"
+Máximo 5 categories. Si no hay gaps, devuelve {"categories": []}`;
+
     } else {
       return {
         statusCode: 400,
