@@ -123,6 +123,16 @@ export function useDailyPlan(householdId) {
     await writeSlot(dateStr, slotId, { ...existing, items: newItems });
   }, [plans, writeSlot]);
 
+  const updateSlotItem = useCallback(async (dateStr, slotId, itemIndex, fields) => {
+    const plan = plans[dateStr];
+    const existing = plan?.slots?.[slotId];
+    if (!existing?.items) return;
+    const newItems = existing.items.map((item, i) =>
+      i === itemIndex ? { ...item, ...fields } : item
+    );
+    await writeSlot(dateStr, slotId, { ...existing, items: newItems });
+  }, [plans, writeSlot]);
+
   const confirmSlot = useCallback(async (dateStr, slotId) => {
     const plan = plans[dateStr];
     const slot = plan?.slots?.[slotId];
@@ -171,6 +181,7 @@ export function useDailyPlan(householdId) {
     loading,
     addSlotItem,
     removeSlotItem,
+    updateSlotItem,
     updateSlotItemPortions,
     confirmSlot,
     clearSlot,

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, Check, User, Baby, Sparkles } from 'lucide-react';
+import { Plus, X, Check, User, Baby, Sparkles, Pencil } from 'lucide-react';
 
 const SLOT_LABELS = {
   desayuno: 'Desayuno',
@@ -45,7 +45,7 @@ function PortionCounter({ icon, value, onChange }) {
 const AI_SLOTS = new Set(['comida', 'cena']);
 
 // slot = { items: SlotEntry[], confirmedAt: string|null } | null
-export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onConfirm, onUpdatePortions, onAiPropose, disabled }) {
+export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onEditItem, onConfirm, onUpdatePortions, onAiPropose, disabled }) {
   const [editingIdx, setEditingIdx] = useState(null);
   const [draftAdult, setDraftAdult] = useState(0);
   const [draftBaby, setDraftBaby] = useState(0);
@@ -171,16 +171,25 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onC
                     )}
                   </div>
 
-                  {/* Per-item remove (planned state only) */}
-                  {isPlanned && (
+                  {/* Per-item actions */}
+                  <div className="flex items-center gap-0.5 shrink-0 mt-0.5">
                     <button
-                      onClick={() => onRemoveItem?.(idx)}
-                      className="shrink-0 flex items-center justify-center w-6 h-6 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors mt-0.5"
-                      aria-label="Quitar"
+                      onClick={() => onEditItem?.(idx)}
+                      className="flex items-center justify-center w-6 h-6 rounded-lg text-gray-300 hover:text-brand-500 hover:bg-brand-50 transition-colors"
+                      aria-label="Editar"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <Pencil className="w-3 h-3" />
                     </button>
-                  )}
+                    {isPlanned && (
+                      <button
+                        onClick={() => onRemoveItem?.(idx)}
+                        className="flex items-center justify-center w-6 h-6 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors"
+                        aria-label="Quitar"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}

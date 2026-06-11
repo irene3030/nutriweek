@@ -1,4 +1,4 @@
-import { Trash2, Baby, User } from 'lucide-react';
+import { Trash2, Baby, User, Pencil } from 'lucide-react';
 import TagChip from '../ui/TagChip';
 import FreshnessIndicator from './FreshnessIndicator';
 import { daysUntil } from '../../hooks/useInventory';
@@ -10,7 +10,7 @@ const TYPE_CONFIG = {
   flotante:       { label: 'Sin plan', color: 'bg-rose-100 text-rose-700' },
 };
 
-export default function InventoryItemCard({ item, onDelete }) {
+export default function InventoryItemCard({ item, onDelete, onEdit }) {
   const typeConfig = TYPE_CONFIG[item.type] || { label: item.type, color: 'bg-gray-100 text-gray-600' };
   const isSnack = item.type === 'snack-batch';
 
@@ -70,14 +70,23 @@ export default function InventoryItemCard({ item, onDelete }) {
         )}
       </div>
 
-      {/* Delete */}
-      <button
-        onClick={() => onDelete(item.id)}
-        className="shrink-0 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors"
-        aria-label={`Eliminar ${item.name}`}
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
+      {/* Actions */}
+      <div className="flex items-center gap-1 shrink-0">
+        <button
+          onClick={() => onEdit?.(item)}
+          className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-gray-300 hover:text-brand-500 hover:bg-brand-50 transition-colors"
+          aria-label={`Editar ${item.name}`}
+        >
+          <Pencil className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => onDelete(item.id)}
+          className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors"
+          aria-label={`Eliminar ${item.name}`}
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 }

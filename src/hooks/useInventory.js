@@ -11,7 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
-function addDays(isoDate, days) {
+export function addDays(isoDate, days) {
   const d = new Date(isoDate);
   d.setDate(d.getDate() + days);
   return d.toISOString();

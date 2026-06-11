@@ -41,6 +41,7 @@ export default function TodayScreen({ householdId, hasAiAccess }) {
     loading: planLoading,
     addSlotItem,
     removeSlotItem,
+    updateSlotItem,
     updateSlotItemPortions,
     confirmSlot,
     clearSlot,
@@ -136,6 +137,7 @@ export default function TodayScreen({ householdId, hasAiAccess }) {
               onConfirmSlot={handleConfirmSlot}
               onClearSlot={clearSlot}
               onUpdateSlotItemPortions={updateSlotItemPortions}
+              onUpdateSlotItem={updateSlotItem}
             />
           );
         })}

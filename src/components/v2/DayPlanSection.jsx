@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import PlanSlotRow from './PlanSlotRow';
 import SlotPickerSheet from './SlotPickerSheet';
 import MealProposalSheet from './MealProposalSheet';
+import EditSlotItemModal from './EditSlotItemModal';
 
 const SLOTS = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
 
@@ -27,10 +28,12 @@ export default function DayPlanSection({
   onConfirmSlot,
   onClearSlot,
   onUpdateSlotItemPortions,
+  onUpdateSlotItem,
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [pickerSlot, setPickerSlot] = useState(null);
   const [proposalSlot, setProposalSlot] = useState(null);
+  const [editTarget, setEditTarget] = useState(null); // { slotId, idx, item }
 
   const slots = plan?.slots || {};
 
@@ -86,6 +89,10 @@ export default function DayPlanSection({
                 slot={slot}
                 onAddItem={() => setPickerSlot(slotId)}
                 onRemoveItem={(idx) => onRemoveSlotItem(date, slotId, idx)}
+                onEditItem={(idx) => {
+                  const item = slot?.items?.[idx];
+                  if (item) setEditTarget({ slotId, idx, item });
+                }}
                 onConfirm={() => onConfirmSlot(date, slotId)}
                 onUpdatePortions={(idx, adult, baby) => onUpdateSlotItemPortions(date, slotId, idx, adult, baby)}
                 onAiPropose={canAiPropose ? () => setProposalSlot(slotId) : undefined}
@@ -123,6 +130,14 @@ export default function DayPlanSection({
           onClose={() => setProposalSlot(null)}
         />
       )}
+
+      {/* Edit slot item modal */}
+      <EditSlotItemModal
+        isOpen={!!editTarget}
+        item={editTarget?.item}
+        onClose={() => setEditTarget(null)}
+        onSave={(fields) => onUpdateSlotItem(date, editTarget.slotId, editTarget.idx, fields)}
+      />
     </div>
   );
 }

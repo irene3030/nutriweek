@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import TagConfirm from './TagConfirm';
 import { inferLabels } from '../../lib/inventoryLabels';
+import { daysUntil } from '../../hooks/useInventory';
 
 const TYPES = [
   { id: 'ya-preparado', label: 'Ya preparado', desc: 'Listo para servir o calentar' },
@@ -29,23 +30,43 @@ const EMPTY = {
   notes: '',
 };
 
-export default function AddPrepModal({ isOpen, onClose, onSave }) {
+export default function AddPrepModal({ isOpen, onClose, onSave, initialData = null }) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
 
-  // Reset when modal opens
+  const isEditing = !!initialData;
+
+  // Reset/populate when modal opens
   useEffect(() => {
-    if (isOpen) {
-      setStep(1);
+    if (!isOpen) return;
+    if (initialData) {
+      const remaining = initialData.expiresAt
+        ? Math.max(1, daysUntil(initialData.expiresAt))
+        : (DEFAULT_SHELF_LIFE[initialData.type] ?? 4);
+      setForm({
+        name: initialData.name || '',
+        type: initialData.type || 'ya-preparado',
+        portionsAdult: initialData.portionsAdult ?? 2,
+        portionsBaby: initialData.portionsBaby ?? 1,
+        units: initialData.units ?? 6,
+        amount: initialData.amount || '',
+        shelfLifeDays: remaining,
+        tags: initialData.tags || [],
+        notes: initialData.notes || '',
+      });
+    } else {
       setForm(EMPTY);
     }
-  }, [isOpen]);
+    setStep(1);
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-infer tags when moving to step 2
+  // Move to tag step; only infer tags for new items
   const handleNextStep = () => {
-    const inferred = inferLabels(form.name);
-    setForm((f) => ({ ...f, tags: inferred }));
+    if (!isEditing) {
+      const inferred = inferLabels(form.name);
+      setForm((f) => ({ ...f, tags: inferred }));
+    }
     setStep(2);
   };
 
@@ -85,7 +106,7 @@ export default function AddPrepModal({ isOpen, onClose, onSave }) {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={step === 1 ? 'Nueva preparación' : 'Etiquetas nutricionales'}
+      title={step === 1 ? (isEditing ? 'Editar preparación' : 'Nueva preparación') : 'Etiquetas nutricionales'}
       maxWidth="max-w-md"
     >
       {step === 1 ? (

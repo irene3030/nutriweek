@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Package, AlertTriangle, MapPin } from 'lucide-react';
-import { useInventory } from '../../hooks/useInventory';
+import { useInventory, addDays } from '../../hooks/useInventory';
 import InventoryItemCard from './InventoryItemCard';
 import AddPrepModal from './AddPrepModal';
 import LoadingSpinner from '../ui/LoadingSpinner';
@@ -12,8 +12,9 @@ const SECTIONS = [
 ];
 
 export default function InventoryScreen({ householdId }) {
-  const { items, expiringItems, floatingItems, loading, addItem, deleteItem } = useInventory(householdId);
+  const { items, expiringItems, floatingItems, loading, addItem, updateItem, deleteItem } = useInventory(householdId);
   const [showAdd, setShowAdd] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
 
   if (loading) {
     return (
@@ -26,6 +27,13 @@ export default function InventoryScreen({ householdId }) {
   const handleDelete = async (id) => {
     if (!confirm('¿Eliminar esta preparación?')) return;
     await deleteItem(id);
+  };
+
+  const handleEditSave = async (data) => {
+    const now = new Date().toISOString();
+    const expiresAt = data.shelfLifeDays ? addDays(now, data.shelfLifeDays) : null;
+    await updateItem(editingItem.id, { ...data, expiresAt });
+    setEditingItem(null);
   };
 
   const nonFloatingItems = items.filter((i) => i.type !== 'flotante');
@@ -59,7 +67,7 @@ export default function InventoryScreen({ householdId }) {
             </div>
             <div className="space-y-2">
               {expiringItems.map((item) => (
-                <InventoryItemCard key={item.id} item={item} onDelete={handleDelete} />
+                <InventoryItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={setEditingItem} />
               ))}
             </div>
           </section>
@@ -74,7 +82,7 @@ export default function InventoryScreen({ householdId }) {
             </div>
             <div className="space-y-2">
               {floatingItems.map((item) => (
-                <InventoryItemCard key={item.id} item={item} onDelete={handleDelete} />
+                <InventoryItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={setEditingItem} />
               ))}
             </div>
           </section>
@@ -91,7 +99,7 @@ export default function InventoryScreen({ householdId }) {
               ) : (
                 <div className="space-y-2">
                   {sectionItems.map((item) => (
-                    <InventoryItemCard key={item.id} item={item} onDelete={handleDelete} />
+                    <InventoryItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={setEditingItem} />
                   ))}
                 </div>
               )}
@@ -121,6 +129,13 @@ export default function InventoryScreen({ householdId }) {
         isOpen={showAdd}
         onClose={() => setShowAdd(false)}
         onSave={addItem}
+      />
+
+      <AddPrepModal
+        isOpen={!!editingItem}
+        onClose={() => setEditingItem(null)}
+        onSave={handleEditSave}
+        initialData={editingItem}
       />
     </div>
   );
