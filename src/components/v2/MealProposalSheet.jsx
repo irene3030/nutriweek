@@ -106,6 +106,7 @@ export default function MealProposalSheet({
   const [braindump, setBraindump] = useState('');
   const [loading, setLoading] = useState(false);
   const [proposals, setProposals] = useState(null);
+  const [dayGaps, setDayGaps] = useState(null);
   const [error, setError] = useState(null);
 
   const label = SLOT_LABELS[slotId] || slotId;
@@ -133,6 +134,7 @@ export default function MealProposalSheet({
     setLoading(true);
     setError(null);
     setProposals(null);
+    setDayGaps(null);
     try {
       const result = await proposeMeal({
         slotId,
@@ -144,6 +146,7 @@ export default function MealProposalSheet({
       });
       if (!result?.proposals?.length) throw new Error('Sin propuestas');
       setProposals(result.proposals);
+      setDayGaps(result.dayGaps || null);
     } catch (err) {
       setError(err.message || 'Error al generar propuestas');
     } finally {
@@ -269,6 +272,12 @@ export default function MealProposalSheet({
           {/* Proposals */}
           {proposals && (
             <div className="space-y-3">
+              {dayGaps && (
+                <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">
+                  <span className="text-amber-500 text-sm shrink-0">↗</span>
+                  <p className="text-xs text-amber-800 leading-snug">{dayGaps}</p>
+                </div>
+              )}
               {proposals.map((proposal, i) => (
                 <ProposalCard key={i} proposal={proposal} onSelect={handleSelect} />
               ))}

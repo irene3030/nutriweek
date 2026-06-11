@@ -1069,11 +1069,27 @@ Devuelve SOLO este JSON (sin texto adicional):
         .map(([sid, slot]) => {
           const items = Array.isArray(slot?.items) ? slot.items : [];
           if (items.length === 0) return null;
+          const confirmed = slot?.confirmedAt ? ' ✓' : '';
           const names = items.map(i => sanitize(i.label, 100)).join(', ');
-          return `- ${sid}: ${names}`;
+          const tags = items.flatMap(i => Array.isArray(i.tags) ? i.tags.map(t => sanitize(t, 30)) : []);
+          const tagStr = tags.length ? ` [${tags.join(',')}]` : '';
+          return `- ${sid}${confirmed}: ${names}${tagStr}`;
         })
         .filter(Boolean);
       const slotsContext = slotLines.length > 0 ? slotLines.join('\n') : '(ningún otro slot planificado hoy)';
+
+      // For cena: build confirmed-only context for day gap analysis
+      const isCena = safeSlot === 'cena';
+      const confirmedSlotLines = isCena
+        ? Object.entries(safeSlots)
+            .filter(([sid, slot]) => sid !== 'cena' && slot?.confirmedAt && Array.isArray(slot?.items) && slot.items.length > 0)
+            .map(([sid, slot]) => {
+              const names = slot.items.map(i => sanitize(i.label, 100)).join(', ');
+              const tags = slot.items.flatMap(i => Array.isArray(i.tags) ? i.tags.map(t => sanitize(t, 30)) : []);
+              const tagStr = tags.length ? ` [${tags.join(',')}]` : '';
+              return `- ${sid}: ${names}${tagStr}`;
+            })
+        : [];
 
       // KPI context
       const kpi = weeklyKpis || {};
@@ -1083,6 +1099,13 @@ Devuelve SOLO este JSON (sin texto adicional):
       const distinctVeggies = parseInt(kpi.distinctVeggies) || 0;
       const veggieList = Array.isArray(kpi.veggieList) ? kpi.veggieList.map(v => sanitize(v, 30)).join(', ') : '';
 
+      const dayGapsSection = isCena ? `
+Slots confirmados hoy (para analizar qué falta nutricionalmente en el día):
+${confirmedSlotLines.length > 0 ? confirmedSlotLines.join('\n') : '(ningún slot confirmado aún)'}
+
+ANÁLISIS DE GAPS DEL DÍA (solo para cena):
+Antes de las propuestas, analiza qué grupos nutricionales faltan o están poco representados en los slots confirmados de hoy. Genera una frase corta, concreta y sin juicio. Ejemplos: "Falta una fuente de carbs y una verdura nueva", "El día tiene poca proteína vegetal", "Bien cubierto, la cena puede ser ligera". Máximo 12 palabras. Si el día está bien equilibrado, dilo brevemente.` : '';
+
       userMessage = `Propón exactamente 3 opciones concretas para la ${safeSlot} del día ${safeDateStr || 'hoy'} en una familia BLW.
 
 Inventario disponible (usa el id para referenciarlo):
@@ -1091,7 +1114,7 @@ ${inventoryLines}
 Ingredientes extra que el usuario menciona (sin registrar en inventario):
 ${safeBraindump || 'ninguno'}
 
-Otros slots planificados hoy:
+Otros slots planificados hoy (✓ = confirmado):
 ${slotsContext}
 
 Estado nutricional de la semana (hits confirmados hasta ahora):
@@ -1099,7 +1122,7 @@ Estado nutricional de la semana (hits confirmados hasta ahora):
 - Pescado azul: ${fishDays} días esta semana
 - Legumbre: ${legumedDays} días esta semana
 - Verduras distintas: ${distinctVeggies}${veggieList ? ` (${veggieList})` : ''}
-
+${dayGapsSection}
 INSTRUCCIONES:
 1. Prioriza usar ingredientes del inventario disponible.
 2. Cada opción debe complementar nutricionalmente lo ya planificado hoy.
@@ -1109,6 +1132,7 @@ INSTRUCCIONES:
 
 Devuelve SOLO este JSON:
 {
+  ${isCena ? '"dayGaps": "Falta una fuente de carbs y una verdura nueva",' : '"dayGaps": null,'}
   "proposals": [
     {
       "name": "Lentejas con zanahoria y arroz",
