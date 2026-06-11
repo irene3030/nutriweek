@@ -119,23 +119,31 @@ Todos en `src/components/v2/`. Son la implementación actual de Features 1 y 2:
 
 ### Worktrees — crear y limpiar
 
-Cuando se crea un worktree nuevo (`git worktree add`), los archivos locales no se copian automáticamente. **Siempre sugerir ejecutar este script** justo después:
+#### Crear un worktree nuevo
+
+Cuando la usuaria diga **"quiero abrir una rama nueva con worktree para X"** (o similar), ejecutar este flujo completo sin pedir más confirmación:
 
 ```bash
-# desde dentro del worktree recién creado
-bash scripts/setup-worktree.sh
+# 1. Crear el worktree con nombre derivado de la feature
+git worktree add ../mealops-v2-<slug> feat/v2-<slug>
+
+# 2. Copiar archivos locales necesarios
+cd ../mealops-v2-<slug> && bash scripts/setup-worktree.sh
 ```
 
-Copia `.env` y `.netlify/state.json` desde el worktree principal. Sin esto `npm run dev:local` falla.
+El `<slug>` se deriva del nombre de la feature en kebab-case (ej: "shopping list" → `shopping-list`, rama `feat/v2-shopping-list`, carpeta `../mealops-v2-shopping-list`).
 
-Cuando una rama ha sido mergeada y el worktree ya no es necesario, **usar este script en lugar de borrar a mano**:
+Terminar informando a la usuaria de la ruta del worktree y que puede abrirlo en su editor.
+
+#### Limpiar un worktree tras merge
+
+Cuando la usuaria diga **"elimina el worktree de X"** o **"limpia la rama X"**, ejecutar desde dentro del worktree correspondiente:
 
 ```bash
-# desde dentro del worktree a eliminar
 bash scripts/cleanup-worktree.sh
 ```
 
-Elimina el directorio del worktree, la rama local y (con confirmación) la rama remota.
+Si la usuaria no especifica si quiere borrar la rama remota, preguntar antes de hacerlo.
 
 ---
 
