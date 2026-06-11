@@ -117,6 +117,28 @@ Todos en `src/components/v2/`. Son la implementación actual de Features 1 y 2:
 - `chore: update dependencies`
 - `style: improve mobile layout on home view`
 
+### Worktrees — crear y limpiar
+
+Cuando se crea un worktree nuevo (`git worktree add`), los archivos locales no se copian automáticamente. **Siempre sugerir ejecutar este script** justo después:
+
+```bash
+# desde dentro del worktree recién creado
+bash scripts/setup-worktree.sh
+```
+
+Copia `.env` y `.netlify/state.json` desde el worktree principal. Sin esto `npm run dev:local` falla.
+
+Cuando una rama ha sido mergeada y el worktree ya no es necesario, **usar este script en lugar de borrar a mano**:
+
+```bash
+# desde dentro del worktree a eliminar
+bash scripts/cleanup-worktree.sh
+```
+
+Elimina el directorio del worktree, la rama local y (con confirmación) la rama remota.
+
+---
+
 ### Nunca hacer
 - Push a `main` sin aprobación explícita
 - Force push a cualquier rama
