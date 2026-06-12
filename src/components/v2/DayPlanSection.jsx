@@ -25,6 +25,7 @@ export default function DayPlanSection({
   hasAiAccess,
   pantryItems,
   defaultExpanded,
+  autoPropose = false,
   onAddSlotItem,
   onRemoveSlotItem,
   onConfirmSlot,
@@ -82,14 +83,18 @@ export default function DayPlanSection({
       {/* Slots */}
       {expanded && (
         <div className="px-4 pb-3">
-          {/* CTA: Sugerir comida y cena (shown when both are empty) */}
+          {/* CTA: Planificar / sugerir comida y cena (shown when both are empty) */}
           {hasAiAccess && !slots.comida?.items?.length && !slots.cena?.items?.length && (
             <button
               onClick={() => setShowDayProposal(true)}
-              className="w-full flex items-center justify-center gap-2 mb-3 py-2.5 rounded-2xl border border-brand-200 bg-brand-50 text-brand-700 text-sm font-medium hover:bg-brand-100 transition-colors"
+              className={`w-full flex items-center justify-center gap-2 mb-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${
+                autoPropose
+                  ? 'bg-brand-600 text-white hover:bg-brand-700'
+                  : 'border border-brand-200 bg-brand-50 text-brand-700 hover:bg-brand-100'
+              }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              Sugerir comida y cena
+              {autoPropose ? 'Planificar hoy de un tiro' : 'Sugerir comida y cena'}
             </button>
           )}
 
@@ -154,6 +159,7 @@ export default function DayPlanSection({
           todaySlots={slots}
           weeklyKpis={weeklyKpis}
           pantryItems={pantryItems}
+          autoPropose={autoPropose}
           onSelectComida={(entry) => onAddSlotItem(date, 'comida', entry)}
           onSelectCena={(entry) => onAddSlotItem(date, 'cena', entry)}
           onClose={() => setShowDayProposal(false)}

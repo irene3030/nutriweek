@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, AlertTriangle, MapPin, ShoppingCart, Clock, ChevronRight, CalendarCheck } from 'lucide-react';
+import { Plus, AlertTriangle, MapPin, ShoppingCart, Clock, ChevronRight } from 'lucide-react';
 import { useInventory } from '../../hooks/useInventory';
 import { useDailyPlan, todayStr } from '../../hooks/useDailyPlan';
 import { useUsualMeals } from '../../hooks/useUsualMeals';
@@ -13,7 +13,6 @@ import FloatingResolverSheet from './FloatingResolverSheet';
 import SnackSuggestionSheet from './SnackSuggestionSheet';
 import CookingTimeSheet from './CookingTimeSheet';
 import MealProposalSheet from './MealProposalSheet';
-import DayProposalSheet from './DayProposalSheet';
 import WeeklyBriefing from './WeeklyBriefing';
 import WeekHistoryStrip from './WeekHistoryStrip';
 import { daysUntil } from '../../hooks/useInventory';
@@ -68,6 +67,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
     plans,
     getPlan,
     weeklyKpis,
+    projectedWeeklyKpis,
     loading: planLoading,
     addSlotItem,
     removeSlotItem,
@@ -87,7 +87,6 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
   const [usualToast, setUsualToast]           = useState(null);
   const [kpiProposalSlot, setKpiProposalSlot] = useState(null);
   const [kpiPriority, setKpiPriority]         = useState(null);
-  const [showQuickPlan, setShowQuickPlan]     = useState(false);
   const [showBriefing, setShowBriefing]       = useState(false);
   const [lastWeekKpis, setLastWeekKpis]       = useState(null);
   const savedKpisRef = useRef(false);
@@ -226,8 +225,8 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
           <WeeklyBriefing lastWeekKpis={lastWeekKpis} onDismiss={handleDismissBriefing} />
         )}
 
-        {/* KPI strip (accionables cuando hay acceso IA) */}
-        <WeeklyKpiStrip kpis={weeklyKpis} onKpiTap={hasAiAccess ? handleKpiTap : undefined} />
+        {/* KPI strip (accionables cuando hay acceso IA, con proyección de planificado hoy) */}
+        <WeeklyKpiStrip kpis={weeklyKpis} projectedKpis={projectedWeeklyKpis} onKpiTap={hasAiAccess ? handleKpiTap : undefined} />
         <KpiInsights kpis={weeklyKpis} />
 
         {/* Alerts */}
@@ -271,24 +270,6 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
           </section>
         )}
 
-        {/* Planificar hoy en 1 tap */}
-        {hasAiAccess && (() => {
-          const todayPlan = getPlan(offsetDateStr(0));
-          const slots = todayPlan?.slots || {};
-          const noComida = !slots.comida?.items?.length;
-          const noCena = !slots.cena?.items?.length;
-          return (noComida || noCena) ? (
-            <button
-              onClick={() => setShowQuickPlan(true)}
-              className="w-full flex items-center gap-3 bg-brand-600 text-white rounded-2xl px-4 py-3 text-sm hover:bg-brand-700 transition-colors"
-            >
-              <CalendarCheck className="w-4 h-4 shrink-0" />
-              <span className="flex-1 text-left font-medium">Planificar hoy de un tiro</span>
-              <ChevronRight className="w-4 h-4 opacity-70 shrink-0" />
-            </button>
-          ) : null;
-        })()}
-
         {/* F8 — Tengo tiempo para cocinar */}
         {hasAiAccess && (
           <button
@@ -315,6 +296,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
               hasAiAccess={hasAiAccess}
               pantryItems={pantryItems}
               defaultExpanded={defaultExpanded}
+              autoPropose={offset === 0}
               onAddSlotItem={addSlotItem}
               onRemoveSlotItem={removeSlotItem}
               onConfirmSlot={handleConfirmSlot}
@@ -416,21 +398,6 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
         />
       )}
 
-      {/* Planificar hoy de un tiro (auto-propone comida+cena) */}
-      {showQuickPlan && (
-        <DayProposalSheet
-          date={offsetDateStr(0)}
-          inventoryItems={inventoryItems}
-          todaySlots={getPlan(offsetDateStr(0))?.slots}
-          weeklyKpis={weeklyKpis}
-          pantryItems={pantryItems}
-          autoPropose
-          timeOfDay={getTimeOfDay()}
-          onSelectComida={(entry) => addSlotItem(offsetDateStr(0), 'comida', entry)}
-          onSelectCena={(entry) => addSlotItem(offsetDateStr(0), 'cena', entry)}
-          onClose={() => setShowQuickPlan(false)}
-        />
-      )}
     </div>
   );
 }
