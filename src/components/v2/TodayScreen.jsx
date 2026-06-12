@@ -225,8 +225,8 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
           <WeeklyBriefing lastWeekKpis={lastWeekKpis} onDismiss={handleDismissBriefing} />
         )}
 
-        {/* KPI strip (accionables cuando hay acceso IA, con proyección de planificado hoy) */}
-        <WeeklyKpiStrip kpis={weeklyKpis} projectedKpis={projectedWeeklyKpis} onKpiTap={hasAiAccess ? handleKpiTap : undefined} />
+        {/* KPI strip semanal (accionables cuando hay acceso IA) */}
+        <WeeklyKpiStrip kpis={weeklyKpis} onKpiTap={hasAiAccess ? handleKpiTap : undefined} />
         <KpiInsights kpis={weeklyKpis} />
 
         {/* Alerts */}
@@ -297,6 +297,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
               pantryItems={pantryItems}
               defaultExpanded={defaultExpanded}
               autoPropose={offset === 0}
+              timeOfDay={offset === 0 ? getTimeOfDay() : undefined}
               onAddSlotItem={addSlotItem}
               onRemoveSlotItem={removeSlotItem}
               onConfirmSlot={handleConfirmSlot}

@@ -3,6 +3,33 @@ import { X, Sparkles, User, Baby, Check, Package, ShoppingCart, Home, RefreshCw 
 import { proposeMeal } from '../../lib/claude';
 import { daysUntil } from '../../hooks/useInventory';
 
+const SHEET_KPIS = [
+  { key: 'iron',   emoji: '🩸', label: 'Hierro',   check: (tags) => tags.includes('iron') },
+  { key: 'fish',   emoji: '🐟', label: 'Pescado',  check: (tags) => tags.includes('oily_fish') },
+  { key: 'legume', emoji: '🫘', label: 'Legumbre', check: (tags) => tags.includes('legume') },
+  { key: 'veggie', emoji: '🥦', label: 'Verduras', count: (tags) => new Set(tags.filter(t => t.startsWith('veggie:')).map(t => t.slice(7))).size },
+  { key: 'fruit',  emoji: '🍎', label: 'Fruta',    check: (tags) => tags.includes('fruit') },
+];
+
+function SheetDailyKpiRow({ todaySlots }) {
+  const tags = Object.values(todaySlots || {}).flatMap(slot => (slot?.items || []).flatMap(i => i.tags || []));
+  return (
+    <div className="flex flex-wrap gap-1.5 pt-1">
+      {SHEET_KPIS.map(({ key, emoji, label, check, count }) => {
+        const ok = count ? count(tags) > 0 : check(tags);
+        const n  = count ? count(tags) : null;
+        return (
+          <span key={key} className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg font-medium ${ok ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+            {emoji}
+            <span>{n !== null && n > 0 ? `${n} ${label.toLowerCase()}` : label}</span>
+            {ok && <span className="font-bold">✓</span>}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 const PREP_TYPE_BADGES = {
   'ya-preparado': { label: 'Listo',       color: 'bg-brand-100 text-brand-700' },
   acelerador:     { label: 'Justo-antes', color: 'bg-violet-100 text-violet-700' },
@@ -244,6 +271,9 @@ export default function DayProposalSheet({
         )}
 
         <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-6">
+          {/* KPIs del día en tiempo real */}
+          <SheetDailyKpiRow todaySlots={todaySlots} />
+
           <SlotSection
             slotId="comida"
             label="Comida"

@@ -20,15 +20,13 @@ const STATUS_STYLES = {
   low:  'bg-gray-50 text-gray-500 border-gray-200',
 };
 
-export default function WeeklyKpiStrip({ kpis, projectedKpis, onKpiTap }) {
+export default function WeeklyKpiStrip({ kpis, onKpiTap }) {
   if (!kpis) return null;
 
   return (
     <div className="flex flex-wrap gap-2">
       {KPI_DEFS.map(({ id, icon: Icon, label, getValue, target, unit }) => {
         const value = getValue(kpis);
-        const projectedValue = projectedKpis ? getValue(projectedKpis) : value;
-        const delta = projectedValue - value;
         const status = getStatus(value, target);
         const tappable = onKpiTap && status !== 'good';
         const Wrapper = tappable ? 'button' : 'div';
@@ -42,10 +40,7 @@ export default function WeeklyKpiStrip({ kpis, projectedKpis, onKpiTap }) {
             <span>{label}</span>
             <span className="font-bold">{value}/{target}</span>
             {unit && <span className="opacity-60">{unit}</span>}
-            {delta > 0 && (
-              <span className="text-green-600 font-bold text-[10px] ml-0.5">+{delta}</span>
-            )}
-            {tappable && delta === 0 && <span className="opacity-50 text-[9px] ml-0.5">↗</span>}
+            {tappable && <span className="opacity-50 text-[9px] ml-0.5">↗</span>}
           </Wrapper>
         );
       })}
