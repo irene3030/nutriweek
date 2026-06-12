@@ -76,6 +76,45 @@ export async function detectTags({ text }) {
   return callClaude('detect_tags', { text });
 }
 
+export async function proposeMeal({ slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis, pantryItems }) {
+  const result = await callClaude('propose_meal', { slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis, pantryItems });
+  track('ai_meal_proposed');
+  return result;
+}
+
+export async function suggestShopping({ inventoryItems, weeklyKpis, expiringItems, floatingItems, pantryItems }) {
+  const result = await callClaude('suggest_shopping', { inventoryItems, weeklyKpis, expiringItems, floatingItems, pantryItems });
+  track('ai_shopping_suggested');
+  return result;
+}
+
+export async function resolveFloating({ floatingItem, inventoryItems, weeklyKpis, pantryItems }) {
+  const result = await callClaude('resolve_floating', { floatingItem, inventoryItems, weeklyKpis, pantryItems });
+  track('ai_floating_resolved');
+  return result;
+}
+
+export async function suggestSnack({ recentSnacks, inventoryItems, pantryItems }) {
+  const result = await callClaude('suggest_snack', { recentSnacks, inventoryItems, pantryItems });
+  track('ai_snack_suggested');
+  return result;
+}
+
+export async function suggestCookingTime({ minutes, inventoryItems, weeklyKpis, recentPreps, pantryItems }) {
+  const result = await callClaude('cooking_time_suggestions', { minutes, inventoryItems, weeklyKpis, recentPreps, pantryItems });
+  track('ai_cooking_time_suggested');
+  return result;
+}
+
+export async function generateRecipe({ prepName, prepType, ingredients, adultPortions, babyPortions }) {
+  return callClaude('generate_recipe', { prepName, prepType, ingredients, adultPortions, babyPortions });
+}
+
+export async function chatWithRecipe({ recipe, question, inventoryItems }) {
+  return callClaude('recipe_chat', { recipe, question, inventoryItems });
+}
+
+
 export async function analyzeMealPhoto({ imageBase64, mimeType = 'image/jpeg' }) {
   return callClaude('analyze_meal_photo', { imageBase64, mimeType });
 }

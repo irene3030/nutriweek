@@ -380,6 +380,61 @@ export function calculateDailyCompliance(weekDoc, kpiConfig = {}) {
   return result;
 }
 
+/**
+ * Generate short informational phrases about the week's nutritional state.
+ * Tone: neutral, no scoring, no gamification.
+ * Returns array of { id, text }.
+ */
+export function generateKpiPhrases(kpis) {
+  if (!kpis) return [];
+  const { ironDays, fishDays, legumedDays, fruitDays, distinctVeggies } = kpis;
+  const todayDayIndex = (new Date().getDay() + 6) % 7; // Mon=0 … Sun=6
+  const phrases = [];
+
+  // Iron
+  if (ironDays === 0 && todayDayIndex > 1) {
+    phrases.push({ id: 'iron', text: 'Sin fuente de hierro esta semana aún' });
+  } else if (ironDays > 0 && ironDays < 5) {
+    phrases.push({ id: 'iron', text: `Hierro: ${ironDays} día${ironDays > 1 ? 's' : ''} esta semana` });
+  }
+
+  // Fish
+  if (fishDays === 0) {
+    phrases.push({ id: 'fish', text: 'Sin pescado azul esta semana aún' });
+  } else if (fishDays < 3) {
+    phrases.push({ id: 'fish', text: `Pescado azul ${fishDays} ${fishDays > 1 ? 'veces' : 'vez'} esta semana` });
+  } else {
+    phrases.push({ id: 'fish', text: 'Pescado azul cubierto esta semana' });
+  }
+
+  // Legume
+  if (legumedDays === 0) {
+    phrases.push({ id: 'legume', text: 'Sin legumbre esta semana aún' });
+  } else if (legumedDays < 3) {
+    phrases.push({ id: 'legume', text: `Legumbre ${legumedDays} día${legumedDays > 1 ? 's' : ''} esta semana` });
+  } else {
+    phrases.push({ id: 'legume', text: 'Legumbre bien cubierta esta semana' });
+  }
+
+  // Veggies
+  if (distinctVeggies === 0) {
+    phrases.push({ id: 'veggie', text: 'Sin verduras registradas esta semana' });
+  } else if (distinctVeggies < 5) {
+    phrases.push({ id: 'veggie', text: `${distinctVeggies} verdura${distinctVeggies > 1 ? 's' : ''} distinta${distinctVeggies > 1 ? 's' : ''} esta semana` });
+  }
+
+  // Fruit (skip early in week if zero)
+  if (fruitDays === 0 && todayDayIndex > 1) {
+    phrases.push({ id: 'fruit', text: 'Sin fruta registrada esta semana aún' });
+  } else if (fruitDays > 0 && fruitDays < 4) {
+    phrases.push({ id: 'fruit', text: `Fruta ${fruitDays} día${fruitDays > 1 ? 's' : ''} esta semana` });
+  } else if (fruitDays >= 4) {
+    phrases.push({ id: 'fruit', text: 'Fruta presente la mayoría de los días' });
+  }
+
+  return phrases;
+}
+
 /** Check if a food has been absent for more than 3 weeks from foodHistory */
 export function getFoodAbsenceWarnings(foodHistory = [], currentWeekFoods = []) {
   const warnings = [];

@@ -16,6 +16,10 @@ import SpotlightTour from './components/ui/SpotlightTour';
 import Modal from './components/ui/Modal';
 import DayPlayground from './components/playground/DayPlayground';
 import QuickMealModal from './components/week/QuickMealModal';
+import InventoryScreen from './components/v2/InventoryScreen';
+import TodayScreen from './components/v2/TodayScreen';
+import DespensaScreen from './components/v2/DespensaScreen';
+import { DEFAULT_PANTRY_ITEMS } from './lib/pantryData';
 import {
   collection,
   onSnapshot,
@@ -30,6 +34,16 @@ import { db } from './lib/firebase';
 
 // Tab nav icons (inline SVG)
 const TabIcons = {
+  today: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+    </svg>
+  ),
+  inventory: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM16 3H8a2 2 0 00-2 2v2h12V5a2 2 0 00-2-2z" />
+    </svg>
+  ),
   week: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -55,11 +69,16 @@ const TabIcons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
     </svg>
   ),
+  despensa: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+    </svg>
+  ),
 };
 
 function AppContent() {
   const auth = useAuth();
-  const [activeTab, setActiveTab] = useState('week');
+  const [activeTab, setActiveTab] = useState('today');
   const [selectedDayIndex, setSelectedDayIndex] = useState(null);
   const [savedRecipes, setSavedRecipes] = useState([]);
   const [usualMeals, setUsualMeals] = useState([]);
@@ -276,6 +295,7 @@ function AppContent() {
   // Render onboarding if no household
   if (!auth.userDoc?.householdId) return <OnboardingScreen />;
 
+  const pantryItems = householdDoc?.pantryItems ?? DEFAULT_PANTRY_ITEMS;
   const drawerOpen = selectedDayIndex !== null && currentWeek;
 
   return (
@@ -346,6 +366,28 @@ function AppContent() {
 
           {activeTab === 'profile' && (
             <ProfileTab auth={auth} householdDoc={householdDoc} onShowFFWelcome={() => setShowFFWelcome(true)} />
+          )}
+
+          {activeTab === 'today' && (
+            <TodayScreen
+              householdId={auth.userDoc?.householdId}
+              hasAiAccess={!!householdApiKey || (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)}
+              pantryItems={pantryItems}
+            />
+          )}
+
+          {activeTab === 'inventory' && (
+            <InventoryScreen
+              householdId={auth.userDoc?.householdId}
+              hasAiAccess={!!householdApiKey || (!!householdDoc?.ffActivated && (householdDoc?.freeCallsUsed || 0) < 30)}
+              pantryItems={pantryItems}
+            />
+          )}
+
+          {activeTab === 'despensa' && (
+            <DespensaScreen
+              householdId={auth.userDoc?.householdId}
+            />
           )}
 
           {activeTab === 'day' && (
@@ -430,23 +472,25 @@ function AppContent() {
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20 pb-[env(safe-area-inset-bottom)]">
           <div className="max-w-lg mx-auto flex">
             {[
-              { id: 'week', label: 'Semana', tour: 'tab-week' },
-              { id: 'day', label: 'Día', tour: 'tab-day' },
-              { id: 'recipes', label: 'Comidas', tour: 'tab-recipes' },
-              { id: 'profile', label: 'Perfil', tour: 'tab-profile' },
+              { id: 'today',     label: 'Hoy',       tour: 'tab-today' },
+              { id: 'inventory', label: 'Inventario', tour: 'tab-inventory' },
+              { id: 'despensa',  label: 'Despensa',   tour: 'tab-despensa' },
+              { id: 'recipes',   label: 'Recetas',    tour: 'tab-recipes' },
+              { id: 'week',      label: 'Semana',     tour: 'tab-week' },
+              { id: 'profile',   label: 'Perfil',     tour: 'tab-profile' },
             ].map((tab) => (
               <button
                 key={tab.id}
                 data-tour={tab.tour}
                 onClick={() => { setActiveTab(tab.id); track('tab_viewed', { tab: tab.id }); }}
-                className={`flex-1 flex flex-col items-center gap-0.5 py-2 px-2 transition-colors ${
+                className={`flex-1 flex flex-col items-center gap-0.5 py-2 px-1 transition-colors ${
                   activeTab === tab.id
                     ? 'text-brand-600'
                     : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
                 {TabIcons[tab.id]}
-                <span className="text-xs font-medium">{tab.label}</span>
+                <span className="text-[10px] font-medium leading-none">{tab.label}</span>
               </button>
             ))}
           </div>
