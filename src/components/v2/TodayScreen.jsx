@@ -7,7 +7,6 @@ import DayPlanSection from './DayPlanSection';
 import WeeklyKpiStrip from './WeeklyKpiStrip';
 import AddPrepModal from './AddPrepModal';
 import FreshnessIndicator from './FreshnessIndicator';
-import KpiInsights from './KpiInsights';
 import ShoppingSuggestionSheet from './ShoppingSuggestionSheet';
 import FloatingResolverSheet from './FloatingResolverSheet';
 import SnackSuggestionSheet from './SnackSuggestionSheet';
@@ -249,7 +248,6 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
 
         {/* KPI strip semanal (accionables cuando hay acceso IA) */}
         <WeeklyKpiStrip kpis={weeklyKpis} onKpiTap={hasAiAccess ? handleKpiTap : undefined} />
-        <KpiInsights kpis={weeklyKpis} />
 
         {/* Alerts */}
         {alertsVisible && (
