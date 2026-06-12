@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import PlanSlotRow from './PlanSlotRow';
 import SlotPickerSheet from './SlotPickerSheet';
 import MealProposalSheet from './MealProposalSheet';
+import DayProposalSheet from './DayProposalSheet';
 import EditSlotItemModal from './EditSlotItemModal';
 
 const SLOTS = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
@@ -22,6 +23,7 @@ export default function DayPlanSection({
   inventoryItems,
   weeklyKpis,
   hasAiAccess,
+  pantryItems,
   defaultExpanded,
   onAddSlotItem,
   onRemoveSlotItem,
@@ -33,6 +35,7 @@ export default function DayPlanSection({
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [pickerSlot, setPickerSlot] = useState(null);
   const [proposalSlot, setProposalSlot] = useState(null);
+  const [showDayProposal, setShowDayProposal] = useState(false);
   const [editTarget, setEditTarget] = useState(null); // { slotId, idx, item }
 
   const slots = plan?.slots || {};
@@ -79,6 +82,17 @@ export default function DayPlanSection({
       {/* Slots */}
       {expanded && (
         <div className="px-4 pb-3">
+          {/* CTA: Sugerir comida y cena (shown when both are empty) */}
+          {hasAiAccess && !slots.comida?.items?.length && !slots.cena?.items?.length && (
+            <button
+              onClick={() => setShowDayProposal(true)}
+              className="w-full flex items-center justify-center gap-2 mb-3 py-2.5 rounded-2xl border border-brand-200 bg-brand-50 text-brand-700 text-sm font-medium hover:bg-brand-100 transition-colors"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Sugerir comida y cena
+            </button>
+          )}
+
           {SLOTS.map((slotId) => {
             const slot = slots[slotId] || null;
             const canAiPropose = hasAiAccess && !slot?.confirmedAt;
@@ -115,7 +129,7 @@ export default function DayPlanSection({
         />
       )}
 
-      {/* AI meal proposal sheet */}
+      {/* AI meal proposal sheet (single slot) */}
       {proposalSlot && (
         <MealProposalSheet
           slotId={proposalSlot}
@@ -123,11 +137,26 @@ export default function DayPlanSection({
           inventoryItems={inventoryItems}
           todaySlots={slots}
           weeklyKpis={weeklyKpis}
+          pantryItems={pantryItems}
           onSelect={(entry) => {
             onAddSlotItem(date, proposalSlot, entry);
             setProposalSlot(null);
           }}
           onClose={() => setProposalSlot(null)}
+        />
+      )}
+
+      {/* Combined comida+cena proposal sheet */}
+      {showDayProposal && (
+        <DayProposalSheet
+          date={date}
+          inventoryItems={inventoryItems}
+          todaySlots={slots}
+          weeklyKpis={weeklyKpis}
+          pantryItems={pantryItems}
+          onSelectComida={(entry) => onAddSlotItem(date, 'comida', entry)}
+          onSelectCena={(entry) => onAddSlotItem(date, 'cena', entry)}
+          onClose={() => setShowDayProposal(false)}
         />
       )}
 

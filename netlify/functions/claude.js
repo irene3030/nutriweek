@@ -1029,7 +1029,7 @@ Devuelve SOLO este JSON (sin texto adicional):
 }`;
 
     } else if (type === 'propose_meal') {
-      const { slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis } = payload;
+      const { slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis, pantryItems } = payload;
 
       const SLOT_LABELS_ES = { comida: 'comida', cena: 'cena', desayuno: 'desayuno', snack: 'snack', merienda: 'merienda' };
       const safeSlot = SLOT_LABELS_ES[sanitize(slotId, 20)] || 'comida';
@@ -1106,13 +1106,20 @@ ${confirmedSlotLines.length > 0 ? confirmedSlotLines.join('\n') : '(ningún slot
 ANÁLISIS DE GAPS DEL DÍA (solo para cena):
 Antes de las propuestas, analiza qué grupos nutricionales faltan o están poco representados en los slots confirmados de hoy. Genera una frase corta, concreta y sin juicio. Ejemplos: "Falta una fuente de carbs y una verdura nueva", "El día tiene poca proteína vegetal", "Bien cubierto, la cena puede ser ligera". Máximo 12 palabras. Si el día está bien equilibrado, dilo brevemente.` : '';
 
+      const safePantry = Array.isArray(pantryItems)
+        ? pantryItems.map(i => sanitize(i, 100)).filter(Boolean).slice(0, 30)
+        : [];
+      const pantryLine = safePantry.length > 0
+        ? `\nDespensa base (siempre disponible, usa source "despensa"):\n${safePantry.join(', ')}`
+        : '';
+
       userMessage = `Propón exactamente 3 opciones concretas para la ${safeSlot} del día ${safeDateStr || 'hoy'} en una familia BLW.
 
 Inventario disponible (usa el id para referenciarlo):
 ${inventoryLines}
 
 Ingredientes extra que el usuario menciona (sin registrar en inventario):
-${safeBraindump || 'ninguno'}
+${safeBraindump || 'ninguno'}${pantryLine}
 
 Otros slots planificados hoy (✓ = confirmado):
 ${slotsContext}
@@ -1157,7 +1164,7 @@ source debe ser: "stock" (en inventario) | "despensa" (despensa base, siempre di
 kpiBoost: "legume" | "fish" | "iron" | "veggie" | null`;
 
     } else if (type === 'suggest_shopping') {
-      const { inventoryItems, weeklyKpis, expiringItems, floatingItems } = payload;
+      const { inventoryItems, weeklyKpis, expiringItems, floatingItems, pantryItems } = payload;
 
       const safeItems = Array.isArray(inventoryItems)
         ? inventoryItems.slice(0, 20).map(item => ({
@@ -1208,6 +1215,13 @@ kpiBoost: "legume" | "fish" | "iron" | "veggie" | null`;
         ? safeFloating.map(i => `- ${i.name}`).join('\n')
         : 'ninguno';
 
+      const safePantryShop = Array.isArray(pantryItems)
+        ? pantryItems.map(i => sanitize(i, 100)).filter(Boolean).slice(0, 30)
+        : [];
+      const pantryLineShop = safePantryShop.length > 0
+        ? `\nDespensa base (ya en casa, no sugerir comprar):\n${safePantryShop.join(', ')}`
+        : '';
+
       userMessage = `Eres un asistente de logística culinaria para familias BLW. El usuario va a hacer la compra ahora.
 
 Hoy es ${todayName}. Quedan ${daysLeftInWeek} días en la semana actual. El horizonte de compra son los próximos 3 días.
@@ -1219,7 +1233,7 @@ Estado nutricional de la semana hasta ahora:
 - Verduras distintas: ${distinctVeggies}${veggieList ? ` (${veggieList})` : ''} (objetivo: ≥5 tipos/semana)
 
 Inventario actual en casa:
-${inventoryLines}
+${inventoryLines}${pantryLineShop}
 
 Items que caducan pronto (urgente usarlos, no hace falta comprar más):
 ${expiringLines}
@@ -1254,7 +1268,7 @@ priority válidos: "alta", "media"
 Máximo 5 categories. Si no hay gaps, devuelve {"categories": []}`;
 
     } else if (type === 'resolve_floating') {
-      const { floatingItem, inventoryItems, weeklyKpis } = payload;
+      const { floatingItem, inventoryItems, weeklyKpis, pantryItems } = payload;
       const safeName = sanitize(floatingItem?.name, 100);
       const safeAmount = sanitize(floatingItem?.amount, 50);
 
@@ -1281,11 +1295,18 @@ Máximo 5 categories. Si no hay gaps, devuelve {"categories": []}`;
           }).join('\n')
         : '- (inventario vacío)';
 
+      const safePantryFloat = Array.isArray(pantryItems)
+        ? pantryItems.map(i => sanitize(i, 100)).filter(Boolean).slice(0, 30)
+        : [];
+      const pantryLineFloat = safePantryFloat.length > 0
+        ? `\nDespensa base disponible (usa source "despensa"): ${safePantryFloat.join(', ')}`
+        : '';
+
       userMessage = `El usuario tiene un ingrediente sin plan: "${safeName}"${safeAmount ? ` (${safeAmount})` : ''}.
 Propón exactamente 3 formas de cocinarlo o usarlo, pensando en una familia BLW con bebé ~12 meses.
 
 Inventario disponible actualmente:
-${inventoryLines}
+${inventoryLines}${pantryLineFloat}
 
 Estado nutricional de la semana: ${kpiCtx}
 
@@ -1320,7 +1341,7 @@ source: "stock" | "despensa" | "compra"
 kpiBoost: "legume" | "fish" | "iron" | "veggie" | null`;
 
     } else if (type === 'suggest_snack') {
-      const { recentSnacks, inventoryItems } = payload;
+      const { recentSnacks, inventoryItems, pantryItems } = payload;
       const safeRecent = Array.isArray(recentSnacks)
         ? recentSnacks.map(s => sanitize(s, 100)).filter(Boolean)
         : [];
@@ -1341,10 +1362,17 @@ kpiBoost: "legume" | "fish" | "iron" | "veggie" | null`;
         ? `\nÚltimos snacks hechos (NO repetir ni algo muy similar): ${safeRecent.join(', ')}`
         : '';
 
+      const safePantrySnack = Array.isArray(pantryItems)
+        ? pantryItems.map(i => sanitize(i, 100)).filter(Boolean).slice(0, 30)
+        : [];
+      const pantryLineSnack = safePantrySnack.length > 0
+        ? `\nDespensa base disponible: ${safePantrySnack.join(', ')}`
+        : '';
+
       userMessage = `El stock de snacks está agotándose. Propón exactamente 3 opciones de snack batch para bebé BLW (~12 meses) y familia.
 
 Inventario actual:
-${inventoryLines}
+${inventoryLines}${pantryLineSnack}
 ${recentNote}
 
 INSTRUCCIONES:
@@ -1377,7 +1405,7 @@ Devuelve SOLO este JSON:
 }`;
 
     } else if (type === 'cooking_time_suggestions') {
-      const { minutes, inventoryItems, weeklyKpis, recentPreps } = payload;
+      const { minutes, inventoryItems, weeklyKpis, recentPreps, pantryItems } = payload;
       const VALID_MINUTES = [15, 30, 60, 'más'];
       const safeMinutes = VALID_MINUTES.includes(minutes) ? minutes : 30;
 
@@ -1422,12 +1450,19 @@ Devuelve SOLO este JSON:
 
       const timeLabel = safeMinutes === 'más' ? 'más de 1 hora' : `${safeMinutes} minutos`;
 
+      const safePantryCook = Array.isArray(pantryItems)
+        ? pantryItems.map(i => sanitize(i, 100)).filter(Boolean).slice(0, 30)
+        : [];
+      const pantryLineCook = safePantryCook.length > 0
+        ? `\nDespensa base disponible: ${safePantryCook.join(', ')}`
+        : '';
+
       userMessage = `El usuario tiene ${timeLabel} disponibles para cocinar. Propón exactamente 3 preparaciones que sean más útiles para la semana.
 
 ${gapText}
 
 Inventario actual:
-${inventoryLines}
+${inventoryLines}${pantryLineCook}
 ${recentNote}
 
 INSTRUCCIONES:

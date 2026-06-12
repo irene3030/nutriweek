@@ -100,6 +100,7 @@ export default function MealProposalSheet({
   inventoryItems,
   todaySlots,
   weeklyKpis,
+  pantryItems,
   onSelect,
   onClose,
 }) {
@@ -143,6 +144,7 @@ export default function MealProposalSheet({
         braindump,
         todaySlots,
         weeklyKpis,
+        pantryItems,
       });
       if (!result?.proposals?.length) throw new Error('Sin propuestas');
       setProposals(result.proposals);

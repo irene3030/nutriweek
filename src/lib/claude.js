@@ -76,32 +76,32 @@ export async function detectTags({ text }) {
   return callClaude('detect_tags', { text });
 }
 
-export async function proposeMeal({ slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis }) {
-  const result = await callClaude('propose_meal', { slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis });
+export async function proposeMeal({ slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis, pantryItems }) {
+  const result = await callClaude('propose_meal', { slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis, pantryItems });
   track('ai_meal_proposed');
   return result;
 }
 
-export async function suggestShopping({ inventoryItems, weeklyKpis, expiringItems, floatingItems }) {
-  const result = await callClaude('suggest_shopping', { inventoryItems, weeklyKpis, expiringItems, floatingItems });
+export async function suggestShopping({ inventoryItems, weeklyKpis, expiringItems, floatingItems, pantryItems }) {
+  const result = await callClaude('suggest_shopping', { inventoryItems, weeklyKpis, expiringItems, floatingItems, pantryItems });
   track('ai_shopping_suggested');
   return result;
 }
 
-export async function resolveFloating({ floatingItem, inventoryItems, weeklyKpis }) {
-  const result = await callClaude('resolve_floating', { floatingItem, inventoryItems, weeklyKpis });
+export async function resolveFloating({ floatingItem, inventoryItems, weeklyKpis, pantryItems }) {
+  const result = await callClaude('resolve_floating', { floatingItem, inventoryItems, weeklyKpis, pantryItems });
   track('ai_floating_resolved');
   return result;
 }
 
-export async function suggestSnack({ recentSnacks, inventoryItems }) {
-  const result = await callClaude('suggest_snack', { recentSnacks, inventoryItems });
+export async function suggestSnack({ recentSnacks, inventoryItems, pantryItems }) {
+  const result = await callClaude('suggest_snack', { recentSnacks, inventoryItems, pantryItems });
   track('ai_snack_suggested');
   return result;
 }
 
-export async function suggestCookingTime({ minutes, inventoryItems, weeklyKpis, recentPreps }) {
-  const result = await callClaude('cooking_time_suggestions', { minutes, inventoryItems, weeklyKpis, recentPreps });
+export async function suggestCookingTime({ minutes, inventoryItems, weeklyKpis, recentPreps, pantryItems }) {
+  const result = await callClaude('cooking_time_suggestions', { minutes, inventoryItems, weeklyKpis, recentPreps, pantryItems });
   track('ai_cooking_time_suggested');
   return result;
 }

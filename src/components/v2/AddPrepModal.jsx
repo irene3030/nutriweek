@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Star } from 'lucide-react';
 import Modal from '../ui/Modal';
 import TagConfirm from './TagConfirm';
 import { inferLabels } from '../../lib/inventoryLabels';
@@ -30,9 +31,10 @@ const EMPTY = {
   notes: '',
 };
 
-export default function AddPrepModal({ isOpen, onClose, onSave, initialData = null }) {
+export default function AddPrepModal({ isOpen, onClose, onSave, onAddUsualMeal, initialData = null }) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(EMPTY);
+  const [markAsUsual, setMarkAsUsual] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const isEditing = !!initialData;
@@ -40,6 +42,7 @@ export default function AddPrepModal({ isOpen, onClose, onSave, initialData = nu
   // Reset/populate when modal opens
   useEffect(() => {
     if (!isOpen) return;
+    setMarkAsUsual(false);
     if (initialData) {
       const remaining = initialData.expiresAt
         ? Math.max(1, daysUntil(initialData.expiresAt))
@@ -81,7 +84,7 @@ export default function AddPrepModal({ isOpen, onClose, onSave, initialData = nu
     try {
       const isSnack = form.type === 'snack-batch';
       const isFlotante = form.type === 'flotante';
-      await onSave({
+      const data = {
         name: form.name.trim(),
         type: form.type,
         portionsAdult: (isSnack || isFlotante) ? 0 : Number(form.portionsAdult) || 0,
@@ -91,7 +94,11 @@ export default function AddPrepModal({ isOpen, onClose, onSave, initialData = nu
         shelfLifeDays: Number(form.shelfLifeDays) || 3,
         tags: form.tags,
         notes: form.notes.trim(),
-      });
+      };
+      await onSave(data);
+      if (markAsUsual && onAddUsualMeal) {
+        await onAddUsualMeal({ name: data.name, tags: data.tags });
+      }
       onClose();
     } finally {
       setSaving(false);
@@ -234,6 +241,21 @@ export default function AddPrepModal({ isOpen, onClose, onSave, initialData = nu
             value={form.tags}
             onChange={(tags) => set('tags', tags)}
           />
+
+          {onAddUsualMeal && !isEditing && (
+            <button
+              type="button"
+              onClick={() => setMarkAsUsual(v => !v)}
+              className={`w-full flex items-center gap-3 border rounded-xl px-4 py-3 transition-colors ${
+                markAsUsual
+                  ? 'border-brand-400 bg-brand-50 text-brand-700'
+                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+              }`}
+            >
+              <Star className={`w-4 h-4 shrink-0 ${markAsUsual ? 'fill-brand-500 text-brand-500' : ''}`} />
+              <span className="text-sm font-medium">Añadir a mis habituales</span>
+            </button>
+          )}
 
           <div className="flex gap-3 pt-2">
             <button

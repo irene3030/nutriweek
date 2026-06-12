@@ -29,7 +29,7 @@ function buildInventoryPayload(inventoryItems) {
     }));
 }
 
-export default function CookingTimeSheet({ inventoryItems, weeklyKpis, onClose, onSelect }) {
+export default function CookingTimeSheet({ inventoryItems, weeklyKpis, pantryItems, onClose, onSelect }) {
   const [selectedTime, setSelectedTime] = useState(null);
   const [proposals, setProposals]       = useState(null);
   const [loading, setLoading]           = useState(false);
@@ -47,6 +47,7 @@ export default function CookingTimeSheet({ inventoryItems, weeklyKpis, onClose, 
         inventoryItems: buildInventoryPayload(inventoryItems),
         weeklyKpis,
         recentPreps,
+        pantryItems,
       });
       if (!result?.proposals?.length) throw new Error('Sin propuestas');
       setProposals(result.proposals);

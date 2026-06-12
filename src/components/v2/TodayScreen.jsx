@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, AlertTriangle, MapPin, ShoppingCart, Clock, ChevronRight } from 'lucide-react';
 import { useInventory } from '../../hooks/useInventory';
 import { useDailyPlan } from '../../hooks/useDailyPlan';
+import { useUsualMeals } from '../../hooks/useUsualMeals';
 import DayPlanSection from './DayPlanSection';
 import WeeklyKpiStrip from './WeeklyKpiStrip';
 import AddPrepModal from './AddPrepModal';
@@ -28,7 +29,7 @@ function formatTodayHeader() {
   return `${DAY_NAMES_FULL[d.getDay()]} ${d.getDate()} de ${MONTH_NAMES[d.getMonth()]}`;
 }
 
-export default function TodayScreen({ householdId, hasAiAccess }) {
+export default function TodayScreen({ householdId, hasAiAccess, pantryItems = [] }) {
   const {
     items: inventoryItems,
     expiringItems,
@@ -38,6 +39,8 @@ export default function TodayScreen({ householdId, hasAiAccess }) {
     consumePortions,
     consumeUnits,
   } = useInventory(householdId);
+
+  const { usualMeals, addUsualMeal } = useUsualMeals(householdId);
 
   const {
     getPlan,
@@ -58,6 +61,7 @@ export default function TodayScreen({ householdId, hasAiAccess }) {
   const [resolvingItem, setResolvingItem]     = useState(null);
   const [showSnackSheet, setShowSnackSheet]   = useState(false);
   const [showCookingTime, setShowCookingTime] = useState(false);
+  const [usualToast, setUsualToast]           = useState(null);
 
   const lowSnackItems = inventoryItems.filter(i => i.type === 'snack-batch' && (i.units ?? 0) <= 2);
 
@@ -107,6 +111,22 @@ export default function TodayScreen({ householdId, hasAiAccess }) {
     setShowCookingTime(false);
     setShowAddPrep(true);
   }
+
+  const handleSavePrep = async (data) => {
+    await addItem(data);
+    // Auto-inference: if same name already exists in inventory → recurring meal
+    const sameName = inventoryItems.filter(
+      i => i.name.toLowerCase() === data.name.toLowerCase()
+    );
+    const alreadyUsual = usualMeals.some(
+      m => m.name?.toLowerCase() === data.name.toLowerCase()
+    );
+    if (sameName.length >= 1 && !alreadyUsual) {
+      await addUsualMeal({ name: data.name, tags: data.tags });
+      setUsualToast(data.name);
+      setTimeout(() => setUsualToast(null), 3000);
+    }
+  };
 
   const alertsVisible = expiringItems.length > 0 || floatingItems.length > 0 || (hasAiAccess && lowSnackItems.length > 0);
 
@@ -201,6 +221,7 @@ export default function TodayScreen({ householdId, hasAiAccess }) {
               inventoryItems={inventoryItems}
               weeklyKpis={weeklyKpis}
               hasAiAccess={hasAiAccess}
+              pantryItems={pantryItems}
               defaultExpanded={defaultExpanded}
               onAddSlotItem={addSlotItem}
               onRemoveSlotItem={removeSlotItem}
@@ -223,10 +244,18 @@ export default function TodayScreen({ householdId, hasAiAccess }) {
         Nueva preparación
       </button>
 
+      {/* Toast: añadido a habituales */}
+      {usualToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg">
+          "{usualToast}" añadido a habituales ⭐
+        </div>
+      )}
+
       <AddPrepModal
         isOpen={showAddPrep}
         onClose={() => { setShowAddPrep(false); setPrepopulated(null); }}
-        onSave={addItem}
+        onSave={handleSavePrep}
+        onAddUsualMeal={addUsualMeal}
         initialData={prepopulated}
       />
 
@@ -236,6 +265,7 @@ export default function TodayScreen({ householdId, hasAiAccess }) {
           expiringItems={expiringItems}
           floatingItems={floatingItems}
           weeklyKpis={weeklyKpis}
+          pantryItems={pantryItems}
           onClose={() => setShowShopping(false)}
         />
       )}
@@ -245,6 +275,7 @@ export default function TodayScreen({ householdId, hasAiAccess }) {
           floatingItem={resolvingItem}
           inventoryItems={inventoryItems}
           weeklyKpis={weeklyKpis}
+          pantryItems={pantryItems}
           onClose={() => setResolvingItem(null)}
           onSelect={handleSuggestionSelect}
         />
@@ -254,6 +285,7 @@ export default function TodayScreen({ householdId, hasAiAccess }) {
         <SnackSuggestionSheet
           snackItems={lowSnackItems}
           inventoryItems={inventoryItems}
+          pantryItems={pantryItems}
           onClose={() => setShowSnackSheet(false)}
           onSelect={handleSuggestionSelect}
         />
@@ -263,6 +295,7 @@ export default function TodayScreen({ householdId, hasAiAccess }) {
         <CookingTimeSheet
           inventoryItems={inventoryItems}
           weeklyKpis={weeklyKpis}
+          pantryItems={pantryItems}
           onClose={() => setShowCookingTime(false)}
           onSelect={handleSuggestionSelect}
         />

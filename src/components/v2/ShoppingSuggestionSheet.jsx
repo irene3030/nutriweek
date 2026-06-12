@@ -40,6 +40,7 @@ export default function ShoppingSuggestionSheet({
   expiringItems,
   floatingItems,
   weeklyKpis,
+  pantryItems,
   onClose,
 }) {
   const [loading, setLoading] = useState(true);
@@ -68,7 +69,7 @@ export default function ShoppingSuggestionSheet({
 
     const safeFloating = floatingItems.slice(0, 5).map(i => ({ name: i.name }));
 
-    return { inventoryItems: safeItems, weeklyKpis, expiringItems: safeExpiring, floatingItems: safeFloating };
+    return { inventoryItems: safeItems, weeklyKpis, expiringItems: safeExpiring, floatingItems: safeFloating, pantryItems };
   }
 
   async function fetchSuggestion() {

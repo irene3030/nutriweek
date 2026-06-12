@@ -22,7 +22,7 @@ function buildInventoryPayload(inventoryItems) {
     }));
 }
 
-export default function FloatingResolverSheet({ floatingItem, inventoryItems, weeklyKpis, onClose, onSelect }) {
+export default function FloatingResolverSheet({ floatingItem, inventoryItems, weeklyKpis, pantryItems, onClose, onSelect }) {
   const [proposals, setProposals] = useState(null);
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState(null);
@@ -35,6 +35,7 @@ export default function FloatingResolverSheet({ floatingItem, inventoryItems, we
         floatingItem: { id: floatingItem.id, name: floatingItem.name, amount: floatingItem.amount ?? '' },
         inventoryItems: buildInventoryPayload(inventoryItems),
         weeklyKpis,
+        pantryItems,
       });
       if (!result?.proposals?.length) throw new Error('Sin propuestas');
       setProposals(result.proposals);

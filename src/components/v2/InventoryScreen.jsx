@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Package, AlertTriangle, MapPin } from 'lucide-react';
 import { useInventory, addDays } from '../../hooks/useInventory';
+import { useUsualMeals } from '../../hooks/useUsualMeals';
 import InventoryItemCard from './InventoryItemCard';
 import AddPrepModal from './AddPrepModal';
 import FloatingResolverSheet from './FloatingResolverSheet';
@@ -12,8 +13,9 @@ const SECTIONS = [
   { type: 'snack-batch',  label: 'Snacks',        empty: 'Sin snacks en stock' },
 ];
 
-export default function InventoryScreen({ householdId, hasAiAccess }) {
+export default function InventoryScreen({ householdId, hasAiAccess, pantryItems = [] }) {
   const { items, expiringItems, floatingItems, loading, addItem, updateItem, deleteItem } = useInventory(householdId);
+  const { usualMeals, addUsualMeal } = useUsualMeals(householdId);
   const [showAdd, setShowAdd]             = useState(false);
   const [editingItem, setEditingItem]     = useState(null);
   const [resolvingItem, setResolvingItem] = useState(null);
@@ -155,6 +157,7 @@ export default function InventoryScreen({ householdId, hasAiAccess }) {
         isOpen={showAdd}
         onClose={() => { setShowAdd(false); setPrepopulated(null); }}
         onSave={addItem}
+        onAddUsualMeal={addUsualMeal}
         initialData={prepopulated}
       />
 
@@ -170,6 +173,7 @@ export default function InventoryScreen({ householdId, hasAiAccess }) {
           floatingItem={resolvingItem}
           inventoryItems={items}
           weeklyKpis={null}
+          pantryItems={pantryItems}
           onClose={() => setResolvingItem(null)}
           onSelect={handleSuggestionSelect}
         />

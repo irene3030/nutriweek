@@ -19,7 +19,7 @@ function buildInventoryPayload(inventoryItems) {
     }));
 }
 
-export default function SnackSuggestionSheet({ snackItems, inventoryItems, onClose, onSelect }) {
+export default function SnackSuggestionSheet({ snackItems, inventoryItems, pantryItems, onClose, onSelect }) {
   const [proposals, setProposals] = useState(null);
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState(null);
@@ -33,6 +33,7 @@ export default function SnackSuggestionSheet({ snackItems, inventoryItems, onClo
       const result = await suggestSnack({
         recentSnacks,
         inventoryItems: buildInventoryPayload(inventoryItems),
+        pantryItems,
       });
       if (!result?.proposals?.length) throw new Error('Sin propuestas');
       setProposals(result.proposals);
