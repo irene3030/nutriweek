@@ -174,6 +174,37 @@ export function useDailyPlan(householdId) {
     return calculateKPIs(weekDoc);
   }, [plans]);
 
+  // Projected KPIs: confirmed for the whole week + today's planned (unconfirmed) items
+  const projectedWeeklyKpis = useMemo(() => {
+    const monday = getMondayStr();
+    const currentDay = toDateStr(new Date());
+    const weekDays = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday + 'T12:00:00');
+      d.setDate(d.getDate() + i);
+      return toDateStr(d);
+    });
+
+    const weekDoc = {
+      days: weekDays.map((dateStr) => {
+        const plan = plans[dateStr];
+        const isToday = dateStr === currentDay;
+        const meals = Object.entries(plan?.slots || {})
+          .filter(([, slot]) => isToday ? slot?.items?.length > 0 : slot?.confirmedAt)
+          .flatMap(([tipo, slot]) =>
+            (slot.items || []).map((item) => ({
+              tipo,
+              baby: item.label,
+              adult: item.label,
+              tags: item.tags || [],
+            }))
+          );
+        return { day: dayLabel(dateStr), meals };
+      }),
+    };
+
+    return calculateKPIs(weekDoc);
+  }, [plans]);
+
   return {
     plans,
     getPlan,
@@ -186,6 +217,7 @@ export function useDailyPlan(householdId) {
     confirmSlot,
     clearSlot,
     weeklyKpis,
+    projectedWeeklyKpis,
     todayStr,
     offsetDateStr,
   };

@@ -1029,7 +1029,7 @@ Devuelve SOLO este JSON (sin texto adicional):
 }`;
 
     } else if (type === 'propose_meal') {
-      const { slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis, pantryItems } = payload;
+      const { slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis, pantryItems, timeOfDay, priorityKpi } = payload;
 
       const SLOT_LABELS_ES = { comida: 'comida', cena: 'cena', desayuno: 'desayuno', snack: 'snack', merienda: 'merienda' };
       const safeSlot = SLOT_LABELS_ES[sanitize(slotId, 20)] || 'comida';
@@ -1113,6 +1113,24 @@ Antes de las propuestas, analiza qué grupos nutricionales faltan o están poco 
         ? `\nDespensa base (siempre disponible, usa source "despensa"):\n${safePantry.join(', ')}`
         : '';
 
+      const safeTimeOfDay = ['mañana', 'tarde', 'noche'].includes(sanitize(timeOfDay, 10))
+        ? sanitize(timeOfDay, 10) : null;
+      const timeContext = safeTimeOfDay
+        ? `\nHora del día: ${safeTimeOfDay}. ${safeTimeOfDay === 'noche' ? 'Prioriza opciones rápidas de preparar y ligeras.' : safeTimeOfDay === 'mañana' ? 'Puedes proponer preparaciones más elaboradas si el inventario lo permite.' : ''}`
+        : '';
+
+      const KPI_PRIORITY_MAP = {
+        iron:   { label: 'hierro',            tags: 'iron', hint: 'carne roja, legumbre o pescado azul' },
+        fish:   { label: 'pescado azul',       tags: 'oily_fish', hint: 'salmón, caballa, sardina, atún o boquerón' },
+        legume: { label: 'legumbre',           tags: 'legume', hint: 'lentejas, garbanzos, judías o guisantes' },
+        veggie: { label: 'variedad de verduras', tags: 'veggie:*', hint: 'verduras distintas a las ya usadas esta semana' },
+        fruit:  { label: 'fruta',              tags: 'fruit', hint: 'cualquier fruta' },
+      };
+      const kpiPriorityDef = KPI_PRIORITY_MAP[sanitize(priorityKpi, 10)];
+      const priorityInstruction = kpiPriorityDef
+        ? `\nPRIORIDAD MÁXIMA: El usuario quiere cubrir el KPI de ${kpiPriorityDef.label} hoy. Al menos 2 de las 3 propuestas deben incluir ${kpiPriorityDef.hint} y llevar el tag correspondiente.`
+        : '';
+
       userMessage = `Propón exactamente 3 opciones concretas para la ${safeSlot} del día ${safeDateStr || 'hoy'} en una familia BLW.
 
 Inventario disponible (usa el id para referenciarlo):
@@ -1135,7 +1153,7 @@ INSTRUCCIONES:
 2. Cada opción debe complementar nutricionalmente lo ya planificado hoy.
 3. Si algún KPI está bajo (hierro < 3, pescado < 2, legumbre < 2, verduras < 3), cubre uno con alguna de las opciones.
 4. Las opciones deben ser variadas entre sí (no 3 variantes del mismo plato).
-5. Para ingredients, usa "stock" solo si el ingrediente está en el inventario disponible e incluye su inventoryId.
+5. Para ingredients, usa "stock" solo si el ingrediente está en el inventario disponible e incluye su inventoryId.${timeContext}${priorityInstruction}
 
 Devuelve SOLO este JSON:
 {
@@ -1311,7 +1329,10 @@ ${inventoryLines}${pantryLineFloat}
 Estado nutricional de la semana: ${kpiCtx}
 
 INSTRUCCIONES:
-1. Varía los tipos: al menos una opción batch (cocinas una vez, comes varios días) y al menos una justo-antes (resuelves una comida rápido).
+1. Devuelve exactamente 3 propuestas con estos tipos OBLIGATORIOS:
+   - 1 con prepType "acelerador": preparación base mínima del ingrediente (hervir, cocer, asar en crudo, escaldar...) que en sí misma no es un plato pero habilita 2-3 platos rápidos. Incluye "quickDishes" con esos 2-3 platos. Mínimo ingredientes extra.
+   - 1 con prepType "ya-preparado": plato completo batch, rinde varias raciones para varios días.
+   - 1 con prepType "justo-antes": opción rápida que se prepara en el momento de comer.
 2. Para cada opción, marca los ingredientes extra necesarios: "stock" si está en inventario (usa su id), "despensa" si es básico de cocina, "compra" si habría que comprarlo.
 3. Prioriza las opciones que cubran gaps nutricionales de la semana.
 4. Todas las opciones deben ser aptas para BLW (bebé ~12 meses y familia comen lo mismo).
@@ -1319,6 +1340,20 @@ INSTRUCCIONES:
 Devuelve SOLO este JSON:
 {
   "proposals": [
+    {
+      "name": "Judías verdes hervidas (base)",
+      "description": "Hervir las judías en agua con un poco de sal hasta que estén tiernas. Base versátil para varios platos.",
+      "prepType": "acelerador",
+      "prepTime": "10 min",
+      "adultPortions": 3,
+      "babyPortions": 2,
+      "ingredients": [
+        {"name": "Judías verdes", "source": "stock", "inventoryId": "flotante-id"}
+      ],
+      "tags": ["legume", "veggie:judia_verde"],
+      "kpiBoost": "legume",
+      "quickDishes": ["Ensalada de judías con tomate", "Tortilla de judías y queso", "Judías salteadas con ajo"]
+    },
     {
       "name": "Albóndigas de ternera",
       "description": "Mezclar con pan rallado, huevo y perejil. Hornear 20 min a 180°.",
@@ -1332,13 +1367,15 @@ Devuelve SOLO este JSON:
         {"name": "Pan rallado", "source": "despensa"}
       ],
       "tags": ["iron"],
-      "kpiBoost": "iron"
+      "kpiBoost": "iron",
+      "quickDishes": null
     }
   ]
 }
-prepType: "ya-preparado" | "acelerador" | "snack-batch" | "justo-antes"
+prepType: "ya-preparado" | "acelerador" | "justo-antes"
 source: "stock" | "despensa" | "compra"
-kpiBoost: "legume" | "fish" | "iron" | "veggie" | null`;
+kpiBoost: "legume" | "fish" | "iron" | "veggie" | null
+quickDishes: array de 2-3 platos rápidos (solo para acelerador), null para el resto`;
 
     } else if (type === 'suggest_snack') {
       const { recentSnacks, inventoryItems, pantryItems } = payload;
@@ -1426,17 +1463,21 @@ Devuelve SOLO este JSON:
         : [];
 
       const kpi = weeklyKpis || {};
-      const ironDays = parseInt(kpi.ironDays) || 0;
-      const fishDays = parseInt(kpi.fishDays) || 0;
-      const legumedDays = parseInt(kpi.legumedDays) || 0;
+      const ironDays      = parseInt(kpi.ironDays)      || 0;
+      const fishDays      = parseInt(kpi.fishDays)      || 0;
+      const legumedDays   = parseInt(kpi.legumedDays)   || 0;
       const distinctVeggies = parseInt(kpi.distinctVeggies) || 0;
+      const fruitDays     = parseInt(kpi.fruitDays)     || 0;
 
       const gaps = [];
-      if (ironDays < 3) gaps.push('hierro (faltan días con carne roja, legumbre o pescado azul)');
-      if (fishDays < 2) gaps.push('pescado azul');
-      if (legumedDays < 2) gaps.push('legumbre');
-      if (distinctVeggies < 3) gaps.push(`variedad de verduras (solo ${distinctVeggies} distintas esta semana)`);
-      const gapText = gaps.length > 0 ? `KPIs bajos esta semana: ${gaps.join(', ')}.` : 'KPIs en buen estado esta semana.';
+      if (ironDays      < 5) gaps.push(`hierro: ${ironDays}/5 días (carne roja, legumbre o pescado azul)`);
+      if (fishDays      < 3) gaps.push(`pescado azul: ${fishDays}/3 días (salmón, caballa, sardina, atún, boquerón)`);
+      if (legumedDays   < 3) gaps.push(`legumbre: ${legumedDays}/3 días (lentejas, garbanzos, judías, guisantes)`);
+      if (distinctVeggies < 5) gaps.push(`variedad de verduras: ${distinctVeggies}/5 tipos distintos esta semana`);
+      if (fruitDays     < 5) gaps.push(`fruta: ${fruitDays}/5 días`);
+      const gapText = gaps.length > 0
+        ? `Gaps nutricionales esta semana (PRIORIZA cubrirlos):\n${gaps.map(g => `- ${g}`).join('\n')}`
+        : 'KPIs en buen estado esta semana — prioriza variedad y aprovechamiento del inventario.';
 
       const inventoryLines = safeItems.length > 0
         ? safeItems.map(i => {
@@ -1457,7 +1498,7 @@ Devuelve SOLO este JSON:
         ? `\nDespensa base disponible: ${safePantryCook.join(', ')}`
         : '';
 
-      userMessage = `El usuario tiene ${timeLabel} disponibles para cocinar. Propón exactamente 3 preparaciones que sean más útiles para la semana.
+      userMessage = `El usuario tiene ${timeLabel} disponibles para cocinar. Propón exactamente 4 preparaciones: 2 listas para comer y 2 bases de batch cooking.
 
 ${gapText}
 
@@ -1466,11 +1507,12 @@ ${inventoryLines}${pantryLineCook}
 ${recentNote}
 
 INSTRUCCIONES:
-1. Ordena las opciones por impacto: primero las que cubren más gaps nutricionales y más slots de comida.
-2. Solo propón preparaciones que se puedan hacer en ${timeLabel} o menos.
-3. Prioriza batch cooking cuando tiene sentido (legumbres, guisos, cremas que duran varios días).
-4. Varía las opciones: no 3 variantes del mismo tipo.
-5. Todas deben ser aptas para BLW (bebé ~12 meses y familia).
+1. Devuelve exactamente 4 propuestas: 2 con prepType "ya-preparado" y 2 con prepType "acelerador".
+2. OBLIGATORIO: al menos 3 de las 4 propuestas deben cubrir directamente uno de los gaps listados arriba. Si no hay gaps, prioriza variedad.
+3. Solo propón preparaciones que se puedan hacer en ${timeLabel} o menos.
+4. ya-preparado: plato completo listo para asignar directamente a un slot (comida o cena).
+5. acelerador: base de batch cooking (legumbre cocida, cereal, crema, sofrito...) que en 2-5 min al momento se convierte en 2-3 platos distintos. Para estos incluye "quickDishes": los 2-3 platos rápidos que habilita.
+6. Todas deben ser aptas para BLW (bebé ~12 meses y familia).
 
 Devuelve SOLO este JSON:
 {
@@ -1488,12 +1530,28 @@ Devuelve SOLO este JSON:
         {"name": "Tomate", "source": "despensa"}
       ],
       "tags": ["legume", "iron", "veggie:zanahoria"],
-      "kpiBoost": "legume"
+      "kpiBoost": "legume",
+      "quickDishes": null
+    },
+    {
+      "name": "Base de garbanzos cocidos",
+      "description": "Garbanzos cocidos en olla con laurel. Base versátil para varios platos de la semana.",
+      "prepType": "acelerador",
+      "prepTime": "40 min",
+      "adultPortions": 4,
+      "babyPortions": 2,
+      "ingredients": [
+        {"name": "Garbanzos secos", "source": "despensa"}
+      ],
+      "tags": ["legume", "iron"],
+      "kpiBoost": "legume",
+      "quickDishes": ["Hummus casero", "Ensalada de garbanzos con tomate", "Pasta con garbanzos y espinacas"]
     }
   ]
 }
-prepType: "ya-preparado" | "acelerador" | "snack-batch" | "justo-antes"
-kpiBoost: "legume" | "fish" | "iron" | "veggie" | null`;
+prepType: "ya-preparado" | "acelerador"
+kpiBoost: "legume" | "fish" | "iron" | "veggie" | null
+quickDishes: array de 2-3 platos rápidos (solo para acelerador), null para ya-preparado`;
 
     } else if (type === 'generate_recipe') {
       const { prepName, prepType, ingredients, adultPortions, babyPortions } = payload;

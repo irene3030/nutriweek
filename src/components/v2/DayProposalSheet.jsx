@@ -1,12 +1,39 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X, Sparkles, User, Baby, Check, Package, ShoppingCart, Home, RefreshCw } from 'lucide-react';
 import { proposeMeal } from '../../lib/claude';
 import { daysUntil } from '../../hooks/useInventory';
 
+const SHEET_KPIS = [
+  { key: 'iron',   emoji: '🩸', label: 'Hierro',   check: (tags) => tags.includes('iron') },
+  { key: 'fish',   emoji: '🐟', label: 'Pescado',  check: (tags) => tags.includes('oily_fish') },
+  { key: 'legume', emoji: '🫘', label: 'Legumbre', check: (tags) => tags.includes('legume') },
+  { key: 'veggie', emoji: '🥦', label: 'Verduras', count: (tags) => new Set(tags.filter(t => t.startsWith('veggie:')).map(t => t.slice(7))).size },
+  { key: 'fruit',  emoji: '🍎', label: 'Fruta',    check: (tags) => tags.includes('fruit') },
+];
+
+function SheetDailyKpiRow({ todaySlots }) {
+  const tags = Object.values(todaySlots || {}).flatMap(slot => (slot?.items || []).flatMap(i => i.tags || []));
+  return (
+    <div className="flex flex-wrap gap-1.5 pt-1">
+      {SHEET_KPIS.map(({ key, emoji, label, check, count }) => {
+        const ok = count ? count(tags) > 0 : check(tags);
+        const n  = count ? count(tags) : null;
+        return (
+          <span key={key} className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg font-medium ${ok ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+            {emoji}
+            <span>{n !== null && n > 0 ? `${n} ${label.toLowerCase()}` : label}</span>
+            {ok && <span className="font-bold">✓</span>}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 const PREP_TYPE_BADGES = {
   'ya-preparado': { label: 'Listo',       color: 'bg-brand-100 text-brand-700' },
-  acelerador:     { label: 'Justo-antes', color: 'bg-violet-100 text-violet-700' },
-  'justo-antes':  { label: 'Justo-antes', color: 'bg-violet-100 text-violet-700' },
+  acelerador:     { label: 'Base',        color: 'bg-violet-100 text-violet-700' },
+  'justo-antes':  { label: 'Justo-antes', color: 'bg-purple-100 text-purple-700' },
 };
 
 function SourceIcon({ source }) {
@@ -60,13 +87,14 @@ function ProposalCard({ proposal, onSelect, selected }) {
   );
 }
 
-function SlotSection({ slotId, label, inventoryItems, todaySlots, weeklyKpis, pantryItems, date, onConfirm }) {
+function SlotSection({ slotId, label, inventoryItems, todaySlots, weeklyKpis, pantryItems, date, onConfirm, autoPropose, timeOfDay }) {
   const [braindump, setBraindump] = useState('');
   const [loading, setLoading] = useState(false);
   const [proposals, setProposals] = useState(null);
   const [dayGaps, setDayGaps] = useState(null);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
+  const didAutoPropose = useRef(false);
 
   function buildInventoryPayload() {
     return [...inventoryItems].sort((a, b) => {
@@ -84,6 +112,14 @@ function SlotSection({ slotId, label, inventoryItems, todaySlots, weeklyKpis, pa
     }));
   }
 
+  useEffect(() => {
+    if (autoPropose && !didAutoPropose.current) {
+      didAutoPropose.current = true;
+      handlePropose();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPropose]);
+
   async function handlePropose() {
     setLoading(true);
     setError(null);
@@ -98,6 +134,7 @@ function SlotSection({ slotId, label, inventoryItems, todaySlots, weeklyKpis, pa
         todaySlots,
         weeklyKpis,
         pantryItems,
+        timeOfDay,
       });
       if (!result?.proposals?.length) throw new Error('Sin propuestas');
       setProposals(result.proposals);
@@ -202,6 +239,8 @@ export default function DayProposalSheet({
   onSelectComida,
   onSelectCena,
   onClose,
+  autoPropose = false,
+  timeOfDay,
 }) {
   return (
     <>
@@ -215,7 +254,9 @@ export default function DayProposalSheet({
         <div className="flex items-center justify-between px-4 py-3 bg-gray-50 shrink-0">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-brand-600" />
-            <h2 className="text-base font-semibold text-gray-900">Sugerir comida y cena</h2>
+            <h2 className="text-base font-semibold text-gray-900">
+              {autoPropose ? 'Planificando hoy…' : 'Sugerir comida y cena'}
+            </h2>
           </div>
           <button onClick={onClose} className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200 transition-colors">
             <X className="w-4 h-4 text-gray-500" />
@@ -230,6 +271,9 @@ export default function DayProposalSheet({
         )}
 
         <div className="flex-1 overflow-y-auto px-4 pb-8 space-y-6">
+          {/* KPIs del día en tiempo real */}
+          <SheetDailyKpiRow todaySlots={todaySlots} />
+
           <SlotSection
             slotId="comida"
             label="Comida"
@@ -239,6 +283,8 @@ export default function DayProposalSheet({
             pantryItems={pantryItems}
             date={date}
             onConfirm={onSelectComida}
+            autoPropose={autoPropose}
+            timeOfDay={timeOfDay}
           />
 
           <div className="border-t border-gray-100" />
@@ -252,6 +298,8 @@ export default function DayProposalSheet({
             pantryItems={pantryItems}
             date={date}
             onConfirm={onSelectCena}
+            autoPropose={autoPropose}
+            timeOfDay={timeOfDay}
           />
         </div>
       </div>

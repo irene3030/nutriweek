@@ -76,8 +76,8 @@ export async function detectTags({ text }) {
   return callClaude('detect_tags', { text });
 }
 
-export async function proposeMeal({ slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis, pantryItems }) {
-  const result = await callClaude('propose_meal', { slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis, pantryItems });
+export async function proposeMeal({ slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis, pantryItems, timeOfDay, priorityKpi }) {
+  const result = await callClaude('propose_meal', { slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis, pantryItems, timeOfDay, priorityKpi });
   track('ai_meal_proposed');
   return result;
 }

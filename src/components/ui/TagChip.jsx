@@ -1,4 +1,4 @@
-import { Droplets, Fish, Bean, Egg, GlassWater, Cherry, Wheat, Leaf } from 'lucide-react';
+import { Droplets, Fish, Bean, Egg, GlassWater, Cherry, Wheat, Leaf, Zap } from 'lucide-react';
 
 const TAG_CONFIG = {
   iron:      { label: 'Hierro',      color: 'bg-orange-100 text-orange-700 border-orange-200', Icon: Droplets },
@@ -9,6 +9,7 @@ const TAG_CONFIG = {
   dairy:     { label: 'Lácteo',      color: 'bg-sky-100 text-sky-700 border-sky-200',          Icon: GlassWater },
   fruit:     { label: 'Fruta',       color: 'bg-pink-100 text-pink-700 border-pink-200',       Icon: Cherry },
   cereal:    { label: 'Cereal',      color: 'bg-amber-100 text-amber-700 border-amber-200',    Icon: Wheat },
+  carbs:     { label: 'Carbohidratos', color: 'bg-amber-50 text-amber-600 border-amber-200',   Icon: Zap },
 };
 
 function getTagConfig(tag) {

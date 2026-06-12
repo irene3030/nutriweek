@@ -107,6 +107,23 @@ export function useInventory(householdId) {
     await updateItem(id, { units: newUnits, isActive: newUnits > 0 });
   }, [items, updateItem]);
 
+  const restorePortions = useCallback(async (id, adultDelta = 0, babyDelta = 0) => {
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+    await updateItem(id, {
+      portionsAdult: (item.portionsAdult || 0) + adultDelta,
+      portionsBaby: (item.portionsBaby || 0) + babyDelta,
+      isActive: true,
+    });
+  }, [items, updateItem]);
+
+  const restoreUnits = useCallback(async (id, delta = 1) => {
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+    const newUnits = (item.units || 0) + delta;
+    await updateItem(id, { units: newUnits, isActive: newUnits > 0 });
+  }, [items, updateItem]);
+
   return {
     items: activeItems,
     allItems: items,
@@ -119,6 +136,8 @@ export function useInventory(householdId) {
     deleteItem,
     consumePortions,
     consumeUnits,
+    restorePortions,
+    restoreUnits,
     daysUntil,
   };
 }
