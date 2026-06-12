@@ -88,6 +88,33 @@ export async function suggestShopping({ inventoryItems, weeklyKpis, expiringItem
   return result;
 }
 
+export async function resolveFloating({ floatingItem, inventoryItems, weeklyKpis }) {
+  const result = await callClaude('resolve_floating', { floatingItem, inventoryItems, weeklyKpis });
+  track('ai_floating_resolved');
+  return result;
+}
+
+export async function suggestSnack({ recentSnacks, inventoryItems }) {
+  const result = await callClaude('suggest_snack', { recentSnacks, inventoryItems });
+  track('ai_snack_suggested');
+  return result;
+}
+
+export async function suggestCookingTime({ minutes, inventoryItems, weeklyKpis, recentPreps }) {
+  const result = await callClaude('cooking_time_suggestions', { minutes, inventoryItems, weeklyKpis, recentPreps });
+  track('ai_cooking_time_suggested');
+  return result;
+}
+
+export async function generateRecipe({ prepName, prepType, ingredients, adultPortions, babyPortions }) {
+  return callClaude('generate_recipe', { prepName, prepType, ingredients, adultPortions, babyPortions });
+}
+
+export async function chatWithRecipe({ recipe, question, inventoryItems }) {
+  return callClaude('recipe_chat', { recipe, question, inventoryItems });
+}
+
+
 export async function analyzeMealPhoto({ imageBase64, mimeType = 'image/jpeg' }) {
   return callClaude('analyze_meal_photo', { imageBase64, mimeType });
 }

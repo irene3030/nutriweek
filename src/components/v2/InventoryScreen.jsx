@@ -3,6 +3,7 @@ import { Plus, Package, AlertTriangle, MapPin } from 'lucide-react';
 import { useInventory, addDays } from '../../hooks/useInventory';
 import InventoryItemCard from './InventoryItemCard';
 import AddPrepModal from './AddPrepModal';
+import FloatingResolverSheet from './FloatingResolverSheet';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
 const SECTIONS = [
@@ -11,10 +12,12 @@ const SECTIONS = [
   { type: 'snack-batch',  label: 'Snacks',        empty: 'Sin snacks en stock' },
 ];
 
-export default function InventoryScreen({ householdId }) {
+export default function InventoryScreen({ householdId, hasAiAccess }) {
   const { items, expiringItems, floatingItems, loading, addItem, updateItem, deleteItem } = useInventory(householdId);
-  const [showAdd, setShowAdd] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
+  const [showAdd, setShowAdd]             = useState(false);
+  const [editingItem, setEditingItem]     = useState(null);
+  const [resolvingItem, setResolvingItem] = useState(null);
+  const [prepopulated, setPrepopulated]   = useState(null);
 
   if (loading) {
     return (
@@ -35,6 +38,19 @@ export default function InventoryScreen({ householdId }) {
     await updateItem(editingItem.id, { ...data, expiresAt });
     setEditingItem(null);
   };
+
+  function handleSuggestionSelect(proposal) {
+    setPrepopulated({
+      name:          proposal.name,
+      type:          proposal.prepType === 'justo-antes' ? 'acelerador' : proposal.prepType,
+      portionsAdult: proposal.adultPortions ?? 2,
+      portionsBaby:  proposal.babyPortions  ?? 1,
+      units:         proposal.unitsGenerated ?? 6,
+      tags:          proposal.tags ?? [],
+    });
+    setResolvingItem(null);
+    setShowAdd(true);
+  }
 
   const nonFloatingItems = items.filter((i) => i.type !== 'flotante');
 
@@ -82,7 +98,17 @@ export default function InventoryScreen({ householdId }) {
             </div>
             <div className="space-y-2">
               {floatingItems.map((item) => (
-                <InventoryItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={setEditingItem} />
+                <div key={item.id} className="space-y-1">
+                  <InventoryItemCard item={item} onDelete={handleDelete} onEdit={setEditingItem} />
+                  {hasAiAccess && (
+                    <button
+                      onClick={() => setResolvingItem(item)}
+                      className="w-full text-xs text-rose-600 font-medium py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 transition-colors"
+                    >
+                      ¿Qué hago con esto?
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           </section>
@@ -127,8 +153,9 @@ export default function InventoryScreen({ householdId }) {
 
       <AddPrepModal
         isOpen={showAdd}
-        onClose={() => setShowAdd(false)}
+        onClose={() => { setShowAdd(false); setPrepopulated(null); }}
         onSave={addItem}
+        initialData={prepopulated}
       />
 
       <AddPrepModal
@@ -137,6 +164,16 @@ export default function InventoryScreen({ householdId }) {
         onSave={handleEditSave}
         initialData={editingItem}
       />
+
+      {resolvingItem && (
+        <FloatingResolverSheet
+          floatingItem={resolvingItem}
+          inventoryItems={items}
+          weeklyKpis={null}
+          onClose={() => setResolvingItem(null)}
+          onSelect={handleSuggestionSelect}
+        />
+      )}
     </div>
   );
 }
