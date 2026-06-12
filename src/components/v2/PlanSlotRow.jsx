@@ -180,15 +180,13 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onE
                     >
                       <Pencil className="w-3 h-3" />
                     </button>
-                    {isPlanned && (
-                      <button
-                        onClick={() => onRemoveItem?.(idx)}
-                        className="flex items-center justify-center w-6 h-6 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors"
-                        aria-label="Quitar"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    <button
+                      onClick={() => onRemoveItem?.(idx)}
+                      className="flex items-center justify-center w-6 h-6 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors"
+                      aria-label="Quitar"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               );
