@@ -1600,6 +1600,11 @@ Devuelve SOLO este JSON:
       };
     }
 
+    // Ensure dayGaps is always string | null — never an object
+    if (parsed && typeof parsed === 'object' && 'dayGaps' in parsed) {
+      if (typeof parsed.dayGaps !== 'string') parsed.dayGaps = null;
+    }
+
     if (posthog && distinctId) {
       posthog.capture({
         distinctId,

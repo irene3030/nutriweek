@@ -168,7 +168,7 @@ function SlotSection({ slotId, label, inventoryItems, todaySlots, weeklyKpis, pa
 
       {proposals && (
         <div className="space-y-2">
-          {dayGaps && (
+          {dayGaps && typeof dayGaps === 'string' && (
             <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
               <span className="text-amber-500 text-xs shrink-0">↗</span>
               <p className="text-xs text-amber-800 leading-snug">{dayGaps}</p>

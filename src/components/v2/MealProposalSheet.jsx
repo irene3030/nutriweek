@@ -274,7 +274,7 @@ export default function MealProposalSheet({
           {/* Proposals */}
           {proposals && (
             <div className="space-y-3">
-              {dayGaps && (
+              {dayGaps && typeof dayGaps === 'string' && (
                 <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">
                   <span className="text-amber-500 text-sm shrink-0">↗</span>
                   <p className="text-xs text-amber-800 leading-snug">{dayGaps}</p>
