@@ -59,6 +59,8 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
     addItem,
     consumePortions,
     consumeUnits,
+    restorePortions,
+    restoreUnits,
   } = useInventory(householdId);
 
   const { usualMeals, addUsualMeal } = useUsualMeals(householdId);
@@ -163,6 +165,26 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
         );
       }
     }
+  };
+
+  const handleRemoveSlotItem = async (dateStr, slotId, itemIdx) => {
+    const plan = getPlan(dateStr);
+    const slot = plan?.slots?.[slotId];
+    const item = slot?.items?.[itemIdx];
+
+    if (item && slot?.confirmedAt && item.inventoryItemId) {
+      if (item.itemType === 'snack-batch') {
+        await restoreUnits(item.inventoryItemId, 1);
+      } else if (item.itemType !== 'manual' && item.itemType !== 'flotante') {
+        await restorePortions(
+          item.inventoryItemId,
+          item.portionsAdultConsumed || 0,
+          item.portionsBabyConsumed || 0,
+        );
+      }
+    }
+
+    await removeSlotItem(dateStr, slotId, itemIdx);
   };
 
   function handleSuggestionSelect(proposal) {
@@ -299,7 +321,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
               autoPropose={offset === 0}
               timeOfDay={offset === 0 ? getTimeOfDay() : undefined}
               onAddSlotItem={addSlotItem}
-              onRemoveSlotItem={removeSlotItem}
+              onRemoveSlotItem={handleRemoveSlotItem}
               onConfirmSlot={handleConfirmSlot}
               onClearSlot={clearSlot}
               onUpdateSlotItemPortions={updateSlotItemPortions}
