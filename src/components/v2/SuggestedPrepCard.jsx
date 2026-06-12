@@ -4,8 +4,8 @@ import { generateRecipe, chatWithRecipe } from '../../lib/claude';
 
 const PREP_TYPE_BADGES = {
   'ya-preparado': { label: 'Listo',       color: 'bg-brand-100 text-brand-700' },
-  acelerador:     { label: 'Justo-antes', color: 'bg-violet-100 text-violet-700' },
-  'justo-antes':  { label: 'Justo-antes', color: 'bg-violet-100 text-violet-700' },
+  acelerador:     { label: 'Base',        color: 'bg-violet-100 text-violet-700' },
+  'justo-antes':  { label: 'Justo-antes', color: 'bg-purple-100 text-purple-700' },
   'snack-batch':  { label: 'Snack batch', color: 'bg-amber-100 text-amber-700' },
 };
 
