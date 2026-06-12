@@ -1444,17 +1444,21 @@ Devuelve SOLO este JSON:
         : [];
 
       const kpi = weeklyKpis || {};
-      const ironDays = parseInt(kpi.ironDays) || 0;
-      const fishDays = parseInt(kpi.fishDays) || 0;
-      const legumedDays = parseInt(kpi.legumedDays) || 0;
+      const ironDays      = parseInt(kpi.ironDays)      || 0;
+      const fishDays      = parseInt(kpi.fishDays)      || 0;
+      const legumedDays   = parseInt(kpi.legumedDays)   || 0;
       const distinctVeggies = parseInt(kpi.distinctVeggies) || 0;
+      const fruitDays     = parseInt(kpi.fruitDays)     || 0;
 
       const gaps = [];
-      if (ironDays < 3) gaps.push('hierro (faltan días con carne roja, legumbre o pescado azul)');
-      if (fishDays < 2) gaps.push('pescado azul');
-      if (legumedDays < 2) gaps.push('legumbre');
-      if (distinctVeggies < 3) gaps.push(`variedad de verduras (solo ${distinctVeggies} distintas esta semana)`);
-      const gapText = gaps.length > 0 ? `KPIs bajos esta semana: ${gaps.join(', ')}.` : 'KPIs en buen estado esta semana.';
+      if (ironDays      < 5) gaps.push(`hierro: ${ironDays}/5 días (carne roja, legumbre o pescado azul)`);
+      if (fishDays      < 3) gaps.push(`pescado azul: ${fishDays}/3 días (salmón, caballa, sardina, atún, boquerón)`);
+      if (legumedDays   < 3) gaps.push(`legumbre: ${legumedDays}/3 días (lentejas, garbanzos, judías, guisantes)`);
+      if (distinctVeggies < 5) gaps.push(`variedad de verduras: ${distinctVeggies}/5 tipos distintos esta semana`);
+      if (fruitDays     < 5) gaps.push(`fruta: ${fruitDays}/5 días`);
+      const gapText = gaps.length > 0
+        ? `Gaps nutricionales esta semana (PRIORIZA cubrirlos):\n${gaps.map(g => `- ${g}`).join('\n')}`
+        : 'KPIs en buen estado esta semana — prioriza variedad y aprovechamiento del inventario.';
 
       const inventoryLines = safeItems.length > 0
         ? safeItems.map(i => {
@@ -1475,7 +1479,7 @@ Devuelve SOLO este JSON:
         ? `\nDespensa base disponible: ${safePantryCook.join(', ')}`
         : '';
 
-      userMessage = `El usuario tiene ${timeLabel} disponibles para cocinar. Propón exactamente 3 preparaciones que sean más útiles para la semana.
+      userMessage = `El usuario tiene ${timeLabel} disponibles para cocinar. Propón exactamente 4 preparaciones: 2 listas para comer y 2 bases de batch cooking.
 
 ${gapText}
 
@@ -1484,11 +1488,11 @@ ${inventoryLines}${pantryLineCook}
 ${recentNote}
 
 INSTRUCCIONES:
-1. Devuelve exactamente 4 propuestas: 2 "ya-preparado" y 2 "acelerador".
-2. Solo propón preparaciones que se puedan hacer en ${timeLabel} o menos.
-3. ya-preparado: plato completo listo para asignar directamente a un slot (comida o cena).
-4. acelerador: base de batch cooking (legumbre cocida, cereal, crema, sofrito...) que en 2-5 min al momento se convierte en 2-3 platos distintos. Para estos incluye "quickDishes": los 2-3 platos rápidos que habilita.
-5. Ordena por impacto nutricional primero (cubre gaps KPI).
+1. Devuelve exactamente 4 propuestas: 2 con prepType "ya-preparado" y 2 con prepType "acelerador".
+2. OBLIGATORIO: al menos 3 de las 4 propuestas deben cubrir directamente uno de los gaps listados arriba. Si no hay gaps, prioriza variedad.
+3. Solo propón preparaciones que se puedan hacer en ${timeLabel} o menos.
+4. ya-preparado: plato completo listo para asignar directamente a un slot (comida o cena).
+5. acelerador: base de batch cooking (legumbre cocida, cereal, crema, sofrito...) que en 2-5 min al momento se convierte en 2-3 platos distintos. Para estos incluye "quickDishes": los 2-3 platos rápidos que habilita.
 6. Todas deben ser aptas para BLW (bebé ~12 meses y familia).
 
 Devuelve SOLO este JSON:
