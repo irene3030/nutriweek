@@ -1329,7 +1329,10 @@ ${inventoryLines}${pantryLineFloat}
 Estado nutricional de la semana: ${kpiCtx}
 
 INSTRUCCIONES:
-1. Varía los tipos: al menos una opción batch (cocinas una vez, comes varios días) y al menos una justo-antes (resuelves una comida rápido).
+1. Devuelve exactamente 3 propuestas con estos tipos OBLIGATORIOS:
+   - 1 con prepType "acelerador": preparación base mínima del ingrediente (hervir, cocer, asar en crudo, escaldar...) que en sí misma no es un plato pero habilita 2-3 platos rápidos. Incluye "quickDishes" con esos 2-3 platos. Mínimo ingredientes extra.
+   - 1 con prepType "ya-preparado": plato completo batch, rinde varias raciones para varios días.
+   - 1 con prepType "justo-antes": opción rápida que se prepara en el momento de comer.
 2. Para cada opción, marca los ingredientes extra necesarios: "stock" si está en inventario (usa su id), "despensa" si es básico de cocina, "compra" si habría que comprarlo.
 3. Prioriza las opciones que cubran gaps nutricionales de la semana.
 4. Todas las opciones deben ser aptas para BLW (bebé ~12 meses y familia comen lo mismo).
@@ -1337,6 +1340,20 @@ INSTRUCCIONES:
 Devuelve SOLO este JSON:
 {
   "proposals": [
+    {
+      "name": "Judías verdes hervidas (base)",
+      "description": "Hervir las judías en agua con un poco de sal hasta que estén tiernas. Base versátil para varios platos.",
+      "prepType": "acelerador",
+      "prepTime": "10 min",
+      "adultPortions": 3,
+      "babyPortions": 2,
+      "ingredients": [
+        {"name": "Judías verdes", "source": "stock", "inventoryId": "flotante-id"}
+      ],
+      "tags": ["legume", "veggie:judia_verde"],
+      "kpiBoost": "legume",
+      "quickDishes": ["Ensalada de judías con tomate", "Tortilla de judías y queso", "Judías salteadas con ajo"]
+    },
     {
       "name": "Albóndigas de ternera",
       "description": "Mezclar con pan rallado, huevo y perejil. Hornear 20 min a 180°.",
@@ -1350,13 +1367,15 @@ Devuelve SOLO este JSON:
         {"name": "Pan rallado", "source": "despensa"}
       ],
       "tags": ["iron"],
-      "kpiBoost": "iron"
+      "kpiBoost": "iron",
+      "quickDishes": null
     }
   ]
 }
-prepType: "ya-preparado" | "acelerador" | "snack-batch" | "justo-antes"
+prepType: "ya-preparado" | "acelerador" | "justo-antes"
 source: "stock" | "despensa" | "compra"
-kpiBoost: "legume" | "fish" | "iron" | "veggie" | null`;
+kpiBoost: "legume" | "fish" | "iron" | "veggie" | null
+quickDishes: array de 2-3 platos rápidos (solo para acelerador), null para el resto`;
 
     } else if (type === 'suggest_snack') {
       const { recentSnacks, inventoryItems, pantryItems } = payload;
