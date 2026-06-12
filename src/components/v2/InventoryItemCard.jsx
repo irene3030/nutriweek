@@ -1,4 +1,4 @@
-import { Trash2, Baby, User, Pencil } from 'lucide-react';
+import { Trash2, Baby, User, Pencil, CalendarPlus } from 'lucide-react';
 import TagChip from '../ui/TagChip';
 import FreshnessIndicator from './FreshnessIndicator';
 import { daysUntil } from '../../hooks/useInventory';
@@ -10,7 +10,7 @@ const TYPE_CONFIG = {
   flotante:       { label: 'Sin plan', color: 'bg-rose-100 text-rose-700' },
 };
 
-export default function InventoryItemCard({ item, onDelete, onEdit }) {
+export default function InventoryItemCard({ item, onDelete, onEdit, onAddToToday }) {
   const typeConfig = TYPE_CONFIG[item.type] || { label: item.type, color: 'bg-gray-100 text-gray-600' };
   const isSnack = item.type === 'snack-batch';
 
@@ -72,6 +72,15 @@ export default function InventoryItemCard({ item, onDelete, onEdit }) {
 
       {/* Actions */}
       <div className="flex items-center gap-1 shrink-0">
+        {onAddToToday && (
+          <button
+            onClick={() => onAddToToday(item)}
+            className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-gray-300 hover:text-brand-500 hover:bg-brand-50 transition-colors"
+            aria-label={`Añadir ${item.name} a hoy`}
+          >
+            <CalendarPlus className="w-4 h-4" />
+          </button>
+        )}
         <button
           onClick={() => onEdit?.(item)}
           className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-gray-300 hover:text-brand-500 hover:bg-brand-50 transition-colors"

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X, Sparkles, User, Baby, Check, Package, ShoppingCart, Home, RefreshCw } from 'lucide-react';
 import { proposeMeal } from '../../lib/claude';
 import { daysUntil } from '../../hooks/useInventory';
@@ -60,13 +60,14 @@ function ProposalCard({ proposal, onSelect, selected }) {
   );
 }
 
-function SlotSection({ slotId, label, inventoryItems, todaySlots, weeklyKpis, pantryItems, date, onConfirm }) {
+function SlotSection({ slotId, label, inventoryItems, todaySlots, weeklyKpis, pantryItems, date, onConfirm, autoPropose, timeOfDay }) {
   const [braindump, setBraindump] = useState('');
   const [loading, setLoading] = useState(false);
   const [proposals, setProposals] = useState(null);
   const [dayGaps, setDayGaps] = useState(null);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
+  const didAutoPropose = useRef(false);
 
   function buildInventoryPayload() {
     return [...inventoryItems].sort((a, b) => {
@@ -84,6 +85,14 @@ function SlotSection({ slotId, label, inventoryItems, todaySlots, weeklyKpis, pa
     }));
   }
 
+  useEffect(() => {
+    if (autoPropose && !didAutoPropose.current) {
+      didAutoPropose.current = true;
+      handlePropose();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPropose]);
+
   async function handlePropose() {
     setLoading(true);
     setError(null);
@@ -98,6 +107,7 @@ function SlotSection({ slotId, label, inventoryItems, todaySlots, weeklyKpis, pa
         todaySlots,
         weeklyKpis,
         pantryItems,
+        timeOfDay,
       });
       if (!result?.proposals?.length) throw new Error('Sin propuestas');
       setProposals(result.proposals);
@@ -202,6 +212,8 @@ export default function DayProposalSheet({
   onSelectComida,
   onSelectCena,
   onClose,
+  autoPropose = false,
+  timeOfDay,
 }) {
   return (
     <>
@@ -215,7 +227,9 @@ export default function DayProposalSheet({
         <div className="flex items-center justify-between px-4 py-3 bg-gray-50 shrink-0">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-brand-600" />
-            <h2 className="text-base font-semibold text-gray-900">Sugerir comida y cena</h2>
+            <h2 className="text-base font-semibold text-gray-900">
+              {autoPropose ? 'Planificando hoy…' : 'Sugerir comida y cena'}
+            </h2>
           </div>
           <button onClick={onClose} className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-200 transition-colors">
             <X className="w-4 h-4 text-gray-500" />
@@ -239,6 +253,8 @@ export default function DayProposalSheet({
             pantryItems={pantryItems}
             date={date}
             onConfirm={onSelectComida}
+            autoPropose={autoPropose}
+            timeOfDay={timeOfDay}
           />
 
           <div className="border-t border-gray-100" />
@@ -252,6 +268,8 @@ export default function DayProposalSheet({
             pantryItems={pantryItems}
             date={date}
             onConfirm={onSelectCena}
+            autoPropose={autoPropose}
+            timeOfDay={timeOfDay}
           />
         </div>
       </div>

@@ -94,6 +94,10 @@ function ProposalCard({ proposal, onSelect }) {
   );
 }
 
+const KPI_LABELS = {
+  iron: 'hierro', fish: 'pescado azul', legume: 'legumbre', veggie: 'verduras', fruit: 'fruta',
+};
+
 export default function MealProposalSheet({
   slotId,
   date,
@@ -103,6 +107,8 @@ export default function MealProposalSheet({
   pantryItems,
   onSelect,
   onClose,
+  timeOfDay,
+  priorityKpi,
 }) {
   const [braindump, setBraindump] = useState('');
   const [loading, setLoading] = useState(false);
@@ -145,6 +151,8 @@ export default function MealProposalSheet({
         todaySlots,
         weeklyKpis,
         pantryItems,
+        timeOfDay,
+        priorityKpi,
       });
       if (!result?.proposals?.length) throw new Error('Sin propuestas');
       setProposals(result.proposals);
@@ -196,9 +204,11 @@ export default function MealProposalSheet({
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 bg-gray-50 shrink-0">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-brand-600" />
-            <h2 className="text-base font-semibold text-gray-900">¿Qué pongo en {label}?</h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Sparkles className="w-4 h-4 text-brand-600 shrink-0" />
+            <h2 className="text-base font-semibold text-gray-900">
+              {priorityKpi ? `Cubrir ${KPI_LABELS[priorityKpi] ?? priorityKpi} en ${label.toLowerCase()}` : `¿Qué pongo en ${label}?`}
+            </h2>
           </div>
           <button
             onClick={onClose}

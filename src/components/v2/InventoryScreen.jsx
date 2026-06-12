@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Plus, Package, AlertTriangle, MapPin } from 'lucide-react';
 import { useInventory, addDays } from '../../hooks/useInventory';
 import { useUsualMeals } from '../../hooks/useUsualMeals';
+import { useDailyPlan, todayStr } from '../../hooks/useDailyPlan';
 import InventoryItemCard from './InventoryItemCard';
 import AddPrepModal from './AddPrepModal';
 import FloatingResolverSheet from './FloatingResolverSheet';
+import SlotAssignSheet from './SlotAssignSheet';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
 const SECTIONS = [
@@ -16,10 +18,12 @@ const SECTIONS = [
 export default function InventoryScreen({ householdId, hasAiAccess, pantryItems = [] }) {
   const { items, expiringItems, floatingItems, loading, addItem, updateItem, deleteItem } = useInventory(householdId);
   const { usualMeals, addUsualMeal } = useUsualMeals(householdId);
+  const { todayPlan, addSlotItem } = useDailyPlan(householdId);
   const [showAdd, setShowAdd]             = useState(false);
   const [editingItem, setEditingItem]     = useState(null);
   const [resolvingItem, setResolvingItem] = useState(null);
   const [prepopulated, setPrepopulated]   = useState(null);
+  const [assigningItem, setAssigningItem] = useState(null);
 
   if (loading) {
     return (
@@ -54,6 +58,10 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
     setShowAdd(true);
   }
 
+  async function handleAssignToToday(slotId, entry) {
+    await addSlotItem(todayStr(), slotId, entry);
+  }
+
   const nonFloatingItems = items.filter((i) => i.type !== 'flotante');
 
   return (
@@ -85,7 +93,7 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
             </div>
             <div className="space-y-2">
               {expiringItems.map((item) => (
-                <InventoryItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={setEditingItem} />
+                <InventoryItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={setEditingItem} onAddToToday={setAssigningItem} />
               ))}
             </div>
           </section>
@@ -101,7 +109,7 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
             <div className="space-y-2">
               {floatingItems.map((item) => (
                 <div key={item.id} className="space-y-1">
-                  <InventoryItemCard item={item} onDelete={handleDelete} onEdit={setEditingItem} />
+                  <InventoryItemCard item={item} onDelete={handleDelete} onEdit={setEditingItem} onAddToToday={setAssigningItem} />
                   {hasAiAccess && (
                     <button
                       onClick={() => setResolvingItem(item)}
@@ -127,7 +135,7 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
               ) : (
                 <div className="space-y-2">
                   {sectionItems.map((item) => (
-                    <InventoryItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={setEditingItem} />
+                    <InventoryItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={setEditingItem} onAddToToday={setAssigningItem} />
                   ))}
                 </div>
               )}
@@ -176,6 +184,15 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
           pantryItems={pantryItems}
           onClose={() => setResolvingItem(null)}
           onSelect={handleSuggestionSelect}
+        />
+      )}
+
+      {assigningItem && (
+        <SlotAssignSheet
+          item={assigningItem}
+          todaySlots={todayPlan?.slots}
+          onAssign={handleAssignToToday}
+          onClose={() => setAssigningItem(null)}
         />
       )}
     </div>

@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Plus, AlertTriangle, MapPin, ShoppingCart, Clock, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, AlertTriangle, MapPin, ShoppingCart, Clock, ChevronRight, CalendarCheck } from 'lucide-react';
 import { useInventory } from '../../hooks/useInventory';
-import { useDailyPlan } from '../../hooks/useDailyPlan';
+import { useDailyPlan, todayStr } from '../../hooks/useDailyPlan';
 import { useUsualMeals } from '../../hooks/useUsualMeals';
 import DayPlanSection from './DayPlanSection';
 import WeeklyKpiStrip from './WeeklyKpiStrip';
@@ -12,8 +12,30 @@ import ShoppingSuggestionSheet from './ShoppingSuggestionSheet';
 import FloatingResolverSheet from './FloatingResolverSheet';
 import SnackSuggestionSheet from './SnackSuggestionSheet';
 import CookingTimeSheet from './CookingTimeSheet';
+import MealProposalSheet from './MealProposalSheet';
+import DayProposalSheet from './DayProposalSheet';
+import WeeklyBriefing from './WeeklyBriefing';
+import WeekHistoryStrip from './WeekHistoryStrip';
 import { daysUntil } from '../../hooks/useInventory';
 import LoadingSpinner from '../ui/LoadingSpinner';
+
+function getTimeOfDay() {
+  const h = new Date().getHours();
+  if (h < 12) return 'mañana';
+  if (h < 17) return 'tarde';
+  return 'noche';
+}
+
+function getMondayStr() {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
+
+const LAST_WEEK_KPIS_KEY = 'mealops_lastWeekKpis';
+const BRIEFING_DISMISSED_KEY = 'mealops_briefingDismissed';
 
 const DAYS = [
   { offset: 0, label: 'Hoy',            defaultExpanded: true },
@@ -43,6 +65,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
   const { usualMeals, addUsualMeal } = useUsualMeals(householdId);
 
   const {
+    plans,
     getPlan,
     weeklyKpis,
     loading: planLoading,
@@ -62,6 +85,52 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
   const [showSnackSheet, setShowSnackSheet]   = useState(false);
   const [showCookingTime, setShowCookingTime] = useState(false);
   const [usualToast, setUsualToast]           = useState(null);
+  const [kpiProposalSlot, setKpiProposalSlot] = useState(null);
+  const [kpiPriority, setKpiPriority]         = useState(null);
+  const [showQuickPlan, setShowQuickPlan]     = useState(false);
+  const [showBriefing, setShowBriefing]       = useState(false);
+  const [lastWeekKpis, setLastWeekKpis]       = useState(null);
+  const savedKpisRef = useRef(false);
+
+  const isMonday = new Date().getDay() === 1;
+  const mondayStr = getMondayStr();
+
+  // Save current KPIs to localStorage whenever they're non-zero (for next Monday's briefing)
+  useEffect(() => {
+    if (!weeklyKpis || savedKpisRef.current) return;
+    const hasData = weeklyKpis.ironDays > 0 || weeklyKpis.fishDays > 0 || weeklyKpis.legumedDays > 0 || weeklyKpis.distinctVeggies > 0;
+    if (!hasData) return;
+    savedKpisRef.current = true;
+    localStorage.setItem(LAST_WEEK_KPIS_KEY, JSON.stringify(weeklyKpis));
+  }, [weeklyKpis]);
+
+  // Show briefing on Mondays when KPIs are fresh (all zero) and we have last week's data
+  useEffect(() => {
+    if (!isMonday) return;
+    const dismissed = localStorage.getItem(`${BRIEFING_DISMISSED_KEY}_${mondayStr}`);
+    if (dismissed) return;
+    const stored = localStorage.getItem(LAST_WEEK_KPIS_KEY);
+    if (!stored) return;
+    const parsed = JSON.parse(stored);
+    const isAllZero = !weeklyKpis || (weeklyKpis.ironDays === 0 && weeklyKpis.fishDays === 0 && weeklyKpis.legumedDays === 0);
+    if (isAllZero) {
+      setLastWeekKpis(parsed);
+      setShowBriefing(true);
+    }
+  }, [isMonday, mondayStr, weeklyKpis]);
+
+  function handleDismissBriefing() {
+    setShowBriefing(false);
+    localStorage.setItem(`${BRIEFING_DISMISSED_KEY}_${mondayStr}`, '1');
+  }
+
+  function handleKpiTap(kpiId) {
+    const todayPlan = getPlan(todayStr());
+    const slots = todayPlan?.slots || {};
+    const firstEmpty = ['comida', 'cena'].find(s => !slots[s]?.items?.length);
+    setKpiPriority(kpiId);
+    setKpiProposalSlot(firstEmpty || 'comida');
+  }
 
   const lowSnackItems = inventoryItems.filter(i => i.type === 'snack-batch' && (i.units ?? 0) <= 2);
 
@@ -152,8 +221,13 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-4 pb-24">
-        {/* KPI strip */}
-        <WeeklyKpiStrip kpis={weeklyKpis} />
+        {/* Briefing del lunes */}
+        {showBriefing && lastWeekKpis && (
+          <WeeklyBriefing lastWeekKpis={lastWeekKpis} onDismiss={handleDismissBriefing} />
+        )}
+
+        {/* KPI strip (accionables cuando hay acceso IA) */}
+        <WeeklyKpiStrip kpis={weeklyKpis} onKpiTap={hasAiAccess ? handleKpiTap : undefined} />
         <KpiInsights kpis={weeklyKpis} />
 
         {/* Alerts */}
@@ -197,6 +271,24 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
           </section>
         )}
 
+        {/* Planificar hoy en 1 tap */}
+        {hasAiAccess && (() => {
+          const todayPlan = getPlan(offsetDateStr(0));
+          const slots = todayPlan?.slots || {};
+          const noComida = !slots.comida?.items?.length;
+          const noCena = !slots.cena?.items?.length;
+          return (noComida || noCena) ? (
+            <button
+              onClick={() => setShowQuickPlan(true)}
+              className="w-full flex items-center gap-3 bg-brand-600 text-white rounded-2xl px-4 py-3 text-sm hover:bg-brand-700 transition-colors"
+            >
+              <CalendarCheck className="w-4 h-4 shrink-0" />
+              <span className="flex-1 text-left font-medium">Planificar hoy de un tiro</span>
+              <ChevronRight className="w-4 h-4 opacity-70 shrink-0" />
+            </button>
+          ) : null;
+        })()}
+
         {/* F8 — Tengo tiempo para cocinar */}
         {hasAiAccess && (
           <button
@@ -232,6 +324,9 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
             />
           );
         })}
+
+        {/* Historial semanal discreto */}
+        <WeekHistoryStrip plans={plans} />
       </div>
 
       {/* FAB — nueva preparación */}
@@ -298,6 +393,42 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
           pantryItems={pantryItems}
           onClose={() => setShowCookingTime(false)}
           onSelect={handleSuggestionSelect}
+        />
+      )}
+
+      {/* KPI accionable: propuesta enfocada en cubrir un KPI específico */}
+      {kpiProposalSlot && (
+        <MealProposalSheet
+          slotId={kpiProposalSlot}
+          date={offsetDateStr(0)}
+          inventoryItems={inventoryItems}
+          todaySlots={getPlan(offsetDateStr(0))?.slots}
+          weeklyKpis={weeklyKpis}
+          pantryItems={pantryItems}
+          priorityKpi={kpiPriority}
+          timeOfDay={getTimeOfDay()}
+          onSelect={(entry) => {
+            addSlotItem(offsetDateStr(0), kpiProposalSlot, entry);
+            setKpiProposalSlot(null);
+            setKpiPriority(null);
+          }}
+          onClose={() => { setKpiProposalSlot(null); setKpiPriority(null); }}
+        />
+      )}
+
+      {/* Planificar hoy de un tiro (auto-propone comida+cena) */}
+      {showQuickPlan && (
+        <DayProposalSheet
+          date={offsetDateStr(0)}
+          inventoryItems={inventoryItems}
+          todaySlots={getPlan(offsetDateStr(0))?.slots}
+          weeklyKpis={weeklyKpis}
+          pantryItems={pantryItems}
+          autoPropose
+          timeOfDay={getTimeOfDay()}
+          onSelectComida={(entry) => addSlotItem(offsetDateStr(0), 'comida', entry)}
+          onSelectCena={(entry) => addSlotItem(offsetDateStr(0), 'cena', entry)}
+          onClose={() => setShowQuickPlan(false)}
         />
       )}
     </div>

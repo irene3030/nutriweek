@@ -517,6 +517,9 @@ function ProfileTab({ auth, householdDoc, onShowFFWelcome }) {
   const [babyBirthDate, setBabyBirthDate] = useState('');
   const [babyIsBreastfeeding, setBabyIsBreastfeeding] = useState(false);
   const [babySaved, setBabySaved] = useState(false);
+  const [portionsAdult, setPortionsAdult] = useState(2);
+  const [portionsBaby, setPortionsBaby]   = useState(1);
+  const [portionsSaved, setPortionsSaved] = useState(false);
 
   // Sync inputs when householdDoc arrives (real-time)
   useEffect(() => {
@@ -526,7 +529,9 @@ function ProfileTab({ auth, householdDoc, onShowFFWelcome }) {
     setBabyName(householdDoc.baby?.name || '');
     setBabyBirthDate(householdDoc.baby?.birthDate || '');
     setBabyIsBreastfeeding(householdDoc.baby?.isBreastfeeding || false);
-  }, [householdDoc?.anthropicApiKey, householdDoc?.aiCallLimit, householdDoc?.baby]);
+    setPortionsAdult(householdDoc.defaultPortions?.adult ?? 2);
+    setPortionsBaby(householdDoc.defaultPortions?.baby ?? 1);
+  }, [householdDoc?.anthropicApiKey, householdDoc?.aiCallLimit, householdDoc?.baby, householdDoc?.defaultPortions]);
 
   // Load members
   useEffect(() => {
@@ -617,6 +622,15 @@ function ProfileTab({ auth, householdDoc, onShowFFWelcome }) {
     });
     setBabySaved(true);
     setTimeout(() => setBabySaved(false), 2000);
+  };
+
+  const handleSavePortions = async () => {
+    if (!householdId) return;
+    await updateDoc(doc(db, 'households', householdId), {
+      defaultPortions: { adult: portionsAdult, baby: portionsBaby },
+    });
+    setPortionsSaved(true);
+    setTimeout(() => setPortionsSaved(false), 2000);
   };
 
   // Usage this month
@@ -734,6 +748,54 @@ function ProfileTab({ auth, householdDoc, onShowFFWelcome }) {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Configuración del hogar: raciones por defecto */}
+        {householdDoc && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+            <h3 className="font-semibold text-gray-800">Configuración del hogar</h3>
+            <div>
+              <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+                Raciones por defecto que se usan al planificar y registrar preparaciones.
+              </p>
+              <div className="flex items-center gap-4">
+                <div className="flex-1 space-y-1">
+                  <label className="block text-xs text-gray-500">Adultos</label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPortionsAdult(v => Math.max(1, v - 1))}
+                      className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-700 transition-colors"
+                    >−</button>
+                    <span className="w-6 text-center font-semibold text-gray-900">{portionsAdult}</span>
+                    <button
+                      onClick={() => setPortionsAdult(v => Math.min(8, v + 1))}
+                      className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-700 transition-colors"
+                    >+</button>
+                  </div>
+                </div>
+                <div className="flex-1 space-y-1">
+                  <label className="block text-xs text-gray-500">Bebé</label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPortionsBaby(v => Math.max(0, v - 1))}
+                      className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-700 transition-colors"
+                    >−</button>
+                    <span className="w-6 text-center font-semibold text-gray-900">{portionsBaby}</span>
+                    <button
+                      onClick={() => setPortionsBaby(v => Math.min(3, v + 1))}
+                      className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 font-bold text-gray-700 transition-colors"
+                    >+</button>
+                  </div>
+                </div>
+                <button
+                  onClick={handleSavePortions}
+                  className="shrink-0 bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors self-end"
+                >
+                  {portionsSaved ? <><Check className="w-3.5 h-3.5 inline mr-0.5" />Listo</> : 'Guardar'}
+                </button>
               </div>
             </div>
           </div>

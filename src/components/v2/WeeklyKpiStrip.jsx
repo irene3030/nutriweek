@@ -20,7 +20,7 @@ const STATUS_STYLES = {
   low:  'bg-gray-50 text-gray-500 border-gray-200',
 };
 
-export default function WeeklyKpiStrip({ kpis }) {
+export default function WeeklyKpiStrip({ kpis, onKpiTap }) {
   if (!kpis) return null;
 
   return (
@@ -28,16 +28,20 @@ export default function WeeklyKpiStrip({ kpis }) {
       {KPI_DEFS.map(({ id, icon: Icon, label, getValue, target, unit }) => {
         const value = getValue(kpis);
         const status = getStatus(value, target);
+        const tappable = onKpiTap && status !== 'good';
+        const Wrapper = tappable ? 'button' : 'div';
         return (
-          <div
+          <Wrapper
             key={id}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium shrink-0 ${STATUS_STYLES[status]}`}
+            onClick={tappable ? () => onKpiTap(id) : undefined}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium shrink-0 ${STATUS_STYLES[status]} ${tappable ? 'cursor-pointer active:scale-95 transition-transform' : ''}`}
           >
             <Icon className="w-3.5 h-3.5" />
             <span>{label}</span>
             <span className="font-bold">{value}/{target}</span>
             {unit && <span className="opacity-60">{unit}</span>}
-          </div>
+            {tappable && <span className="opacity-50 text-[9px] ml-0.5">↗</span>}
+          </Wrapper>
         );
       })}
     </div>

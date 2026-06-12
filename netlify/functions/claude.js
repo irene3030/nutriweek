@@ -1029,7 +1029,7 @@ Devuelve SOLO este JSON (sin texto adicional):
 }`;
 
     } else if (type === 'propose_meal') {
-      const { slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis, pantryItems } = payload;
+      const { slotId, dateStr, inventoryItems, braindump, todaySlots, weeklyKpis, pantryItems, timeOfDay, priorityKpi } = payload;
 
       const SLOT_LABELS_ES = { comida: 'comida', cena: 'cena', desayuno: 'desayuno', snack: 'snack', merienda: 'merienda' };
       const safeSlot = SLOT_LABELS_ES[sanitize(slotId, 20)] || 'comida';
@@ -1113,6 +1113,24 @@ Antes de las propuestas, analiza qué grupos nutricionales faltan o están poco 
         ? `\nDespensa base (siempre disponible, usa source "despensa"):\n${safePantry.join(', ')}`
         : '';
 
+      const safeTimeOfDay = ['mañana', 'tarde', 'noche'].includes(sanitize(timeOfDay, 10))
+        ? sanitize(timeOfDay, 10) : null;
+      const timeContext = safeTimeOfDay
+        ? `\nHora del día: ${safeTimeOfDay}. ${safeTimeOfDay === 'noche' ? 'Prioriza opciones rápidas de preparar y ligeras.' : safeTimeOfDay === 'mañana' ? 'Puedes proponer preparaciones más elaboradas si el inventario lo permite.' : ''}`
+        : '';
+
+      const KPI_PRIORITY_MAP = {
+        iron:   { label: 'hierro',            tags: 'iron', hint: 'carne roja, legumbre o pescado azul' },
+        fish:   { label: 'pescado azul',       tags: 'oily_fish', hint: 'salmón, caballa, sardina, atún o boquerón' },
+        legume: { label: 'legumbre',           tags: 'legume', hint: 'lentejas, garbanzos, judías o guisantes' },
+        veggie: { label: 'variedad de verduras', tags: 'veggie:*', hint: 'verduras distintas a las ya usadas esta semana' },
+        fruit:  { label: 'fruta',              tags: 'fruit', hint: 'cualquier fruta' },
+      };
+      const kpiPriorityDef = KPI_PRIORITY_MAP[sanitize(priorityKpi, 10)];
+      const priorityInstruction = kpiPriorityDef
+        ? `\nPRIORIDAD MÁXIMA: El usuario quiere cubrir el KPI de ${kpiPriorityDef.label} hoy. Al menos 2 de las 3 propuestas deben incluir ${kpiPriorityDef.hint} y llevar el tag correspondiente.`
+        : '';
+
       userMessage = `Propón exactamente 3 opciones concretas para la ${safeSlot} del día ${safeDateStr || 'hoy'} en una familia BLW.
 
 Inventario disponible (usa el id para referenciarlo):
@@ -1135,7 +1153,7 @@ INSTRUCCIONES:
 2. Cada opción debe complementar nutricionalmente lo ya planificado hoy.
 3. Si algún KPI está bajo (hierro < 3, pescado < 2, legumbre < 2, verduras < 3), cubre uno con alguna de las opciones.
 4. Las opciones deben ser variadas entre sí (no 3 variantes del mismo plato).
-5. Para ingredients, usa "stock" solo si el ingrediente está en el inventario disponible e incluye su inventoryId.
+5. Para ingredients, usa "stock" solo si el ingrediente está en el inventario disponible e incluye su inventoryId.${timeContext}${priorityInstruction}
 
 Devuelve SOLO este JSON:
 {
