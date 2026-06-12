@@ -1484,11 +1484,12 @@ ${inventoryLines}${pantryLineCook}
 ${recentNote}
 
 INSTRUCCIONES:
-1. Ordena las opciones por impacto: primero las que cubren más gaps nutricionales y más slots de comida.
+1. Devuelve exactamente 4 propuestas: 2 "ya-preparado" y 2 "acelerador".
 2. Solo propón preparaciones que se puedan hacer en ${timeLabel} o menos.
-3. Prioriza batch cooking cuando tiene sentido (legumbres, guisos, cremas que duran varios días).
-4. Varía las opciones: no 3 variantes del mismo tipo.
-5. Todas deben ser aptas para BLW (bebé ~12 meses y familia).
+3. ya-preparado: plato completo listo para asignar directamente a un slot (comida o cena).
+4. acelerador: base de batch cooking (legumbre cocida, cereal, crema, sofrito...) que en 2-5 min al momento se convierte en 2-3 platos distintos. Para estos incluye "quickDishes": los 2-3 platos rápidos que habilita.
+5. Ordena por impacto nutricional primero (cubre gaps KPI).
+6. Todas deben ser aptas para BLW (bebé ~12 meses y familia).
 
 Devuelve SOLO este JSON:
 {
@@ -1506,12 +1507,28 @@ Devuelve SOLO este JSON:
         {"name": "Tomate", "source": "despensa"}
       ],
       "tags": ["legume", "iron", "veggie:zanahoria"],
-      "kpiBoost": "legume"
+      "kpiBoost": "legume",
+      "quickDishes": null
+    },
+    {
+      "name": "Base de garbanzos cocidos",
+      "description": "Garbanzos cocidos en olla con laurel. Base versátil para varios platos de la semana.",
+      "prepType": "acelerador",
+      "prepTime": "40 min",
+      "adultPortions": 4,
+      "babyPortions": 2,
+      "ingredients": [
+        {"name": "Garbanzos secos", "source": "despensa"}
+      ],
+      "tags": ["legume", "iron"],
+      "kpiBoost": "legume",
+      "quickDishes": ["Hummus casero", "Ensalada de garbanzos con tomate", "Pasta con garbanzos y espinacas"]
     }
   ]
 }
-prepType: "ya-preparado" | "acelerador" | "snack-batch" | "justo-antes"
-kpiBoost: "legume" | "fish" | "iron" | "veggie" | null`;
+prepType: "ya-preparado" | "acelerador"
+kpiBoost: "legume" | "fish" | "iron" | "veggie" | null
+quickDishes: array de 2-3 platos rápidos (solo para acelerador), null para ya-preparado`;
 
     } else if (type === 'generate_recipe') {
       const { prepName, prepType, ingredients, adultPortions, babyPortions } = payload;

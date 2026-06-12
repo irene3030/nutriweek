@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, ShoppingCart, Home, User, Baby, ChefHat, Send, Loader2 } from 'lucide-react';
+import { Check, ShoppingCart, Home, User, Baby, ChefHat, Send, Loader2, Zap } from 'lucide-react';
 import { generateRecipe, chatWithRecipe } from '../../lib/claude';
 
 const PREP_TYPE_BADGES = {
@@ -102,6 +102,22 @@ export default function SuggestedPrepCard({ proposal, inventoryItems = [], onSel
         </div>
       </div>
 
+      {/* quickDishes — acelerador only */}
+      {proposal.prepType === 'acelerador' && proposal.quickDishes?.length > 0 && (
+        <div className="bg-violet-50 border border-violet-100 rounded-xl px-3 py-2 space-y-1">
+          <p className="text-xs font-medium text-violet-700 flex items-center gap-1">
+            <Zap className="w-3 h-3" /> Con esta base puedes hacer:
+          </p>
+          <ul className="space-y-0.5">
+            {proposal.quickDishes.map((dish, i) => (
+              <li key={i} className="text-xs text-violet-600 flex items-center gap-1.5">
+                <span className="text-violet-400">→</span> {dish}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Ingredients */}
       {proposal.ingredients?.length > 0 && (
         <div className="flex flex-wrap gap-x-3 gap-y-1">
@@ -117,7 +133,7 @@ export default function SuggestedPrepCard({ proposal, inventoryItems = [], onSel
       {/* Portions + CTAs */}
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-3 text-xs text-gray-400">
-          {proposal.prepType !== 'snack-batch' && (
+          {proposal.prepType !== 'snack-batch' && proposal.prepType !== 'acelerador' && (
             <>
               <span className="flex items-center gap-0.5">
                 <User className="w-3 h-3" /> {proposal.adultPortions ?? 2}
@@ -126,6 +142,11 @@ export default function SuggestedPrepCard({ proposal, inventoryItems = [], onSel
                 <Baby className="w-3 h-3" /> {proposal.babyPortions ?? 1}
               </span>
             </>
+          )}
+          {proposal.prepType === 'acelerador' && (
+            <span className="text-xs text-violet-500 font-medium">
+              {proposal.adultPortions ?? 2}r · acelera {proposal.quickDishes?.length ?? 2}+ platos
+            </span>
           )}
         </div>
         <div className="flex items-center gap-2">
