@@ -476,7 +476,7 @@ function AppContent() {
               { id: 'inventory', label: 'Inventario', tour: 'tab-inventory' },
               { id: 'despensa',  label: 'Despensa',   tour: 'tab-despensa' },
               { id: 'recipes',   label: 'Recetas',    tour: 'tab-recipes' },
-              { id: 'week',      label: 'Semana',     tour: 'tab-week' },
+              // legacy: { id: 'week', label: 'Semana', tour: 'tab-week' },
               { id: 'profile',   label: 'Perfil',     tour: 'tab-profile' },
             ].map((tab) => (
               <button

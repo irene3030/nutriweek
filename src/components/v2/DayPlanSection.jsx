@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronUp, Sparkles, Droplets, Fish, Bean, Leaf, Apple } from 'lucide-react';
 import PlanSlotRow from './PlanSlotRow';
 import SlotPickerSheet from './SlotPickerSheet';
 import MealProposalSheet from './MealProposalSheet';
@@ -9,11 +9,11 @@ import EditSlotItemModal from './EditSlotItemModal';
 const SLOTS = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
 
 const DAILY_KPIS = [
-  { key: 'iron',   emoji: '🩸', label: 'Hierro',   check: (tags) => tags.includes('iron') },
-  { key: 'fish',   emoji: '🐟', label: 'Pescado',  check: (tags) => tags.includes('oily_fish') },
-  { key: 'legume', emoji: '🫘', label: 'Legumbre', check: (tags) => tags.includes('legume') },
-  { key: 'veggie', emoji: '🥦', label: 'Verduras', count: (tags) => new Set(tags.filter(t => t.startsWith('veggie:')).map(t => t.slice(7))).size },
-  { key: 'fruit',  emoji: '🍎', label: 'Fruta',    check: (tags) => tags.includes('fruit') },
+  { key: 'iron',   icon: Droplets, label: 'Hierro',   check: (tags) => tags.includes('iron') },
+  { key: 'fish',   icon: Fish,     label: 'Pescado',  check: (tags) => tags.includes('oily_fish') },
+  { key: 'legume', icon: Bean,     label: 'Legumbre', check: (tags) => tags.includes('legume') },
+  { key: 'veggie', icon: Leaf,     label: 'Verduras', count: (tags) => new Set(tags.filter(t => t.startsWith('veggie:')).map(t => t.slice(7))).size },
+  { key: 'fruit',  icon: Apple,    label: 'Fruta',    check: (tags) => tags.includes('fruit') },
 ];
 
 function computeDailyTags(slots) {
@@ -26,7 +26,7 @@ function DailyKpiRow({ slots }) {
 
   return (
     <div className="flex flex-wrap gap-1.5 pt-1 pb-2">
-      {DAILY_KPIS.map(({ key, emoji, label, check, count }) => {
+      {DAILY_KPIS.map(({ key, icon: Icon, label, check, count }) => {
         const ok = count ? count(tags) > 0 : check(tags);
         const n  = count ? count(tags) : null;
         return (
@@ -36,7 +36,7 @@ function DailyKpiRow({ slots }) {
               ok ? 'bg-green-50 text-green-700' : hasAny ? 'bg-gray-100 text-gray-400' : 'bg-gray-50 text-gray-300'
             }`}
           >
-            {emoji}
+            <Icon className="w-3.5 h-3.5" />
             {n !== null ? (
               <span>{n > 0 ? `${n} ${label.toLowerCase()}` : label}</span>
             ) : (
