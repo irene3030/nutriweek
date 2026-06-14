@@ -8,7 +8,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       strategies: 'generateSW',
-      includeAssets: ['favicon.svg', 'icons/*.png'],
+      includeAssets: ['logo.png', 'icons/*.png'],
       manifest: {
         name: 'MealOps',
         short_name: 'MealOps',

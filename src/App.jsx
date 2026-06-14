@@ -304,8 +304,8 @@ function AppContent() {
         {/* Desktop sidebar */}
         <aside className="hidden lg:flex flex-col fixed inset-y-0 left-0 w-56 bg-white border-r border-gray-200 z-20">
           <div className="flex items-center gap-2.5 px-5 py-4 border-b border-gray-100">
-            <Logo variant="mark" className="w-7 h-7" />
-            <span className="font-bold text-base text-gray-900">NutriWeek</span>
+            <Logo variant="full" className="w-7 h-7 object-contain" />
+            <span className="font-bold text-base text-gray-900">MealOps</span>
           </div>
           <nav className="flex-1 px-3 py-4 space-y-1">
             {[
