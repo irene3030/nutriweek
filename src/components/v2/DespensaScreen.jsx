@@ -79,7 +79,7 @@ export default function DespensaScreen({ householdId }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-3">
+        <div className="max-w-4xl mx-auto px-4 py-3">
           <h1 className="text-lg font-bold text-gray-900">Despensa</h1>
           <p className="text-xs text-gray-400 mt-0.5">
             Lo que siempre tienes. La app lo usa para sugerencias sin pedirte que lo compres.
@@ -87,7 +87,7 @@ export default function DespensaScreen({ householdId }) {
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-3 pb-24">
+      <div className="max-w-4xl mx-auto px-4 py-4 space-y-3 pb-24">
         {PANTRY_CATEGORIES.map(cat => (
           <div key={cat.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
             <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">

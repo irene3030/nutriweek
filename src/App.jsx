@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AuthContext, useAuth, useAuthProvider } from './hooks/useAuth';
 import { Star, User as UserIcon, Lightbulb, Check, Baby, Zap } from 'lucide-react';
+import Logo from './components/ui/Logo';
 import { validateFFCode } from './lib/claude';
 import { createInvite, buildInviteUrl, redeemInvite } from './lib/invites';
 import { identify, resetIdentity, track } from './lib/analytics';
@@ -299,9 +300,41 @@ function AppContent() {
   const drawerOpen = selectedDayIndex !== null && currentWeek;
 
   return (
-      <div className="min-h-screen flex flex-col">
-        {/* Main content */}
-        <div className="flex-1 pb-16" style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))' }}>
+      <div className="min-h-screen flex">
+        {/* Desktop sidebar */}
+        <aside className="hidden lg:flex flex-col fixed inset-y-0 left-0 w-56 bg-white border-r border-gray-200 z-20">
+          <div className="flex items-center gap-2.5 px-5 py-4 border-b border-gray-100">
+            <Logo variant="mark" className="w-7 h-7" />
+            <span className="font-bold text-base text-gray-900">NutriWeek</span>
+          </div>
+          <nav className="flex-1 px-3 py-4 space-y-1">
+            {[
+              { id: 'today',     label: 'Hoy',       tour: 'tab-today' },
+              { id: 'inventory', label: 'Inventario', tour: 'tab-inventory' },
+              { id: 'despensa',  label: 'Despensa',   tour: 'tab-despensa' },
+              { id: 'recipes',   label: 'Recetas',    tour: 'tab-recipes' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                data-tour={tab.tour}
+                onClick={() => { setActiveTab(tab.id); track('tab_viewed', { tab: tab.id }); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                  activeTab === tab.id
+                    ? 'bg-brand-50 text-brand-700'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                }`}
+              >
+                {TabIcons[tab.id]}
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Main content + mobile nav */}
+        <div className="flex-1 min-w-0 lg:ml-56">
+        {/* Tab content */}
+        <div className="pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0">
           {activeTab === 'week' && (
             <WeekView
               weeks={weeks}
@@ -340,7 +373,7 @@ function AppContent() {
           {activeTab === 'recipes' && (
             <div className="min-h-screen">
               <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-                <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-2">
+                <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-2">
                   <Star className="w-5 h-5 text-brand-500" />
                   <h1 className="text-lg font-bold text-gray-900">Comidas habituales</h1>
                   <button
@@ -352,7 +385,7 @@ function AppContent() {
                   </button>
                 </div>
               </header>
-              <div className="max-w-2xl mx-auto px-4 py-4">
+              <div className="max-w-4xl mx-auto px-4 py-4">
                 <UsualMeals
                   householdId={auth.userDoc?.householdId}
                   hasAiAccess={
@@ -468,8 +501,8 @@ function AppContent() {
           </div>
         </Modal>
 
-        {/* Bottom tab bar */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20 pb-[env(safe-area-inset-bottom)]">
+        {/* Mobile bottom tab bar */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20 pb-[env(safe-area-inset-bottom)]">
           <div className="max-w-lg mx-auto flex">
             {[
               { id: 'today',     label: 'Hoy',       tour: 'tab-today' },
@@ -495,6 +528,22 @@ function AppContent() {
             ))}
           </div>
         </nav>
+        </div>{/* /Main content + mobile nav */}
+
+        {/* Desktop profile avatar - top right */}
+        <button
+          onClick={() => { setActiveTab('profile'); track('tab_viewed', { tab: 'profile' }); }}
+          className="hidden lg:flex fixed top-4 right-4 z-30 w-9 h-9 rounded-full overflow-hidden border-2 border-gray-200 hover:border-brand-400 transition-colors shadow-sm"
+          title="Perfil"
+        >
+          {auth.user?.photoURL ? (
+            <img src={auth.user.photoURL} alt={auth.user.displayName || ''} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-brand-100 flex items-center justify-center text-brand-700 font-semibold text-sm">
+              {auth.user?.displayName?.[0] || '?'}
+            </div>
+          )}
+        </button>
       </div>
   );
 }
@@ -642,13 +691,13 @@ function ProfileTab({ auth, householdDoc, onShowFFWelcome }) {
   return (
     <div className="min-h-screen">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-2">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-2">
           <UserIcon className="w-5 h-5 text-gray-600" />
           <h1 className="text-lg font-bold text-gray-900">Perfil</h1>
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
         {/* User info */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4">
           {auth.user?.photoURL ? (
