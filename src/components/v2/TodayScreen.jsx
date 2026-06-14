@@ -223,19 +223,28 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-end justify-between lg:max-w-none lg:px-6">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between lg:max-w-none lg:pl-6 lg:pr-16">
           <div>
             <p className="text-xs text-gray-400 capitalize">{formatTodayHeader()}</p>
             <h1 className="text-lg font-bold text-gray-900">Hoy</h1>
           </div>
           {hasAiAccess && (
-            <button
-              onClick={() => setShowShopping(true)}
-              className="flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-xl transition-colors"
-            >
-              <ShoppingCart className="w-3.5 h-3.5" />
-              Voy a comprar
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowCookingTime(true)}
+                className="hidden lg:flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-xl transition-colors"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                Tengo tiempo para cocinar
+              </button>
+              <button
+                onClick={() => setShowShopping(true)}
+                className="flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-xl transition-colors"
+              >
+                <ShoppingCart className="w-3.5 h-3.5" />
+                Voy a comprar
+              </button>
+            </div>
           )}
         </div>
       </header>
@@ -290,11 +299,11 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
           </section>
         )}
 
-        {/* F8 — Tengo tiempo para cocinar */}
+        {/* F8 — Tengo tiempo para cocinar (mobile only — en desktop aparece en el header) */}
         {hasAiAccess && (
           <button
             onClick={() => setShowCookingTime(true)}
-            className="w-full flex items-center gap-3 bg-brand-600 text-white rounded-2xl px-4 py-3 text-sm font-medium hover:bg-brand-700 transition-colors"
+            className="lg:hidden w-full flex items-center gap-3 bg-brand-600 text-white rounded-2xl px-4 py-3 text-sm font-medium hover:bg-brand-700 transition-colors"
           >
             <Clock className="w-4 h-4 shrink-0" />
             <span className="flex-1 text-left">Tengo tiempo para cocinar</span>
