@@ -37,8 +37,8 @@ const BRIEFING_DISMISSED_KEY = 'mealops_briefingDismissed';
 
 const DAYS = [
   { offset: 0, label: 'Hoy',            defaultExpanded: true },
-  { offset: 1, label: 'Mañana',         defaultExpanded: false },
-  { offset: 2, label: 'Pasado mañana',  defaultExpanded: false },
+  { offset: 1, label: 'Mañana',         defaultExpanded: true },
+  { offset: 2, label: 'Pasado mañana',  defaultExpanded: true },
 ];
 
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -240,7 +240,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-4 space-y-4 pb-24">
+      <div className="max-w-4xl mx-auto px-4 py-4 space-y-4 pb-24 lg:pb-6">
         {/* Briefing del lunes */}
         {showBriefing && lastWeekKpis && (
           <WeeklyBriefing lastWeekKpis={lastWeekKpis} onDismiss={handleDismissBriefing} />
@@ -303,30 +303,32 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
         )}
 
         {/* Day planning sections */}
-        {DAYS.map(({ offset, label, defaultExpanded }) => {
-          const dateStr = offsetDateStr(offset);
-          return (
-            <DayPlanSection
-              key={dateStr}
-              date={dateStr}
-              offsetLabel={label}
-              plan={getPlan(dateStr)}
-              inventoryItems={inventoryItems}
-              weeklyKpis={weeklyKpis}
-              hasAiAccess={hasAiAccess}
-              pantryItems={pantryItems}
-              defaultExpanded={defaultExpanded}
-              autoPropose={offset === 0}
-              timeOfDay={offset === 0 ? getTimeOfDay() : undefined}
-              onAddSlotItem={addSlotItem}
-              onRemoveSlotItem={handleRemoveSlotItem}
-              onConfirmSlot={handleConfirmSlot}
-              onClearSlot={clearSlot}
-              onUpdateSlotItemPortions={updateSlotItemPortions}
-              onUpdateSlotItem={updateSlotItem}
-            />
-          );
-        })}
+        <div className="lg:grid lg:grid-cols-3 lg:gap-4 space-y-4 lg:space-y-0">
+          {DAYS.map(({ offset, label, defaultExpanded }) => {
+            const dateStr = offsetDateStr(offset);
+            return (
+              <DayPlanSection
+                key={dateStr}
+                date={dateStr}
+                offsetLabel={label}
+                plan={getPlan(dateStr)}
+                inventoryItems={inventoryItems}
+                weeklyKpis={weeklyKpis}
+                hasAiAccess={hasAiAccess}
+                pantryItems={pantryItems}
+                defaultExpanded={defaultExpanded}
+                autoPropose={offset === 0}
+                timeOfDay={offset === 0 ? getTimeOfDay() : undefined}
+                onAddSlotItem={addSlotItem}
+                onRemoveSlotItem={handleRemoveSlotItem}
+                onConfirmSlot={handleConfirmSlot}
+                onClearSlot={clearSlot}
+                onUpdateSlotItemPortions={updateSlotItemPortions}
+                onUpdateSlotItem={updateSlotItem}
+              />
+            );
+          })}
+        </div>
 
         {/* Historial semanal discreto */}
         <WeekHistoryStrip plans={plans} />
@@ -335,8 +337,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
       {/* FAB — nueva preparación */}
       <button
         onClick={() => setShowAddPrep(true)}
-        className="fixed bottom-20 right-4 flex items-center gap-2 bg-brand-600 text-white text-sm font-medium px-4 py-3 rounded-2xl shadow-lg hover:bg-brand-700 transition-colors z-20"
-        style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom) + 1rem)' }}
+        className="fixed right-4 z-20 flex items-center gap-2 bg-brand-600 text-white text-sm font-medium px-4 py-3 rounded-2xl shadow-lg hover:bg-brand-700 transition-colors bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] lg:bottom-6"
       >
         <Plus className="w-4 h-4" />
         Nueva preparación

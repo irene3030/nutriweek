@@ -246,7 +246,7 @@ export default function DayProposalSheet({
     <>
       <div className="fixed inset-0 bg-black/40 z-30" onClick={onClose} />
 
-      <div className="fixed inset-x-0 bottom-0 z-40 bg-gray-50 rounded-t-3xl max-h-[90vh] flex flex-col">
+      <div className="fixed inset-x-0 bottom-0 z-40 bg-gray-50 rounded-t-3xl max-h-[90vh] flex flex-col lg:left-1/2 lg:right-auto lg:-translate-x-1/2 lg:bottom-auto lg:top-[8vh] lg:w-full lg:max-w-[560px] lg:rounded-2xl">
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 bg-gray-300 rounded-full" />
         </div>

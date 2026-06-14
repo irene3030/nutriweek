@@ -196,7 +196,7 @@ export default function MealProposalSheet({
       />
 
       {/* Sheet */}
-      <div className="fixed inset-x-0 bottom-0 z-40 bg-gray-50 rounded-t-3xl max-h-[85vh] flex flex-col">
+      <div className="fixed inset-x-0 bottom-0 z-40 bg-gray-50 rounded-t-3xl max-h-[85vh] flex flex-col lg:left-1/2 lg:right-auto lg:-translate-x-1/2 lg:bottom-auto lg:top-[10vh] lg:w-full lg:max-w-[520px] lg:rounded-2xl">
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 bg-gray-300 rounded-full" />
