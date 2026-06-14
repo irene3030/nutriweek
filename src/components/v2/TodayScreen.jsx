@@ -223,7 +223,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-end justify-between">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-end justify-between lg:max-w-none lg:px-6">
           <div>
             <p className="text-xs text-gray-400 capitalize">{formatTodayHeader()}</p>
             <h1 className="text-lg font-bold text-gray-900">Hoy</h1>
@@ -240,7 +240,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-4 space-y-4 pb-24 lg:pb-6">
+      <div className="max-w-4xl mx-auto px-4 py-4 space-y-4 pb-24 lg:pb-6 lg:max-w-none lg:px-6">
         {/* Briefing del lunes */}
         {showBriefing && lastWeekKpis && (
           <WeeklyBriefing lastWeekKpis={lastWeekKpis} onDismiss={handleDismissBriefing} />
@@ -294,11 +294,11 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
         {hasAiAccess && (
           <button
             onClick={() => setShowCookingTime(true)}
-            className="w-full flex items-center gap-3 bg-white border border-gray-200 rounded-2xl px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            className="w-full flex items-center gap-3 bg-brand-600 text-white rounded-2xl px-4 py-3 text-sm font-medium hover:bg-brand-700 transition-colors"
           >
-            <Clock className="w-4 h-4 text-brand-500 shrink-0" />
-            <span className="flex-1 text-left font-medium">Tengo tiempo para cocinar</span>
-            <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+            <Clock className="w-4 h-4 shrink-0" />
+            <span className="flex-1 text-left">Tengo tiempo para cocinar</span>
+            <ChevronRight className="w-4 h-4 opacity-70 shrink-0" />
           </button>
         )}
 
