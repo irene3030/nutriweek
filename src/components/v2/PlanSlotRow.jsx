@@ -192,33 +192,29 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onE
               );
             })}
 
-            {/* Bottom row: add another + confirm */}
-            {isPlanned && (
-              <div className="flex items-center justify-between pt-0.5">
-                <button
-                  onClick={onAddItem}
-                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-brand-600 transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Añadir otro</span>
-                </button>
+            {/* Bottom row: add another + confirm/checkmark */}
+            <div className="flex items-center justify-between pt-0.5">
+              <button
+                onClick={onAddItem}
+                className="flex items-center gap-1 text-xs text-gray-400 hover:text-brand-600 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Añadir otro</span>
+              </button>
+              {isPlanned && (
                 <button
                   onClick={onConfirm}
                   className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors min-h-[32px]"
                 >
                   Confirmar
                 </button>
-              </div>
-            )}
-
-            {/* Confirmed checkmark */}
-            {isConfirmed && (
-              <div className="flex justify-end">
+              )}
+              {isConfirmed && (
                 <span className="flex items-center justify-center w-7 h-7 rounded-full bg-green-100">
                   <Check className="w-4 h-4 text-green-600" />
                 </span>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
       </div>
