@@ -50,6 +50,7 @@ const DEFAULT_PORTIONS = {
 export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onClose }) {
   const [manualMode, setManualMode] = useState(false);
   const [manualText, setManualText] = useState('');
+  const [manualPrepNote, setManualPrepNote] = useState('');
   const [manualTagStep, setManualTagStep] = useState(false);
   const [manualTags, setManualTags] = useState([]);
   // For aceleradores: which item is being expanded for the prep form
@@ -107,6 +108,7 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
       inventoryItemId: null,
       label: manualText.trim(),
       itemType: 'manual',
+      prepNote: manualPrepNote.trim() || null,
       tags: manualTags,
       confirmedAt: null,
       prepTime: null,
@@ -118,6 +120,7 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
   const resetManual = () => {
     setManualMode(false);
     setManualText('');
+    setManualPrepNote('');
     setManualTagStep(false);
     setManualTags([]);
   };
@@ -273,10 +276,17 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
                 type="text"
                 value={manualText}
                 onChange={(e) => setManualText(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleManualNext()}
-                placeholder="Ej: Tostada con hummus"
+                onKeyDown={(e) => e.key === 'Enter' && manualText.trim() && handleManualNext()}
+                placeholder="Ej: Lubina, tostada con hummus…"
                 autoFocus
                 className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+              />
+              <input
+                type="text"
+                value={manualPrepNote}
+                onChange={(e) => setManualPrepNote(e.target.value)}
+                placeholder="¿Cómo lo preparas? (opcional) — Ej: 8 min air fryer"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent text-gray-500"
               />
               <div className="flex gap-2">
                 <button
