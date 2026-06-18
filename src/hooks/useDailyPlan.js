@@ -9,6 +9,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { calculateKPIs } from '../lib/kpis';
+import { publishMealToLifeops, deleteMealFromLifeops } from '../lib/lifeopsDb';
 
 // ── date helpers ──────────────────────────────────────────────────────────────
 
@@ -90,6 +91,14 @@ export function useDailyPlan(householdId) {
       { date: dateStr, slots: { [slotId]: slotContainer }, updatedAt: new Date().toISOString() },
       { merge: true }
     );
+    if (slotId === 'comida' || slotId === 'cena') {
+      const items = slotContainer?.items ?? [];
+      if (items.length === 0) {
+        deleteMealFromLifeops(slotId, dateStr).catch(() => {});
+      } else {
+        publishMealToLifeops(slotId, dateStr, items).catch(() => {});
+      }
+    }
   }, [householdId]);
 
   // ── mutations ───────────────────────────────────────────────────────────────
