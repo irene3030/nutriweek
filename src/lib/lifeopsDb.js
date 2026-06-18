@@ -43,7 +43,7 @@ export async function publishMealToLifeops(slotId, dateStr, items) {
   const date = Timestamp.fromDate(new Date(dateStr + 'T12:00:00'))
 
   const allLabels = items.map((i) => i.label).join(' + ')
-  const yaDone = items.filter((i) => i.itemType === 'ya-preparado').map((i) => i.label).join(', ')
+  const yaDone = items.filter((i) => i.itemType === 'ya-preparado' || i.itemType === 'manual').map((i) => i.label).join(', ')
   const faltaTodo = items.filter((i) => i.itemType === 'acelerador').map((i) => i.label).join(', ')
 
   const mealEntityId = `meal-${dateStr}-${slotId}`
