@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Package, AlertTriangle, MapPin } from 'lucide-react';
+import { Plus, Package } from 'lucide-react';
 import { useInventory, addDays } from '../../hooks/useInventory';
 import { useUsualMeals } from '../../hooks/useUsualMeals';
 import { useDailyPlan, todayStr } from '../../hooks/useDailyPlan';
@@ -13,10 +13,11 @@ const SECTIONS = [
   { type: 'ya-preparado', label: 'Ya preparados', empty: 'Nada preparado todavía' },
   { type: 'acelerador',   label: 'Aceleradores',  empty: 'Sin aceleradores' },
   { type: 'snack-batch',  label: 'Snacks',        empty: 'Sin snacks en stock' },
+  { type: 'flotante',     label: 'Ingredientes',  empty: 'Sin ingredientes' },
 ];
 
 export default function InventoryScreen({ householdId, hasAiAccess, pantryItems = [] }) {
-  const { items, expiringItems, floatingItems, loading, addItem, updateItem, deleteItem } = useInventory(householdId);
+  const { items, loading, addItem, updateItem, deleteItem } = useInventory(householdId);
   const { usualMeals, addUsualMeal } = useUsualMeals(householdId);
   const { todayPlan, addSlotItem } = useDailyPlan(householdId);
   const [showAdd, setShowAdd]             = useState(false);
@@ -62,8 +63,6 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
     await addSlotItem(todayStr(), slotId, entry);
   }
 
-  const nonFloatingItems = items.filter((i) => i.type !== 'flotante');
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -84,61 +83,28 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-5">
-        {/* Expiring alert */}
-        {expiringItems.length > 0 && (
-          <section>
-            <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="w-4 h-4 text-amber-500" />
-              <h2 className="text-sm font-semibold text-amber-700">Próximos a caducar</h2>
-            </div>
-            <div className="space-y-2">
-              {expiringItems.map((item) => (
-                <InventoryItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={setEditingItem} onAddToToday={setAssigningItem} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Floating ingredients */}
-        {floatingItems.length > 0 && (
-          <section>
-            <div className="flex items-center gap-2 mb-2">
-              <MapPin className="w-4 h-4 text-rose-500" />
-              <h2 className="text-sm font-semibold text-rose-700">Sin plan asignado</h2>
-            </div>
-            <div className="space-y-2">
-              {floatingItems.map((item) => (
-                <div key={item.id} className="space-y-1">
-                  <InventoryItemCard item={item} onDelete={handleDelete} onEdit={setEditingItem} onAddToToday={setAssigningItem} />
-                  {hasAiAccess && (
-                    <button
-                      onClick={() => setResolvingItem(item)}
-                      className="w-full text-xs text-rose-600 font-medium py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 transition-colors"
-                    >
-                      ¿Qué hago con esto?
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
         {/* By type sections */}
         {SECTIONS.map(({ type, label, empty }) => {
-          const sectionItems = nonFloatingItems.filter((i) => i.type === type);
+          const sectionItems = items.filter((i) => i.type === type);
+          if (sectionItems.length === 0) return null;
           return (
             <section key={type}>
               <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">{label}</h2>
-              {sectionItems.length === 0 ? (
-                <p className="text-sm text-gray-400 py-3 text-center">{empty}</p>
-              ) : (
-                <div className="space-y-2">
-                  {sectionItems.map((item) => (
-                    <InventoryItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={setEditingItem} onAddToToday={setAssigningItem} />
-                  ))}
-                </div>
-              )}
+              <div className="space-y-2">
+                {sectionItems.map((item) => (
+                  <div key={item.id} className="space-y-1">
+                    <InventoryItemCard item={item} onDelete={handleDelete} onEdit={setEditingItem} onAddToToday={setAssigningItem} />
+                    {type === 'flotante' && hasAiAccess && (
+                      <button
+                        onClick={() => setResolvingItem(item)}
+                        className="w-full text-xs text-rose-600 font-medium py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 transition-colors"
+                      >
+                        ¿Qué hago con esto?
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </section>
           );
         })}

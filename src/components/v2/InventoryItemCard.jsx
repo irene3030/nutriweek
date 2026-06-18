@@ -14,8 +14,12 @@ export default function InventoryItemCard({ item, onDelete, onEdit, onAddToToday
   const typeConfig = TYPE_CONFIG[item.type] || { label: item.type, color: 'bg-gray-100 text-gray-600' };
   const isSnack = item.type === 'snack-batch';
 
+  const days = item.expiresAt ? daysUntil(item.expiresAt) : null;
+  const isExpiringSoon = days !== null && days <= 3;
+  const borderClass = isExpiringSoon ? 'border-amber-300' : item.type === 'flotante' ? 'border-rose-100' : 'border-gray-100';
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-start gap-3">
+    <div className={`bg-white rounded-2xl border p-4 flex items-start gap-3 ${borderClass}`}>
       <div className="flex-1 min-w-0 space-y-2">
         {/* Name + type badge */}
         <div className="flex items-start gap-2 flex-wrap">
