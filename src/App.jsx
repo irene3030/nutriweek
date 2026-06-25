@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AuthContext, useAuth, useAuthProvider } from './hooks/useAuth';
-import { Star, User as UserIcon, Lightbulb, Check, Baby, Zap } from 'lucide-react';
+import { Star, User as UserIcon, Lightbulb, Check, Baby, Zap, Gift } from 'lucide-react';
 import Logo from './components/ui/Logo';
 import { validateFFCode } from './lib/claude';
 import { createInvite, buildInviteUrl, redeemInvite } from './lib/invites';
@@ -479,9 +479,9 @@ function AppContent() {
 
         {showTour && <SpotlightTour onComplete={handleTourComplete} onNavigate={setActiveTab} />}
 
-        <Modal isOpen={showFFWelcome} onClose={() => setShowFFWelcome(false)} title="¡Bienvenida a MealOps! 🎉" maxWidth="max-w-sm">
+        <Modal isOpen={showFFWelcome} onClose={() => setShowFFWelcome(false)} title="¡Bienvenida a MealOps!" maxWidth="max-w-sm">
           <div className="space-y-4 text-center pb-2">
-            <div className="text-5xl">🎁</div>
+            <Gift className="w-10 h-10 text-brand-400 mx-auto" />
             <p className="text-gray-700 text-sm leading-relaxed">
               Te has unido con un <span className="font-semibold text-brand-700">código de invitación Friends &amp; Family</span>.
             </p>

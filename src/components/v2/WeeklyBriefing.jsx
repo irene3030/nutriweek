@@ -1,11 +1,11 @@
-import { X, TrendingUp } from 'lucide-react';
+import { X, TrendingUp, Droplets, Fish, Bean, Leaf, Apple } from 'lucide-react';
 
 const KPI_ITEMS = [
-  { key: 'ironDays',      label: 'Hierro',        target: 5, unit: 'días', emoji: '🩸' },
-  { key: 'fishDays',      label: 'Pescado azul',  target: 3, unit: 'días', emoji: '🐟' },
-  { key: 'legumedDays',   label: 'Legumbre',      target: 3, unit: 'días', emoji: '🫘' },
-  { key: 'distinctVeggies', label: 'Verduras',    target: 5, unit: 'tipos', emoji: '🥦' },
-  { key: 'fruitDays',     label: 'Fruta',         target: 5, unit: 'días', emoji: '🍎' },
+  { key: 'ironDays',        label: 'Hierro',       target: 5, unit: 'días',  icon: Droplets },
+  { key: 'fishDays',        label: 'Pescado azul', target: 3, unit: 'días',  icon: Fish },
+  { key: 'legumedDays',     label: 'Legumbre',     target: 3, unit: 'días',  icon: Bean },
+  { key: 'distinctVeggies', label: 'Verduras',     target: 5, unit: 'tipos', icon: Leaf },
+  { key: 'fruitDays',       label: 'Fruta',        target: 5, unit: 'días',  icon: Apple },
 ];
 
 export default function WeeklyBriefing({ lastWeekKpis, onDismiss }) {
@@ -30,7 +30,7 @@ export default function WeeklyBriefing({ lastWeekKpis, onDismiss }) {
       </div>
 
       <div className="grid grid-cols-2 gap-1.5">
-        {KPI_ITEMS.map(({ key, label, target, unit, emoji }) => {
+        {KPI_ITEMS.map(({ key, label, target, icon: Icon }) => {
           const val = lastWeekKpis[key] ?? 0;
           const ok = val >= target;
           return (
@@ -40,12 +40,11 @@ export default function WeeklyBriefing({ lastWeekKpis, onDismiss }) {
                 ok ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-500'
               }`}
             >
-              <span>{emoji}</span>
+              <Icon className="w-3.5 h-3.5 shrink-0" />
               <span className="font-medium">{label}</span>
               <span className={`ml-auto font-bold ${ok ? 'text-green-600' : 'text-gray-400'}`}>
                 {val}/{target}
               </span>
-              {ok && <span className="text-green-500">✓</span>}
             </div>
           );
         })}
@@ -53,7 +52,7 @@ export default function WeeklyBriefing({ lastWeekKpis, onDismiss }) {
 
       {missed.length === 0 ? (
         <p className="text-xs text-green-700 font-medium text-center py-1">
-          ¡Semana perfecta! Todos los objetivos cubiertos 🎉
+          ¡Semana perfecta! Todos los objetivos cubiertos.
         </p>
       ) : achieved.length > 0 ? (
         <p className="text-xs text-gray-500 leading-snug">

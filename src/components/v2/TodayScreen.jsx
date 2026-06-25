@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, AlertTriangle, MapPin, ShoppingCart, Clock, ChevronRight } from 'lucide-react';
+import { Plus, AlertTriangle, MapPin, ShoppingCart, Clock, ChevronRight, Cookie } from 'lucide-react';
 import { useInventory } from '../../hooks/useInventory';
 import { useDailyPlan, todayStr } from '../../hooks/useDailyPlan';
 import { useUsualMeals } from '../../hooks/useUsualMeals';
@@ -286,7 +286,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
             ))}
             {hasAiAccess && lowSnackItems.length > 0 && (
               <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
-                <span className="text-lg shrink-0">🧁</span>
+                <Cookie className="w-4 h-4 text-amber-500 shrink-0" />
                 <span className="flex-1 text-sm text-amber-800 font-medium">Snack casi agotado</span>
                 <button
                   onClick={() => setShowSnackSheet(true)}

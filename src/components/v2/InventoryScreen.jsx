@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Package } from 'lucide-react';
+import { Plus, Package, UtensilsCrossed } from 'lucide-react';
 import { useInventory, addDays } from '../../hooks/useInventory';
 import { useUsualMeals } from '../../hooks/useUsualMeals';
 import { useDailyPlan, todayStr } from '../../hooks/useDailyPlan';
@@ -112,7 +112,7 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
         {/* Truly empty state */}
         {items.length === 0 && (
           <div className="text-center py-16 space-y-3">
-            <div className="text-5xl">🍳</div>
+            <UtensilsCrossed className="w-10 h-10 text-gray-300 mx-auto" />
             <p className="font-semibold text-gray-700">El inventario está vacío</p>
             <p className="text-sm text-gray-400 leading-relaxed max-w-xs mx-auto">
               Registra lo que tienes cocinado o disponible para que la app pueda ayudarte a planificar.

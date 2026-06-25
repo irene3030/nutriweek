@@ -1,11 +1,11 @@
-import { X, Check } from 'lucide-react';
+import { X, Check, Coffee, Apple, Utensils, Cookie, Moon } from 'lucide-react';
 
 const SLOT_CONFIG = [
-  { id: 'desayuno',  label: 'Desayuno',       emoji: '🌅' },
-  { id: 'snack',     label: 'Media mañana',   emoji: '🍎' },
-  { id: 'comida',    label: 'Comida',          emoji: '🍽️' },
-  { id: 'merienda',  label: 'Merienda',        emoji: '🥪' },
-  { id: 'cena',      label: 'Cena',            emoji: '🌙' },
+  { id: 'desayuno',  label: 'Desayuno',     icon: Coffee },
+  { id: 'snack',     label: 'Media mañana', icon: Apple },
+  { id: 'comida',    label: 'Comida',       icon: Utensils },
+  { id: 'merienda',  label: 'Merienda',     icon: Cookie },
+  { id: 'cena',      label: 'Cena',         icon: Moon },
 ];
 
 export default function SlotAssignSheet({ item, todaySlots, onAssign, onClose }) {
@@ -50,7 +50,7 @@ export default function SlotAssignSheet({ item, todaySlots, onAssign, onClose })
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 pb-8">
-          {SLOT_CONFIG.map(({ id, label, emoji }) => {
+          {SLOT_CONFIG.map(({ id, label, icon: Icon }) => {
             const slot = slots[id];
             const hasItems = slot?.items?.length > 0;
             const confirmed = !!slot?.confirmedAt;
@@ -65,7 +65,7 @@ export default function SlotAssignSheet({ item, todaySlots, onAssign, onClose })
                     : 'border-gray-200 bg-white hover:border-brand-300 hover:bg-brand-50 active:scale-[0.98]'
                 }`}
               >
-                <span className="text-xl shrink-0">{emoji}</span>
+                <Icon className="w-4 h-4 shrink-0 text-gray-400" />
                 <span className="flex-1 text-sm font-medium text-gray-800">{label}</span>
                 {confirmed && (
                   <span className="text-xs text-gray-400 flex items-center gap-1">

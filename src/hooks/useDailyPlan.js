@@ -94,9 +94,9 @@ export function useDailyPlan(householdId) {
     if (slotId === 'comida' || slotId === 'cena') {
       const items = slotContainer?.items ?? [];
       if (items.length === 0) {
-        deleteMealFromLifeops(slotId, dateStr).catch(() => {});
+        deleteMealFromLifeops(slotId, dateStr).catch((e) => console.error('[lifeops] delete failed', slotId, dateStr, e));
       } else {
-        publishMealToLifeops(slotId, dateStr, items).catch(() => {});
+        publishMealToLifeops(slotId, dateStr, items).catch((e) => console.error('[lifeops] publish failed', slotId, dateStr, e));
       }
     }
   }, [householdId]);

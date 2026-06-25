@@ -1,4 +1,4 @@
-import { Trash2, Baby, User, Pencil, CalendarPlus } from 'lucide-react';
+import { Trash2, Baby, User, Pencil, CalendarPlus, Cookie } from 'lucide-react';
 import TagChip from '../ui/TagChip';
 import FreshnessIndicator from './FreshnessIndicator';
 import { daysUntil } from '../../hooks/useInventory';
@@ -33,7 +33,7 @@ export default function InventoryItemCard({ item, onDelete, onEdit, onAddToToday
         <div className="flex items-center gap-3 text-sm text-gray-600">
           {isSnack ? (
             <span className="flex items-center gap-1">
-              <span className="text-lg">🧁</span>
+              <Cookie className="w-4 h-4 text-gray-400" />
               <span className="font-medium text-gray-800">{item.units ?? 0}</span>
               <span className="text-gray-400">unidades</span>
             </span>
