@@ -36,6 +36,7 @@ export default function AddPrepModal({ isOpen, onClose, onSave, onAddUsualMeal, 
   const [form, setForm] = useState(EMPTY);
   const [markAsUsual, setMarkAsUsual] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [flotanteMode, setFlotanteMode] = useState('amount'); // 'amount' | 'portions'
 
   const isEditing = !!initialData;
 
@@ -58,8 +59,12 @@ export default function AddPrepModal({ isOpen, onClose, onSave, onAddUsualMeal, 
         tags: initialData.tags || [],
         notes: initialData.notes || '',
       });
+      if (initialData.type === 'flotante') {
+        setFlotanteMode((initialData.portionsAdult || initialData.portionsBaby) ? 'portions' : 'amount');
+      }
     } else {
       setForm(EMPTY);
+      setFlotanteMode('amount');
     }
     setStep(1);
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -84,13 +89,14 @@ export default function AddPrepModal({ isOpen, onClose, onSave, onAddUsualMeal, 
     try {
       const isSnack = form.type === 'snack-batch';
       const isFlotante = form.type === 'flotante';
+      const flotantePortions = isFlotante && flotanteMode === 'portions';
       const data = {
         name: form.name.trim(),
         type: form.type,
-        portionsAdult: (isSnack || isFlotante) ? 0 : Number(form.portionsAdult) || 0,
-        portionsBaby: (isSnack || isFlotante) ? 0 : Number(form.portionsBaby) || 0,
+        portionsAdult: (isSnack || (isFlotante && !flotantePortions)) ? 0 : Number(form.portionsAdult) || 0,
+        portionsBaby: (isSnack || (isFlotante && !flotantePortions)) ? 0 : Number(form.portionsBaby) || 0,
         units: isSnack ? Number(form.units) || 0 : 0,
-        amount: isFlotante ? form.amount.trim() : '',
+        amount: (isFlotante && !flotantePortions) ? form.amount.trim() : '',
         shelfLifeDays: Number(form.shelfLifeDays) || 3,
         tags: form.tags,
         notes: form.notes.trim(),
@@ -169,15 +175,56 @@ export default function AddPrepModal({ isOpen, onClose, onSave, onAddUsualMeal, 
                 />
               </div>
             ) : isFlotante ? (
-              <div className="col-span-2">
-                <label className="block text-xs text-gray-500 mb-1.5">Cantidad disponible</label>
-                <input
-                  type="text"
-                  value={form.amount}
-                  onChange={(e) => set('amount', e.target.value)}
-                  placeholder="Ej: 500g, 1 pack, 3 filetes, 2 aguacates…"
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
-                />
+              <div className="col-span-2 space-y-3">
+                {/* Toggle cantidad / raciones */}
+                <div className="flex rounded-xl border border-gray-200 overflow-hidden text-xs font-medium">
+                  <button
+                    type="button"
+                    onClick={() => setFlotanteMode('amount')}
+                    className={`flex-1 py-2 transition-colors ${flotanteMode === 'amount' ? 'bg-brand-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                  >
+                    Cantidad
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFlotanteMode('portions')}
+                    className={`flex-1 py-2 transition-colors ${flotanteMode === 'portions' ? 'bg-brand-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                  >
+                    Raciones
+                  </button>
+                </div>
+                {flotanteMode === 'amount' ? (
+                  <input
+                    type="text"
+                    value={form.amount}
+                    onChange={(e) => set('amount', e.target.value)}
+                    placeholder="Ej: 500g, 1 pack, 3 filetes, 2 aguacates…"
+                    className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+                  />
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1.5">Raciones adulto</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={form.portionsAdult}
+                        onChange={(e) => set('portionsAdult', e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1.5">Raciones bebé</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={form.portionsBaby}
+                        onChange={(e) => set('portionsBaby', e.target.value)}
+                        className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <>
