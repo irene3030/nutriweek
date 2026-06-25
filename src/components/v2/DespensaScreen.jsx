@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Droplets, Flower2, Wheat, Egg, Archive, Sparkles } from 'lucide-react';
+
+const CATEGORY_ICONS = { Droplets, Flower2, Wheat, Egg, Archive, Sparkles };
 import { usePantry } from '../../hooks/usePantry';
 import { PANTRY_CATEGORIES, DEFAULT_PANTRY_ITEMS } from '../../lib/pantryData';
 import LoadingSpinner from '../ui/LoadingSpinner';
@@ -88,10 +90,12 @@ export default function DespensaScreen({ householdId }) {
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-3 pb-24">
-        {PANTRY_CATEGORIES.map(cat => (
+        {PANTRY_CATEGORIES.map(cat => {
+          const Icon = CATEGORY_ICONS[cat.icon];
+          return (
           <div key={cat.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
             <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-              <span>{cat.emoji}</span>
+              {Icon && <Icon className="w-3.5 h-3.5 text-gray-400" />}
               {cat.label}
             </h2>
             <div className="flex flex-wrap gap-2">
@@ -107,12 +111,12 @@ export default function DespensaScreen({ householdId }) {
             </div>
             <AddItemInput onAdd={addItem} />
           </div>
-        ))}
+        )})}
 
         {customItems.length > 0 && (
           <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
             <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-              <span>➕</span>
+              <Plus className="w-3.5 h-3.5 text-gray-400" />
               Añadidos por ti
             </h2>
             <div className="flex flex-wrap gap-2">

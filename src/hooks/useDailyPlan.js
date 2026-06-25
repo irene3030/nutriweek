@@ -61,11 +61,11 @@ export function useDailyPlan(householdId) {
   useEffect(() => {
     if (!householdId) { setLoading(false); return; }
 
-    const monday = getMondayStr();
-    const dayAfterTomorrow = offsetDateStr(2);
+    const from = offsetDateStr(-7);
+    const to   = offsetDateStr(7);
 
     const ref = collection(db, 'households', householdId, 'dailyPlans');
-    const q = query(ref, where('date', '>=', monday), where('date', '<=', dayAfterTomorrow));
+    const q = query(ref, where('date', '>=', from), where('date', '<=', to));
 
     const unsub = onSnapshot(q, (snap) => {
       const map = {};
