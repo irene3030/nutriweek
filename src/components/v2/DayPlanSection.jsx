@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Sparkles, Droplets, Fish, Bean, Leaf, Apple, Check } from 'lucide-react';
+import { ChevronDown, ChevronUp, Sparkles, Droplets, Fish, Bean, Leaf, Apple } from 'lucide-react';
 import PlanSlotRow from './PlanSlotRow';
 import SlotPickerSheet from './SlotPickerSheet';
 import MealProposalSheet from './MealProposalSheet';
@@ -9,11 +9,11 @@ import EditSlotItemModal from './EditSlotItemModal';
 const SLOTS = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
 
 const DAILY_KPIS = [
-  { key: 'iron',   icon: Droplets, label: 'Hierro',   check: (tags) => tags.includes('iron') },
-  { key: 'fish',   icon: Fish,     label: 'Pescado',  check: (tags) => tags.includes('oily_fish') },
-  { key: 'legume', icon: Bean,     label: 'Legumbre', check: (tags) => tags.includes('legume') },
+  { key: 'iron',   icon: Droplets, label: 'Hierro',   count: (tags) => tags.includes('iron') ? 1 : 0 },
+  { key: 'fish',   icon: Fish,     label: 'Pescado',  count: (tags) => tags.includes('oily_fish') ? 1 : 0 },
+  { key: 'legume', icon: Bean,     label: 'Legumbre', count: (tags) => tags.includes('legume') ? 1 : 0 },
   { key: 'veggie', icon: Leaf,     label: 'Verduras', count: (tags) => new Set(tags.filter(t => t.startsWith('veggie:')).map(t => t.slice(7))).size },
-  { key: 'fruit',  icon: Apple,    label: 'Fruta',    check: (tags) => tags.includes('fruit') },
+  { key: 'fruit',  icon: Apple,    label: 'Fruta',    count: (tags) => tags.includes('fruit') ? 1 : 0 },
 ];
 
 function computeDailyTags(slots) {
@@ -26,23 +26,18 @@ function DailyKpiRow({ slots }) {
 
   return (
     <div className="flex flex-wrap gap-1.5 pt-1 pb-2">
-      {DAILY_KPIS.map(({ key, icon: Icon, label, check, count }) => {
-        const ok = count ? count(tags) > 0 : check(tags);
-        const n  = count ? count(tags) : null;
+      {DAILY_KPIS.map(({ key, icon: Icon, label, count }) => {
+        const n = count(tags);
         return (
           <span
             key={key}
             className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg font-medium transition-colors ${
-              ok ? 'bg-green-50 text-green-700' : hasAny ? 'bg-gray-100 text-gray-400' : 'bg-gray-50 text-gray-300'
+              n > 0 ? 'bg-green-50 text-green-700' : hasAny ? 'bg-gray-100 text-gray-400' : 'bg-gray-50 text-gray-300'
             }`}
           >
             <Icon className="w-3.5 h-3.5" />
-            {n !== null ? (
-              <span>{n > 0 ? `${n} ${label.toLowerCase()}` : label}</span>
-            ) : (
-              <span>{label}</span>
-            )}
-            {ok && <Check className="w-3 h-3 shrink-0" />}
+            <span>{label}</span>
+            {n > 0 && <span className="font-bold">+{n}</span>}
           </span>
         );
       })}
@@ -80,11 +75,10 @@ export default function DayPlanSection({
   const [pickerSlot, setPickerSlot] = useState(null);
   const [proposalSlot, setProposalSlot] = useState(null);
   const [showDayProposal, setShowDayProposal] = useState(false);
-  const [editTarget, setEditTarget] = useState(null); // { slotId, idx, item }
+  const [editTarget, setEditTarget] = useState(null);
 
   const slots = plan?.slots || {};
 
-  // Badge counts for collapsed header
   const confirmedCount = SLOTS.filter((s) => slots[s]?.confirmedAt).length;
   const plannedCount = SLOTS.filter((s) => {
     const slot = slots[s];
