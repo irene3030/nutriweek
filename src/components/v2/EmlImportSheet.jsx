@@ -141,17 +141,30 @@ export default function EmlImportSheet({ onClose, onImport }) {
   async function handleFile(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Reset input so the same file can be re-selected
     e.target.value = '';
     setError(null);
     setStep('loading');
     try {
-      const raw = await file.text();
-      const emailText = parseEml(raw);
-      if (!emailText.trim()) throw new Error('No se pudo extraer contenido. ¿Es un .eml válido?');
-      const result = await parseShoppingEmail({ emailText });
+      const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
+      let result;
+
+      if (isPdf) {
+        const pdfBase64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result.split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        result = await parseShoppingEmail({ pdfBase64 });
+      } else {
+        const raw = await file.text();
+        const emailText = parseEml(raw);
+        if (!emailText.trim()) throw new Error('No se pudo extraer contenido. ¿Es un .eml válido?');
+        result = await parseShoppingEmail({ emailText });
+      }
+
       const aiItems = Array.isArray(result?.items) ? result.items : [];
-      if (aiItems.length === 0) throw new Error('No se encontraron productos alimentarios en el email.');
+      if (aiItems.length === 0) throw new Error('No se encontraron productos alimentarios.');
       setItems(mapAiItems(aiItems));
       setStep('review');
     } catch (err) {
@@ -222,8 +235,7 @@ export default function EmlImportSheet({ onClose, onImport }) {
           {step === 'pick' && (
             <div className="space-y-4 py-2">
               <p className="text-sm text-gray-600 leading-relaxed">
-                Sube el email de confirmación de tu pedido online en formato .eml.
-                La IA identificará los alimentos y los clasificará en tu inventario.
+                Sube el email de confirmación de tu pedido online. Puedes usar el PDF exportado desde Gmail (Imprimir → Guardar como PDF) o el archivo .eml descargado.
               </p>
 
               {error && (
@@ -241,15 +253,15 @@ export default function EmlImportSheet({ onClose, onImport }) {
                   <Upload className="w-6 h-6 text-brand-600" />
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium text-gray-900">Seleccionar archivo .eml</p>
-                  <p className="text-xs text-gray-400 mt-0.5">En Gmail: ⋮ → Descargar mensaje</p>
+                  <p className="text-sm font-medium text-gray-900">Seleccionar PDF o .eml</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Gmail: Imprimir → Guardar PDF · o ⋮ → Descargar .eml</p>
                 </div>
               </button>
 
               <input
                 ref={fileRef}
                 type="file"
-                accept=".eml,message/rfc822"
+                accept=".eml,.pdf,message/rfc822,application/pdf"
                 className="hidden"
                 onChange={handleFile}
               />

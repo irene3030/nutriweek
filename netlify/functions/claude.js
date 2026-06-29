@@ -224,6 +224,7 @@ export const handler = async (event) => {
     const client = new Anthropic({ apiKey: resolvedKey, baseURL: 'https://api.anthropic.com' });
 
     let userMessage = '';
+    let userContent = null; // array content blocks for multimodal (PDF) requests
 
     if (type === 'suggest_ingredients') {
       const { foodHistory, availableIngredients, mealSlots } = payload;
@@ -1622,70 +1623,71 @@ Devuelve SOLO este JSON:
 }`;
 
     } else if (type === 'parse_shopping_email') {
+      const SHOPPING_INSTRUCTIONS = `INSTRUCCIONES:
+1. Identifica SOLO los productos alimentarios y bebidas (descarta: limpieza, higiene, papel, mascotas, electrodomésticos, ropa u otros no alimentarios).
+2. Para cada producto alimentario, determina su tipo en el inventario:
+   - "flotante": ingrediente crudo o sin preparación asignada (carne fresca, pescado fresco/congelado, verduras frescas/congeladas, huevos, fruta fresca, legumbres crudas en seco, cereales sin cocinar)
+   - "ya-preparado": alimento listo para consumir directamente (yogur, queso, hummus comercial, conservas listas como atún en lata, embutido cocido, caldos, legumbres cocidas en frasco/lata)
+   - "acelerador": base que necesita preparación mínima justo-antes (arroz pre-cocido en bolsa, verduras lavadas/cortadas listas para saltear, congelados pre-cocinados)
+   - "snack-batch": snacks individuales para bebé/familia (galletas bebé, barritas, fruta en bolsita, tarritos bebé, snacks de maíz o cereales)
+3. Infiere las etiquetas nutricionales:
+   - iron → carne roja (ternera, cerdo, cordero), legumbre, o pescado azul
+   - oily_fish → salmón, caballa, sardina, atún, boquerón (incluye también fish)
+   - fish → cualquier pescado o marisco (también blanco: merluza, bacalao, dorada)
+   - legume → lentejas, garbanzos, judías, guisantes, edamame
+   - egg → huevo
+   - dairy → yogur, queso, leche
+   - fruit → fruta fresca o congelada
+   - cereal → arroz, pasta, pan, avena, quinoa, fideo
+   - veggie:nombre → una por cada verdura concreta (ej: veggie:pimiento, veggie:zanahoria, veggie:calabacin, veggie:puerro, veggie:esparrago, veggie:champinon, veggie:pepino)
+4. Limpia el nombre: usa el nombre común sin marcas, códigos ni pesos (ej: "HUERTA DE CARABAÑA calabacín bandeja 700g" → "Calabacín").
+5. Para "flotante", indica la cantidad del pedido en "amount" (ej: "2 bandejas 600g", "6 piezas", "1 kg"). Si no hay cantidad clara, pon null.
+
+Devuelve SOLO este JSON (sin texto adicional):
+{
+  "items": [
+    { "name": "Carne picada de vacuno", "type": "flotante", "tags": ["iron"], "amount": "2 bandejas 600g" },
+    { "name": "Yogur griego natural", "type": "ya-preparado", "tags": ["dairy"], "amount": null },
+    { "name": "Dorada en filetes", "type": "flotante", "tags": ["fish"], "amount": "1 pieza" },
+    { "name": "Smilitos snack fresa y plátano", "type": "snack-batch", "tags": ["fruit"], "amount": null },
+    { "name": "Garbanzos cocidos", "type": "ya-preparado", "tags": ["legume", "iron"], "amount": "2 frascos" }
+  ]
+}
+Si no hay productos alimentarios identificables, devuelve { "items": [] }.`;
+
+      const rawPdfBase64 = payload?.pdfBase64;
+      const safePdfBase64 = typeof rawPdfBase64 === 'string'
+        ? rawPdfBase64.replace(/[^A-Za-z0-9+/=]/g, '').slice(0, 3_000_000)
+        : '';
+
       const rawEmail = payload?.emailText;
       const safeText = typeof rawEmail === 'string'
         ? rawEmail.replace(/\x00/g, '').slice(0, 3500)
         : '';
 
-      if (!safeText.trim()) {
+      if (!safePdfBase64 && !safeText.trim()) {
         return {
           statusCode: 400,
           headers: { ...cors, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ error: 'Email text required' }),
+          body: JSON.stringify({ error: 'Se requiere emailText o pdfBase64' }),
         };
       }
 
-      userMessage = `Analiza el siguiente texto extraído de un email de confirmación de compra online (supermercado) y extrae los productos alimentarios.
-
-Texto del email:
----
-${safeText}
----
-
-INSTRUCCIONES:
-1. Identifica SOLO los productos alimentarios y bebidas (descarta: productos de limpieza, higiene, papel, mascotas, electrodomésticos, ropa u otros no alimentarios).
-2. Para cada producto alimentario, determina su tipo en el inventario:
-   - "flotante": ingrediente crudo o sin preparación asignada (carne fresca, pescado fresco/congelado, verduras frescas/congeladas, huevos, fruta fresca, legumbres crudas en seco, cereales sin cocinar como arroz o pasta sin preparar)
-   - "ya-preparado": alimento listo para consumir directamente sin cocinar (yogur, queso, hummus comercial, conservas ya listas como atún en lata, pates, embutido cocido)
-   - "acelerador": base que necesita preparación mínima justo-antes para servir (arroz pre-cocido en bolsa, verduras ya lavadas/cortadas listas para saltear, congelados pre-cocinados)
-   - "snack-batch": snacks individuales para bebé/familia (galletas para bebé, barritas de cereales, fruta en bolsita exprimible, yogur de bolsillo)
-3. Infiere las etiquetas nutricionales. Tags válidos:
-   - iron → carne roja (ternera, cerdo, cordero), legumbre, o pescado azul
-   - oily_fish → salmón, caballa, sardina, atún, boquerón (incluye también fish)
-   - fish → cualquier pescado o marisco (también pescado blanco: merluza, bacalao, dorada)
-   - legume → lentejas, garbanzos, judías, guisantes, edamame
-   - egg → huevo
-   - dairy → yogur, queso, leche
-   - fruit → fruta fresca o congelada
-   - cereal → arroz, pasta, pan, avena, quinoa
-   - veggie:nombre → una por cada verdura concreta (ej: veggie:brocoli, veggie:zanahoria, veggie:espinaca)
-4. Limpia el nombre del producto: usa el nombre común sin códigos de barras, marcas de supermercado, ni unidades de peso (ej: "MCDNA PCGH FRSC 500G 2U" → "Pechuga de pollo").
-5. Para items de tipo "flotante", indica la cantidad aproximada extraída del email en el campo "amount" (ej: "500g", "1 kg", "2 unidades", "1 pack"). Si no hay cantidad visible, deja null.
-
-Devuelve SOLO este JSON (sin texto adicional):
-{
-  "items": [
-    {
-      "name": "Pechuga de pollo",
-      "type": "flotante",
-      "tags": ["iron"],
-      "amount": "500g"
-    },
-    {
-      "name": "Yogur natural",
-      "type": "ya-preparado",
-      "tags": ["dairy"],
-      "amount": null
-    },
-    {
-      "name": "Salmón fresco",
-      "type": "flotante",
-      "tags": ["oily_fish", "fish", "iron"],
-      "amount": "400g"
-    }
-  ]
-}
-Si no hay productos alimentarios identificables, devuelve { "items": [] }.`;
+      if (safePdfBase64) {
+        // PDF path: send as document content block so Claude can read it natively
+        userContent = [
+          {
+            type: 'document',
+            source: { type: 'base64', media_type: 'application/pdf', data: safePdfBase64 },
+          },
+          {
+            type: 'text',
+            text: `Analiza este PDF de confirmación de compra online y extrae los productos alimentarios.\n\n${SHOPPING_INSTRUCTIONS}`,
+          },
+        ];
+      } else {
+        userMessage = `Analiza el siguiente texto de una confirmación de compra online y extrae los productos alimentarios.\n\nTexto:\n---\n${safeText}\n---\n\n${SHOPPING_INSTRUCTIONS}`;
+      }
 
     } else {
       return {
@@ -1701,7 +1703,7 @@ Si no hay productos alimentarios identificables, devuelve { "items": [] }.`;
       model: 'claude-haiku-4-5',
       max_tokens: maxTokens,
       system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userMessage }],
+      messages: [{ role: 'user', content: userContent ?? userMessage }],
     });
 
     const rawText = message.content[0].text.trim();

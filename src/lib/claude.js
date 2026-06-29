@@ -119,8 +119,8 @@ export async function analyzeMealPhoto({ imageBase64, mimeType = 'image/jpeg' })
   return callClaude('analyze_meal_photo', { imageBase64, mimeType });
 }
 
-export async function parseShoppingEmail({ emailText }) {
-  const result = await callClaude('parse_shopping_email', { emailText });
+export async function parseShoppingEmail({ emailText, pdfBase64 } = {}) {
+  const result = await callClaude('parse_shopping_email', { emailText, pdfBase64 });
   track('ai_shopping_email_parsed');
   return result;
 }
