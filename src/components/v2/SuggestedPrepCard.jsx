@@ -163,12 +163,14 @@ export default function SuggestedPrepCard({ proposal, inventoryItems = [], onSel
               {recipeLoading ? 'Generando…' : 'Receta'}
             </button>
           )}
-          <button
-            onClick={() => onSelect(proposal)}
-            className="text-xs font-medium px-4 py-1.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
-          >
-            {selectLabel}
-          </button>
+          {onSelect && (
+            <button
+              onClick={() => onSelect(proposal)}
+              className="text-xs font-medium px-4 py-1.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
+            >
+              {selectLabel}
+            </button>
+          )}
         </div>
       </div>
 

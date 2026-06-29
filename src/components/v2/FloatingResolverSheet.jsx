@@ -22,7 +22,7 @@ function buildInventoryPayload(inventoryItems) {
     }));
 }
 
-export default function FloatingResolverSheet({ floatingItem, inventoryItems, weeklyKpis, pantryItems, onClose, onSelect }) {
+export default function FloatingResolverSheet({ floatingItem, inventoryItems, weeklyKpis, pantryItems, onClose, onSelect, onSchedule }) {
   const [proposals, setProposals] = useState(null);
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState(null);
@@ -58,9 +58,9 @@ export default function FloatingResolverSheet({ floatingItem, inventoryItems, we
       onFetch={fetchProposals}
       onRefetch={fetchProposals}
       onClose={onClose}
-      onSelect={onSelect}
+      onSelect={onSchedule ?? onSelect}
       inventoryItems={inventoryItems}
-      selectLabel="Planear"
+      selectLabel={onSchedule ? 'Programar' : 'Planear'}
     />
   );
 }
