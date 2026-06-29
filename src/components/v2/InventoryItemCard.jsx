@@ -1,4 +1,4 @@
-import { Trash2, Baby, User, Pencil, CalendarPlus, Cookie } from 'lucide-react';
+import { Trash2, Baby, User, Pencil, CalendarPlus, Cookie, Archive } from 'lucide-react';
 import TagChip from '../ui/TagChip';
 import FreshnessIndicator from './FreshnessIndicator';
 import { daysUntil } from '../../hooks/useInventory';
@@ -10,7 +10,7 @@ const TYPE_CONFIG = {
   flotante:       { label: 'Sin plan', color: 'bg-rose-100 text-rose-700' },
 };
 
-export default function InventoryItemCard({ item, onDelete, onEdit, onAddToToday }) {
+export default function InventoryItemCard({ item, onDelete, onEdit, onAddToToday, onMoveToPantry }) {
   const typeConfig = TYPE_CONFIG[item.type] || { label: item.type, color: 'bg-gray-100 text-gray-600' };
   const isSnack = item.type === 'snack-batch';
 
@@ -83,6 +83,16 @@ export default function InventoryItemCard({ item, onDelete, onEdit, onAddToToday
             aria-label={`Añadir ${item.name} a hoy`}
           >
             <CalendarPlus className="w-4 h-4" />
+          </button>
+        )}
+        {onMoveToPantry && (
+          <button
+            onClick={() => onMoveToPantry(item)}
+            className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-gray-300 hover:text-amber-500 hover:bg-amber-50 transition-colors"
+            aria-label={`Mover ${item.name} a la despensa`}
+            title="Mover a despensa"
+          >
+            <Archive className="w-4 h-4" />
           </button>
         )}
         <button

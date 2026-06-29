@@ -3,6 +3,7 @@ import { Plus, Package, UtensilsCrossed, Upload, Search, X } from 'lucide-react'
 import { useInventory, addDays } from '../../hooks/useInventory';
 import { useUsualMeals } from '../../hooks/useUsualMeals';
 import { useDailyPlan, todayStr } from '../../hooks/useDailyPlan';
+import { usePantry } from '../../hooks/usePantry';
 import InventoryItemCard from './InventoryItemCard';
 import AddPrepModal from './AddPrepModal';
 import FloatingResolverSheet from './FloatingResolverSheet';
@@ -21,6 +22,7 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
   const { items, loading, addItem, updateItem, deleteItem } = useInventory(householdId);
   const { usualMeals, addUsualMeal } = useUsualMeals(householdId);
   const { todayPlan, addSlotItem } = useDailyPlan(householdId);
+  const { addItem: addToPantry } = usePantry(householdId);
   const [showAdd, setShowAdd]             = useState(false);
   const [showImport, setShowImport]       = useState(false);
   const [editingItem, setEditingItem]     = useState(null);
@@ -68,6 +70,11 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
 
   async function handleImport(itemsToAdd) {
     await Promise.all(itemsToAdd.map(item => addItem(item)));
+  }
+
+  async function handleMoveToPantry(item) {
+    await addToPantry(item.name);
+    await deleteItem(item.id);
   }
 
   const query = search.trim().toLowerCase();
@@ -149,7 +156,7 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
               <div className="space-y-2">
                 {sectionItems.map((item) => (
                   <div key={item.id} className="space-y-1">
-                    <InventoryItemCard item={item} onDelete={handleDelete} onEdit={setEditingItem} onAddToToday={setAssigningItem} />
+                    <InventoryItemCard item={item} onDelete={handleDelete} onEdit={setEditingItem} onAddToToday={setAssigningItem} onMoveToPantry={handleMoveToPantry} />
                     {type === 'flotante' && hasAiAccess && (
                       <button
                         onClick={() => setResolvingItem(item)}
