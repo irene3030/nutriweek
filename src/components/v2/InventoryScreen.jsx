@@ -143,26 +143,34 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
   const query = search.trim().toLowerCase();
 
   function filterItems(list) {
+    const hasTypeFilters = activeTypes.size > 0;
+    const hasNutrFilters = activeNutr.size > 0;
+    const hasAnyFilters = hasTypeFilters || hasNutrFilters;
+
     return list.filter(item => {
       if (query && !item.name.toLowerCase().includes(query)) return false;
-      if (activeNutr.size > 0) {
+      if (!hasAnyFilters) return true;
+
+      if (hasTypeFilters && activeTypes.has(item.type)) return true;
+
+      if (hasNutrFilters) {
         const tags = item.tags || [];
         const matchesNutr = [...activeNutr].some(id => {
           const def = NUTRITION_FILTERS.find(f => f.id === id);
           return def?.test(tags);
         });
-        if (!matchesNutr) return false;
+        if (matchesNutr) return true;
       }
-      return true;
+
+      return false;
     });
   }
 
   const hasActiveFilters = activeTypes.size > 0 || activeNutr.size > 0 || !!query;
 
-  const hasResults = SECTIONS.some(({ type }) => {
-    if (activeTypes.size > 0 && !activeTypes.has(type)) return false;
-    return filterItems(items.filter(i => i.type === type)).length > 0;
-  });
+  const hasResults = SECTIONS.some(({ type }) =>
+    filterItems(items.filter(i => i.type === type)).length > 0
+  );
 
   // ── render ────────────────────────────────────────────────────────────────
 
@@ -266,7 +274,6 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
       {/* ── Content ── */}
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-5">
         {SECTIONS.map(({ type, label }) => {
-          if (activeTypes.size > 0 && !activeTypes.has(type)) return null;
           const sectionItems = filterItems(items.filter(i => i.type === type));
           if (sectionItems.length === 0) return null;
           return (
