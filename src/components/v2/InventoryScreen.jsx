@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Package, UtensilsCrossed, Upload } from 'lucide-react';
+import { Plus, Package, UtensilsCrossed, Upload, Search, X } from 'lucide-react';
 import { useInventory, addDays } from '../../hooks/useInventory';
 import { useUsualMeals } from '../../hooks/useUsualMeals';
 import { useDailyPlan, todayStr } from '../../hooks/useDailyPlan';
@@ -27,6 +27,7 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
   const [resolvingItem, setResolvingItem] = useState(null);
   const [prepopulated, setPrepopulated]   = useState(null);
   const [assigningItem, setAssigningItem] = useState(null);
+  const [search, setSearch]               = useState('');
 
   if (loading) {
     return (
@@ -69,6 +70,14 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
     await Promise.all(itemsToAdd.map(item => addItem(item)));
   }
 
+  const query = search.trim().toLowerCase();
+  const filterItems = (list) =>
+    query ? list.filter(i => i.name.toLowerCase().includes(query)) : list;
+
+  const hasResults = SECTIONS.some(({ type }) =>
+    filterItems(items.filter(i => i.type === type)).length > 0
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -83,7 +92,7 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
               <button
                 onClick={() => setShowImport(true)}
                 className="flex items-center gap-1.5 border border-gray-200 text-gray-700 text-sm font-medium px-3 min-h-[44px] rounded-xl hover:bg-gray-50 transition-colors"
-                title="Importar pedido online (.eml)"
+                title="Importar pedido online"
               >
                 <Upload className="w-4 h-4" />
                 <span className="hidden sm:inline">Importar</span>
@@ -98,16 +107,45 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
             </button>
           </div>
         </div>
+
+        {/* Search bar — only visible when inventory has items */}
+        {items.length > 0 && (
+          <div className="max-w-4xl mx-auto px-4 pb-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Buscar en el inventario…"
+                className="w-full pl-9 pr-8 py-2 text-sm bg-gray-100 rounded-xl border-none focus:outline-none focus:ring-2 focus:ring-brand-400"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-5">
-        {/* By type sections */}
-        {SECTIONS.map(({ type, label, empty }) => {
-          const sectionItems = items.filter((i) => i.type === type);
+        {/* Sections */}
+        {SECTIONS.map(({ type, label }) => {
+          const sectionItems = filterItems(items.filter(i => i.type === type));
           if (sectionItems.length === 0) return null;
           return (
             <section key={type}>
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">{label}</h2>
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                {label}
+                <span className="ml-1.5 text-xs font-normal normal-case text-gray-400">
+                  {sectionItems.length}
+                </span>
+              </h2>
               <div className="space-y-2">
                 {sectionItems.map((item) => (
                   <div key={item.id} className="space-y-1">
@@ -127,7 +165,17 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
           );
         })}
 
-        {/* Truly empty state */}
+        {/* No results for search */}
+        {query && !hasResults && (
+          <div className="text-center py-12 space-y-2">
+            <p className="text-sm text-gray-500">Sin resultados para <span className="font-medium">"{search}"</span></p>
+            <button onClick={() => setSearch('')} className="text-sm text-brand-600 font-medium">
+              Limpiar búsqueda
+            </button>
+          </div>
+        )}
+
+        {/* Empty inventory */}
         {items.length === 0 && (
           <div className="text-center py-16 space-y-3">
             <UtensilsCrossed className="w-10 h-10 text-gray-300 mx-auto" />

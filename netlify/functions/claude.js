@@ -1627,9 +1627,9 @@ Devuelve SOLO este JSON:
 1. Identifica SOLO los productos alimentarios y bebidas (descarta: limpieza, higiene, papel, mascotas, electrodomésticos, ropa u otros no alimentarios).
 2. Para cada producto alimentario, determina su tipo en el inventario:
    - "flotante": ingrediente crudo o sin preparación asignada (carne fresca, pescado fresco/congelado, verduras frescas/congeladas, huevos, fruta fresca, legumbres crudas en seco, cereales sin cocinar)
-   - "ya-preparado": alimento listo para consumir directamente (yogur, queso, hummus comercial, conservas listas como atún en lata, embutido cocido, caldos, legumbres cocidas en frasco/lata)
-   - "acelerador": base que necesita preparación mínima justo-antes (arroz pre-cocido en bolsa, verduras lavadas/cortadas listas para saltear, congelados pre-cocinados)
-   - "snack-batch": snacks individuales para bebé/familia (galletas bebé, barritas, fruta en bolsita, tarritos bebé, snacks de maíz o cereales)
+   - "ya-preparado": alimento listo para servir directamente sin cocinar (yogur, queso, hummus, atún en lata, embutido cocido, caldos, tarritos de bebé listos para abrir)
+   - "acelerador": base que necesita integrarse en un plato pero no cocinarse de cero (legumbres cocidas en frasco/lata — garbanzos, alubias, lentejas ya cocidas —, arroz pre-cocido en bolsa, verduras lavadas listas para saltear)
+   - "snack-batch": snacks individuales para bebé/familia sin preparación (galletas bebé, barritas, fruta en bolsita exprimible, snacks de maíz o cereales)
 3. Infiere las etiquetas nutricionales:
    - iron → carne roja (ternera, cerdo, cordero), legumbre, o pescado azul
    - oily_fish → salmón, caballa, sardina, atún, boquerón (incluye también fish)
@@ -1650,7 +1650,8 @@ Devuelve SOLO este JSON (sin texto adicional):
     { "name": "Yogur griego natural", "type": "ya-preparado", "tags": ["dairy"], "amount": null },
     { "name": "Dorada en filetes", "type": "flotante", "tags": ["fish"], "amount": "1 pieza" },
     { "name": "Smilitos snack fresa y plátano", "type": "snack-batch", "tags": ["fruit"], "amount": null },
-    { "name": "Garbanzos cocidos", "type": "ya-preparado", "tags": ["legume", "iron"], "amount": "2 frascos" }
+    { "name": "Garbanzos cocidos", "type": "acelerador", "tags": ["legume", "iron"], "amount": null },
+    { "name": "Tarrito verduras y pavo", "type": "ya-preparado", "tags": [], "amount": null }
   ]
 }
 Si no hay productos alimentarios identificables, devuelve { "items": [] }.`;
