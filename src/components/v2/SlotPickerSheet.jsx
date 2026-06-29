@@ -57,6 +57,8 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
   const [pendingAccel, setPendingAccel] = useState(null); // item
   const [accelMealName, setAccelMealName] = useState('');
   const [accelPrepTime, setAccelPrepTime] = useState('');
+  // For all other items: pending confirmation before adding
+  const [pendingItem, setPendingItem] = useState(null);
 
   const sorted = sortItems(inventoryItems, slotId);
 
@@ -66,19 +68,27 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
       setAccelMealName('');
       setAccelPrepTime('');
       setManualMode(false);
+      setPendingItem(null);
     } else {
-      const def = DEFAULT_PORTIONS[slotId] || { adult: 1, baby: 1 };
-      onSelect({
-        inventoryItemId: item.id,
-        label: item.name,
-        itemType: item.type,
-        tags: item.tags || [],
-        confirmedAt: null,
-        prepTime: null,
-        portionsAdultConsumed: item.type === 'flotante' ? 0 : def.adult,
-        portionsBabyConsumed: item.type === 'flotante' ? 0 : def.baby,
-      });
+      setPendingItem(item);
+      setPendingAccel(null);
+      setManualMode(false);
     }
+  };
+
+  const handleItemConfirm = () => {
+    if (!pendingItem) return;
+    const def = DEFAULT_PORTIONS[slotId] || { adult: 1, baby: 1 };
+    onSelect({
+      inventoryItemId: pendingItem.id,
+      label: pendingItem.name,
+      itemType: pendingItem.type,
+      tags: pendingItem.tags || [],
+      confirmedAt: null,
+      prepTime: null,
+      portionsAdultConsumed: pendingItem.type === 'flotante' ? 0 : def.adult,
+      portionsBabyConsumed: pendingItem.type === 'flotante' ? 0 : def.baby,
+    });
   };
 
   const handleAccelConfirm = () => {
@@ -159,6 +169,7 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
             const isSnack = item.type === 'snack-batch';
             const isAccel = item.type === 'acelerador';
             const isExpanded = pendingAccel?.id === item.id;
+            const isPending = pendingItem?.id === item.id;
 
             return (
               <div key={item.id}>
@@ -167,6 +178,8 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
                   className={`w-full text-left flex items-center gap-3 p-3 rounded-xl border transition-colors ${
                     isExpanded
                       ? 'border-violet-300 bg-violet-50 rounded-b-none'
+                      : isPending
+                      ? 'border-brand-300 bg-brand-50 rounded-b-none'
                       : 'border-gray-100 hover:border-brand-200 hover:bg-brand-50'
                   }`}
                 >
@@ -201,7 +214,7 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
                             <span>{item.amount}</span>
                           )}
                           {isAccel && !isExpanded && (
-                            <span className="text-violet-400">Toca para especificar qué harás →</span>
+                            <span className="text-violet-400">Toca para añadir →</span>
                           )}
                         </>
                       )}
@@ -212,20 +225,37 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
                   )}
                 </button>
 
+                {/* Confirmación inline para items normales */}
+                {isPending && (
+                  <div className="border border-t-0 border-brand-300 bg-brand-50 rounded-b-xl px-3 pb-3 pt-2">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setPendingItem(null)}
+                        className="flex-1 border border-gray-300 text-gray-600 rounded-xl py-2 text-sm hover:bg-white transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleItemConfirm}
+                        className="flex-1 bg-brand-600 text-white rounded-xl py-2 text-sm font-medium hover:bg-brand-700 transition-colors"
+                      >
+                        Añadir
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Acelerador inline form */}
                 {isExpanded && (
                   <div className="border border-t-0 border-violet-300 bg-violet-50 rounded-b-xl px-3 pb-3 pt-2 space-y-2">
-                    <p className="text-xs text-violet-600 font-medium">
-                      Base: <span className="font-semibold">{item.name}</span>
-                    </p>
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">¿Qué harás con esto?</label>
+                      <label className="block text-xs text-gray-500 mb-1">Nota de preparación <span className="text-gray-400">(opcional)</span></label>
                       <input
                         type="text"
                         value={accelMealName}
                         onChange={(e) => setAccelMealName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && accelMealName.trim() && handleAccelConfirm()}
-                        placeholder={`Ej: Tortilla de ${item.name.toLowerCase()}`}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAccelConfirm()}
+                        placeholder={`Ej: con el curry, tortilla de ${item.name.toLowerCase()}…`}
                         autoFocus
                         className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent bg-white"
                       />
@@ -249,8 +279,7 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
                       </button>
                       <button
                         onClick={handleAccelConfirm}
-                        disabled={!accelMealName.trim()}
-                        className="flex-1 bg-violet-600 text-white rounded-xl py-2 text-sm font-medium hover:bg-violet-700 transition-colors disabled:opacity-40"
+                        className="flex-1 bg-violet-600 text-white rounded-xl py-2 text-sm font-medium hover:bg-violet-700 transition-colors"
                       >
                         Añadir
                       </button>
@@ -264,7 +293,7 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
           {/* Manual entry */}
           {!manualMode ? (
             <button
-              onClick={() => { setManualMode(true); setPendingAccel(null); }}
+              onClick={() => { setManualMode(true); setPendingAccel(null); setPendingItem(null); }}
               className="w-full flex items-center gap-2 p-3 rounded-xl border border-dashed border-gray-300 text-sm text-gray-400 hover:text-gray-600 hover:border-gray-400 transition-colors"
             >
               <PenLine className="w-4 h-4" />

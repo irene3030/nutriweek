@@ -37,7 +37,9 @@ export default function EditSlotItemModal({ isOpen, item, onClose, onSave }) {
     <Modal isOpen={isOpen} onClose={onClose} title="Editar comida" maxWidth="max-w-md">
       <div className="space-y-4 pb-2">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Nombre</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            {item?.itemType === 'acelerador' ? 'Nota de preparación (opcional)' : 'Nombre'}
+          </label>
           <input
             type="text"
             value={label}
@@ -50,7 +52,7 @@ export default function EditSlotItemModal({ isOpen, item, onClose, onSave }) {
         {item?.itemType === 'acelerador' && (
           <>
             <div>
-              <label className="block text-xs text-gray-500 mb-1.5">Base</label>
+              <label className="block text-xs text-gray-500 mb-1.5">Ingrediente</label>
               <input
                 type="text"
                 value={accelBase}
