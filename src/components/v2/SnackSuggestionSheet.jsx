@@ -19,7 +19,7 @@ function buildInventoryPayload(inventoryItems) {
     }));
 }
 
-export default function SnackSuggestionSheet({ snackItems, inventoryItems, pantryItems, onClose, onSelect }) {
+export default function SnackSuggestionSheet({ snackItems, inventoryItems, pantryItems, onClose, onSelect, onSchedule }) {
   const [proposals, setProposals] = useState(null);
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState(null);
@@ -56,6 +56,7 @@ export default function SnackSuggestionSheet({ snackItems, inventoryItems, pantr
       onRefetch={fetchProposals}
       onClose={onClose}
       onSelect={onSelect}
+      onSchedule={onSchedule}
       inventoryItems={inventoryItems}
       selectLabel="Preparar"
     />

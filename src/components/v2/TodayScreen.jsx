@@ -3,6 +3,7 @@ import { Plus, AlertTriangle, MapPin, ShoppingCart, Clock, ChevronRight, Chevron
 import { useInventory } from '../../hooks/useInventory';
 import { useDailyPlan, todayStr } from '../../hooks/useDailyPlan';
 import { useUsualMeals } from '../../hooks/useUsualMeals';
+import { usePrepQueue } from '../../hooks/usePrepQueue';
 import DayPlanSection from './DayPlanSection';
 import WeeklyKpiStrip from './WeeklyKpiStrip';
 import AddPrepModal from './AddPrepModal';
@@ -14,6 +15,7 @@ import CookingTimeSheet from './CookingTimeSheet';
 import MealProposalSheet from './MealProposalSheet';
 import WeeklyBriefing from './WeeklyBriefing';
 import WeekHistoryStrip from './WeekHistoryStrip';
+import PrepQueueSection from './PrepQueueSection';
 import { daysUntil } from '../../hooks/useInventory';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
@@ -67,6 +69,8 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
     restoreUnits,
   } = useInventory(householdId);
 
+  const { prepQueue, addToPrepQueue, removeFromPrepQueue } = usePrepQueue(householdId);
+
   const { usualMeals, addUsualMeal } = useUsualMeals(householdId);
 
   const {
@@ -84,9 +88,10 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
     offsetDateStr,
   } = useDailyPlan(householdId);
 
-  const [showAddPrep, setShowAddPrep]         = useState(false);
-  const [showShopping, setShowShopping]       = useState(false);
-  const [prepopulated, setPrepopulated]       = useState(null);
+  const [showAddPrep, setShowAddPrep]             = useState(false);
+  const [showShopping, setShowShopping]           = useState(false);
+  const [prepopulated, setPrepopulated]           = useState(null);
+  const [prepQueueItemToRemove, setPrepQueueItemToRemove] = useState(null);
   const [resolvingItem, setResolvingItem]     = useState(null);
   const [showSnackSheet, setShowSnackSheet]   = useState(false);
   const [showCookingTime, setShowCookingTime] = useState(false);
@@ -207,8 +212,39 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
     setShowAddPrep(true);
   }
 
+  async function handleSchedulePrep(proposal) {
+    await addToPrepQueue({
+      label:         proposal.name,
+      prepType:      proposal.prepType,
+      prepTime:      proposal.prepTime ?? null,
+      adultPortions: proposal.adultPortions ?? null,
+      babyPortions:  proposal.babyPortions  ?? null,
+      tags:          proposal.tags ?? [],
+      ingredients:   proposal.ingredients ?? [],
+    });
+    setResolvingItem(null);
+    setShowCookingTime(false);
+    setShowSnackSheet(false);
+  }
+
+  function handlePrepQueueDone(item) {
+    setPrepopulated({
+      name:          item.label,
+      type:          item.prepType === 'justo-antes' ? 'acelerador' : (item.prepType ?? 'ya-preparado'),
+      portionsAdult: item.adultPortions ?? 2,
+      portionsBaby:  item.babyPortions  ?? 1,
+      tags:          item.tags ?? [],
+    });
+    setPrepQueueItemToRemove(item.id);
+    setShowAddPrep(true);
+  }
+
   const handleSavePrep = async (data) => {
     await addItem(data);
+    if (prepQueueItemToRemove) {
+      await removeFromPrepQueue(prepQueueItemToRemove);
+      setPrepQueueItemToRemove(null);
+    }
     // Auto-inference: if same name already exists in inventory → recurring meal
     const sameName = inventoryItems.filter(
       i => i.name.toLowerCase() === data.name.toLowerCase()
@@ -323,6 +359,14 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
           </section>
         )}
 
+        {/* Cola de preparaciones pendientes */}
+        <PrepQueueSection
+          items={prepQueue}
+          onDone={handlePrepQueueDone}
+          onRemove={removeFromPrepQueue}
+          onAdd={addToPrepQueue}
+        />
+
         {/* F8 — Tengo tiempo para cocinar (mobile only — en desktop aparece en el header) */}
         {hasAiAccess && (
           <button
@@ -410,6 +454,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
           pantryItems={pantryItems}
           onClose={() => setResolvingItem(null)}
           onSelect={handleSuggestionSelect}
+          onSchedule={handleSchedulePrep}
         />
       )}
 
@@ -420,6 +465,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
           pantryItems={pantryItems}
           onClose={() => setShowSnackSheet(false)}
           onSelect={handleSuggestionSelect}
+          onSchedule={handleSchedulePrep}
         />
       )}
 
@@ -430,6 +476,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
           pantryItems={pantryItems}
           onClose={() => setShowCookingTime(false)}
           onSelect={handleSuggestionSelect}
+          onSchedule={handleSchedulePrep}
         />
       )}
 

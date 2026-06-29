@@ -22,7 +22,7 @@ function buildInventoryPayload(inventoryItems) {
     }));
 }
 
-export default function FloatingResolverSheet({ floatingItem, inventoryItems, weeklyKpis, pantryItems, onClose, onSelect }) {
+export default function FloatingResolverSheet({ floatingItem, inventoryItems, weeklyKpis, pantryItems, onClose, onSelect, onSchedule }) {
   const [proposals, setProposals] = useState(null);
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState(null);
@@ -59,6 +59,7 @@ export default function FloatingResolverSheet({ floatingItem, inventoryItems, we
       onRefetch={fetchProposals}
       onClose={onClose}
       onSelect={onSelect}
+      onSchedule={onSchedule}
       inventoryItems={inventoryItems}
       selectLabel="Planear"
     />
