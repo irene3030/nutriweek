@@ -12,17 +12,52 @@ import EmlImportSheet from './EmlImportSheet';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
 const SECTIONS = [
-  { type: 'ya-preparado', label: 'Ya preparados', empty: 'Nada preparado todavía' },
-  { type: 'acelerador',   label: 'Aceleradores',  empty: 'Sin aceleradores' },
-  { type: 'snack-batch',  label: 'Snacks',        empty: 'Sin snacks en stock' },
-  { type: 'flotante',     label: 'Ingredientes',  empty: 'Sin ingredientes' },
+  { type: 'ya-preparado', label: 'Ya preparados' },
+  { type: 'acelerador',   label: 'Aceleradores'  },
+  { type: 'snack-batch',  label: 'Snacks'        },
+  { type: 'flotante',     label: 'Ingredientes'  },
 ];
+
+const TYPE_FILTERS = [
+  { id: 'ya-preparado', label: 'Preparados' },
+  { id: 'acelerador',   label: 'Aceleradores' },
+  { id: 'snack-batch',  label: 'Snacks' },
+  { id: 'flotante',     label: 'Ingredientes' },
+];
+
+const NUTRITION_FILTERS = [
+  { id: 'protein', label: 'Proteína', test: t => t.some(x => ['iron','fish','oily_fish','legume','egg'].includes(x)) },
+  { id: 'iron',    label: 'Hierro',   test: t => t.includes('iron') },
+  { id: 'fish',    label: 'Pescado',  test: t => t.some(x => x === 'fish' || x === 'oily_fish') },
+  { id: 'legume',  label: 'Legumbre', test: t => t.includes('legume') },
+  { id: 'egg',     label: 'Huevo',    test: t => t.includes('egg') },
+  { id: 'dairy',   label: 'Lácteo',   test: t => t.includes('dairy') },
+  { id: 'fruit',   label: 'Fruta',    test: t => t.includes('fruit') },
+  { id: 'veggie',  label: 'Verdura',  test: t => t.some(x => x.startsWith('veggie:')) },
+  { id: 'cereal',  label: 'Cereal',   test: t => t.includes('cereal') },
+];
+
+function FilterChip({ label, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
+        active
+          ? 'bg-gray-900 text-white border-gray-900'
+          : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-700'
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
 
 export default function InventoryScreen({ householdId, hasAiAccess, pantryItems = [] }) {
   const { items, loading, addItem, updateItem, deleteItem } = useInventory(householdId);
   const { usualMeals, addUsualMeal } = useUsualMeals(householdId);
   const { todayPlan, addSlotItem } = useDailyPlan(householdId);
   const { addItem: addToPantry } = usePantry(householdId);
+
   const [showAdd, setShowAdd]             = useState(false);
   const [showImport, setShowImport]       = useState(false);
   const [editingItem, setEditingItem]     = useState(null);
@@ -30,6 +65,8 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
   const [prepopulated, setPrepopulated]   = useState(null);
   const [assigningItem, setAssigningItem] = useState(null);
   const [search, setSearch]               = useState('');
+  const [activeTypes, setActiveTypes]     = useState(new Set());
+  const [activeNutr, setActiveNutr]       = useState(new Set());
 
   if (loading) {
     return (
@@ -38,6 +75,8 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
       </div>
     );
   }
+
+  // ── handlers ──────────────────────────────────────────────────────────────
 
   const handleDelete = async (id) => {
     if (!confirm('¿Eliminar esta preparación?')) return;
@@ -77,18 +116,61 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
     await deleteItem(item.id);
   }
 
-  const query = search.trim().toLowerCase();
-  const filterItems = (list) =>
-    query ? list.filter(i => i.name.toLowerCase().includes(query)) : list;
+  function toggleType(id) {
+    setActiveTypes(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
 
-  const hasResults = SECTIONS.some(({ type }) =>
-    filterItems(items.filter(i => i.type === type)).length > 0
-  );
+  function toggleNutr(id) {
+    setActiveNutr(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function clearFilters() {
+    setSearch('');
+    setActiveTypes(new Set());
+    setActiveNutr(new Set());
+  }
+
+  // ── filtering ─────────────────────────────────────────────────────────────
+
+  const query = search.trim().toLowerCase();
+
+  function filterItems(list) {
+    return list.filter(item => {
+      if (query && !item.name.toLowerCase().includes(query)) return false;
+      if (activeNutr.size > 0) {
+        const tags = item.tags || [];
+        const matchesNutr = [...activeNutr].some(id => {
+          const def = NUTRITION_FILTERS.find(f => f.id === id);
+          return def?.test(tags);
+        });
+        if (!matchesNutr) return false;
+      }
+      return true;
+    });
+  }
+
+  const hasActiveFilters = activeTypes.size > 0 || activeNutr.size > 0 || !!query;
+
+  const hasResults = SECTIONS.some(({ type }) => {
+    if (activeTypes.size > 0 && !activeTypes.has(type)) return false;
+    return filterItems(items.filter(i => i.type === type)).length > 0;
+  });
+
+  // ── render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      {/* ── Sticky header ── */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
+        {/* Title + actions */}
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Package className="w-5 h-5 text-brand-600" />
@@ -115,9 +197,10 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
           </div>
         </div>
 
-        {/* Search bar — only visible when inventory has items */}
+        {/* Search + filters — only when inventory has items */}
         {items.length > 0 && (
-          <div className="max-w-4xl mx-auto px-4 pb-3">
+          <div className="max-w-4xl mx-auto px-4 pb-3 space-y-2">
+            {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               <input
@@ -136,13 +219,54 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
                 </button>
               )}
             </div>
+
+            {/* Filter chips — horizontally scrollable */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden">
+              {/* Type filters */}
+              {TYPE_FILTERS.map(f => (
+                <FilterChip
+                  key={f.id}
+                  label={f.label}
+                  active={activeTypes.has(f.id)}
+                  onClick={() => toggleType(f.id)}
+                />
+              ))}
+
+              {/* Divider */}
+              <div className="w-px h-4 bg-gray-200 shrink-0 mx-0.5" />
+
+              {/* Nutritional filters */}
+              {NUTRITION_FILTERS.map(f => (
+                <FilterChip
+                  key={f.id}
+                  label={f.label}
+                  active={activeNutr.has(f.id)}
+                  onClick={() => toggleNutr(f.id)}
+                />
+              ))}
+
+              {/* Clear all */}
+              {hasActiveFilters && (
+                <>
+                  <div className="w-px h-4 bg-gray-200 shrink-0 mx-0.5" />
+                  <button
+                    onClick={clearFilters}
+                    className="shrink-0 text-xs px-2.5 py-1 rounded-full text-brand-600 font-medium hover:bg-brand-50 transition-colors flex items-center gap-1"
+                  >
+                    <X className="w-3 h-3" />
+                    Limpiar
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         )}
       </header>
 
+      {/* ── Content ── */}
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-5">
-        {/* Sections */}
         {SECTIONS.map(({ type, label }) => {
+          if (activeTypes.size > 0 && !activeTypes.has(type)) return null;
           const sectionItems = filterItems(items.filter(i => i.type === type));
           if (sectionItems.length === 0) return null;
           return (
@@ -156,7 +280,13 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
               <div className="space-y-2">
                 {sectionItems.map((item) => (
                   <div key={item.id} className="space-y-1">
-                    <InventoryItemCard item={item} onDelete={handleDelete} onEdit={setEditingItem} onAddToToday={setAssigningItem} onMoveToPantry={handleMoveToPantry} />
+                    <InventoryItemCard
+                      item={item}
+                      onDelete={handleDelete}
+                      onEdit={setEditingItem}
+                      onAddToToday={setAssigningItem}
+                      onMoveToPantry={handleMoveToPantry}
+                    />
                     {type === 'flotante' && hasAiAccess && (
                       <button
                         onClick={() => setResolvingItem(item)}
@@ -172,12 +302,12 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
           );
         })}
 
-        {/* No results for search */}
-        {query && !hasResults && (
+        {/* No results */}
+        {hasActiveFilters && !hasResults && (
           <div className="text-center py-12 space-y-2">
-            <p className="text-sm text-gray-500">Sin resultados para <span className="font-medium">"{search}"</span></p>
-            <button onClick={() => setSearch('')} className="text-sm text-brand-600 font-medium">
-              Limpiar búsqueda
+            <p className="text-sm text-gray-500">Ningún item coincide con los filtros activos</p>
+            <button onClick={clearFilters} className="text-sm text-brand-600 font-medium">
+              Limpiar filtros
             </button>
           </div>
         )}
@@ -200,6 +330,7 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
         )}
       </div>
 
+      {/* ── Modales y sheets ── */}
       {showImport && (
         <EmlImportSheet
           onClose={() => setShowImport(false)}

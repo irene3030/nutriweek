@@ -223,7 +223,12 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
     }
   };
 
-  const alertsVisible = expiringItems.length > 0 || floatingItems.length > 0 || (hasAiAccess && lowSnackItems.length > 0);
+  const PROTEIN_TAGS = ['iron', 'fish', 'oily_fish', 'legume', 'egg'];
+  const alertableFloating = floatingItems.filter(item =>
+    (item.tags || []).some(t => PROTEIN_TAGS.includes(t))
+  );
+
+  const alertsVisible = expiringItems.length > 0 || alertableFloating.length > 0 || (hasAiAccess && lowSnackItems.length > 0);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -292,7 +297,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
                 <FreshnessIndicator expiresAt={item.expiresAt} daysUntil={daysUntil} />
               </div>
             ))}
-            {floatingItems.map((item) => (
+            {alertableFloating.map((item) => (
               <div key={item.id} className="flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2.5">
                 <MapPin className="w-4 h-4 text-rose-400 shrink-0" />
                 <span className="flex-1 text-sm text-rose-800 font-medium truncate">{item.name}</span>
