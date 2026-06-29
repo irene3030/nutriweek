@@ -111,7 +111,7 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onE
                     {/* Label + badge */}
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-sm font-medium ${isConfirmed ? 'text-gray-400' : 'text-gray-800'}`}>
-                        {item.label}
+                        {item.itemType === 'acelerador' ? (item.accelBase || item.label) : item.label}
                       </span>
                       {badge && (
                         <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium ${badge.color}`}>
@@ -120,11 +120,11 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onE
                       )}
                     </div>
 
-                    {/* Acelerador meta */}
-                    {(item.accelBase || item.prepTime) && (
+                    {/* Acelerador meta: prep note + time */}
+                    {item.itemType === 'acelerador' && (item.label !== item.accelBase || item.prepTime) && (
                       <div className="flex items-center gap-2 text-xs text-gray-400">
-                        {item.accelBase && <span>Base: {item.accelBase}</span>}
-                        {item.accelBase && item.prepTime && <span>·</span>}
+                        {item.label && item.label !== item.accelBase && <span>{item.label}</span>}
+                        {item.label && item.label !== item.accelBase && item.prepTime && <span>·</span>}
                         {item.prepTime && (
                           <span className="text-violet-500 font-medium">{item.prepTime}</span>
                         )}

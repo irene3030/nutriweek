@@ -201,7 +201,7 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
                             <span>{item.amount}</span>
                           )}
                           {isAccel && !isExpanded && (
-                            <span className="text-violet-400">Toca para especificar qué harás →</span>
+                            <span className="text-violet-400">Toca para añadir →</span>
                           )}
                         </>
                       )}
@@ -215,17 +215,14 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
                 {/* Acelerador inline form */}
                 {isExpanded && (
                   <div className="border border-t-0 border-violet-300 bg-violet-50 rounded-b-xl px-3 pb-3 pt-2 space-y-2">
-                    <p className="text-xs text-violet-600 font-medium">
-                      Base: <span className="font-semibold">{item.name}</span>
-                    </p>
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">¿Qué harás con esto?</label>
+                      <label className="block text-xs text-gray-500 mb-1">Nota de preparación <span className="text-gray-400">(opcional)</span></label>
                       <input
                         type="text"
                         value={accelMealName}
                         onChange={(e) => setAccelMealName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && accelMealName.trim() && handleAccelConfirm()}
-                        placeholder={`Ej: Tortilla de ${item.name.toLowerCase()}`}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAccelConfirm()}
+                        placeholder={`Ej: con el curry, tortilla de ${item.name.toLowerCase()}…`}
                         autoFocus
                         className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent bg-white"
                       />
@@ -249,8 +246,7 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
                       </button>
                       <button
                         onClick={handleAccelConfirm}
-                        disabled={!accelMealName.trim()}
-                        className="flex-1 bg-violet-600 text-white rounded-xl py-2 text-sm font-medium hover:bg-violet-700 transition-colors disabled:opacity-40"
+                        className="flex-1 bg-violet-600 text-white rounded-xl py-2 text-sm font-medium hover:bg-violet-700 transition-colors"
                       >
                         Añadir
                       </button>
