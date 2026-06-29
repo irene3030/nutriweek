@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, AlertTriangle, MapPin, ShoppingCart, Clock, ChevronRight, ChevronLeft, Cookie } from 'lucide-react';
+import { Plus, AlertTriangle, MapPin, ShoppingCart, Clock, ChevronRight, ChevronLeft, Cookie, X } from 'lucide-react';
 import { useInventory } from '../../hooks/useInventory';
 import { useDailyPlan, todayStr } from '../../hooks/useDailyPlan';
 import { useUsualMeals } from '../../hooks/useUsualMeals';
@@ -97,6 +97,21 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
   const [lastWeekKpis, setLastWeekKpis]       = useState(null);
   const [dayOffset, setDayOffset]             = useState(0);
   const savedKpisRef = useRef(false);
+
+  const FLOATING_DISMISSED_KEY = `dismissed_floating_${householdId}_${todayStr()}`;
+  const [dismissedIds, setDismissedIds] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(FLOATING_DISMISSED_KEY) || '[]')); }
+    catch { return new Set(); }
+  });
+
+  function dismissFloating(itemId) {
+    setDismissedIds(prev => {
+      const next = new Set(prev);
+      next.add(itemId);
+      localStorage.setItem(FLOATING_DISMISSED_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }
 
   const isMonday = new Date().getDay() === 1;
   const mondayStr = getMondayStr();
@@ -225,7 +240,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
 
   const PROTEIN_TAGS = ['iron', 'fish', 'oily_fish', 'legume', 'egg'];
   const alertableFloating = floatingItems.filter(item =>
-    (item.tags || []).some(t => PROTEIN_TAGS.includes(t))
+    (item.tags || []).some(t => PROTEIN_TAGS.includes(t)) && !dismissedIds.has(item.id)
   );
 
   const alertsVisible = expiringItems.length > 0 || alertableFloating.length > 0 || (hasAiAccess && lowSnackItems.length > 0);
@@ -301,16 +316,21 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
               <div key={item.id} className="flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2.5">
                 <MapPin className="w-4 h-4 text-rose-400 shrink-0" />
                 <span className="flex-1 text-sm text-rose-800 font-medium truncate">{item.name}</span>
-                {hasAiAccess ? (
+                {hasAiAccess && (
                   <button
                     onClick={() => setResolvingItem(item)}
                     className="text-xs text-rose-600 font-medium shrink-0 hover:underline"
                   >
                     ¿Qué hago?
                   </button>
-                ) : (
-                  <span className="text-xs text-rose-500 shrink-0">sin plan</span>
                 )}
+                <button
+                  onClick={() => dismissFloating(item.id)}
+                  className="w-6 h-6 flex items-center justify-center rounded-full text-rose-300 hover:text-rose-500 hover:bg-rose-100 transition-colors shrink-0"
+                  aria-label="Descartar hasta mañana"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
             ))}
             {hasAiAccess && lowSnackItems.length > 0 && (
