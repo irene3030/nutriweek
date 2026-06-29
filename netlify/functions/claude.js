@@ -1621,6 +1621,72 @@ Devuelve SOLO este JSON:
   "answer": "Sí, puedes añadir el boniato. Córtalo en dados de 1-2cm y añádelo en el paso 3 junto con la zanahoria. Necesitará unos 8-10 minutos de cocción. El resultado será más dulce y cremoso."
 }`;
 
+    } else if (type === 'parse_shopping_email') {
+      const rawEmail = payload?.emailText;
+      const safeText = typeof rawEmail === 'string'
+        ? rawEmail.replace(/\x00/g, '').slice(0, 3500)
+        : '';
+
+      if (!safeText.trim()) {
+        return {
+          statusCode: 400,
+          headers: { ...cors, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: 'Email text required' }),
+        };
+      }
+
+      userMessage = `Analiza el siguiente texto extraído de un email de confirmación de compra online (supermercado) y extrae los productos alimentarios.
+
+Texto del email:
+---
+${safeText}
+---
+
+INSTRUCCIONES:
+1. Identifica SOLO los productos alimentarios y bebidas (descarta: productos de limpieza, higiene, papel, mascotas, electrodomésticos, ropa u otros no alimentarios).
+2. Para cada producto alimentario, determina su tipo en el inventario:
+   - "flotante": ingrediente crudo o sin preparación asignada (carne fresca, pescado fresco/congelado, verduras frescas/congeladas, huevos, fruta fresca, legumbres crudas en seco, cereales sin cocinar como arroz o pasta sin preparar)
+   - "ya-preparado": alimento listo para consumir directamente sin cocinar (yogur, queso, hummus comercial, conservas ya listas como atún en lata, pates, embutido cocido)
+   - "acelerador": base que necesita preparación mínima justo-antes para servir (arroz pre-cocido en bolsa, verduras ya lavadas/cortadas listas para saltear, congelados pre-cocinados)
+   - "snack-batch": snacks individuales para bebé/familia (galletas para bebé, barritas de cereales, fruta en bolsita exprimible, yogur de bolsillo)
+3. Infiere las etiquetas nutricionales. Tags válidos:
+   - iron → carne roja (ternera, cerdo, cordero), legumbre, o pescado azul
+   - oily_fish → salmón, caballa, sardina, atún, boquerón (incluye también fish)
+   - fish → cualquier pescado o marisco (también pescado blanco: merluza, bacalao, dorada)
+   - legume → lentejas, garbanzos, judías, guisantes, edamame
+   - egg → huevo
+   - dairy → yogur, queso, leche
+   - fruit → fruta fresca o congelada
+   - cereal → arroz, pasta, pan, avena, quinoa
+   - veggie:nombre → una por cada verdura concreta (ej: veggie:brocoli, veggie:zanahoria, veggie:espinaca)
+4. Limpia el nombre del producto: usa el nombre común sin códigos de barras, marcas de supermercado, ni unidades de peso (ej: "MCDNA PCGH FRSC 500G 2U" → "Pechuga de pollo").
+5. Para items de tipo "flotante", indica la cantidad aproximada extraída del email en el campo "amount" (ej: "500g", "1 kg", "2 unidades", "1 pack"). Si no hay cantidad visible, deja null.
+
+Devuelve SOLO este JSON (sin texto adicional):
+{
+  "items": [
+    {
+      "name": "Pechuga de pollo",
+      "type": "flotante",
+      "tags": ["iron"],
+      "amount": "500g"
+    },
+    {
+      "name": "Yogur natural",
+      "type": "ya-preparado",
+      "tags": ["dairy"],
+      "amount": null
+    },
+    {
+      "name": "Salmón fresco",
+      "type": "flotante",
+      "tags": ["oily_fish", "fish", "iron"],
+      "amount": "400g"
+    }
+  ]
+}
+Si no hay productos alimentarios identificables, devuelve { "items": [] }.`;
+
     } else {
       return {
         statusCode: 400,

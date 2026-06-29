@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Package, UtensilsCrossed } from 'lucide-react';
+import { Plus, Package, UtensilsCrossed, Upload } from 'lucide-react';
 import { useInventory, addDays } from '../../hooks/useInventory';
 import { useUsualMeals } from '../../hooks/useUsualMeals';
 import { useDailyPlan, todayStr } from '../../hooks/useDailyPlan';
@@ -7,6 +7,7 @@ import InventoryItemCard from './InventoryItemCard';
 import AddPrepModal from './AddPrepModal';
 import FloatingResolverSheet from './FloatingResolverSheet';
 import SlotAssignSheet from './SlotAssignSheet';
+import EmlImportSheet from './EmlImportSheet';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
 const SECTIONS = [
@@ -21,6 +22,7 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
   const { usualMeals, addUsualMeal } = useUsualMeals(householdId);
   const { todayPlan, addSlotItem } = useDailyPlan(householdId);
   const [showAdd, setShowAdd]             = useState(false);
+  const [showImport, setShowImport]       = useState(false);
   const [editingItem, setEditingItem]     = useState(null);
   const [resolvingItem, setResolvingItem] = useState(null);
   const [prepopulated, setPrepopulated]   = useState(null);
@@ -63,6 +65,10 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
     await addSlotItem(todayStr(), slotId, entry);
   }
 
+  async function handleImport(itemsToAdd) {
+    await Promise.all(itemsToAdd.map(item => addItem(item)));
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -72,13 +78,25 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
             <Package className="w-5 h-5 text-brand-600" />
             <h1 className="text-lg font-bold text-gray-900">Inventario</h1>
           </div>
-          <button
-            onClick={() => setShowAdd(true)}
-            className="flex items-center gap-1.5 bg-brand-600 text-white text-sm font-medium px-3 min-h-[44px] rounded-xl hover:bg-brand-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Nueva preparación
-          </button>
+          <div className="flex items-center gap-2">
+            {hasAiAccess && (
+              <button
+                onClick={() => setShowImport(true)}
+                className="flex items-center gap-1.5 border border-gray-200 text-gray-700 text-sm font-medium px-3 min-h-[44px] rounded-xl hover:bg-gray-50 transition-colors"
+                title="Importar pedido online (.eml)"
+              >
+                <Upload className="w-4 h-4" />
+                <span className="hidden sm:inline">Importar</span>
+              </button>
+            )}
+            <button
+              onClick={() => setShowAdd(true)}
+              className="flex items-center gap-1.5 bg-brand-600 text-white text-sm font-medium px-3 min-h-[44px] rounded-xl hover:bg-brand-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Nueva preparación
+            </button>
+          </div>
         </div>
       </header>
 
@@ -126,6 +144,13 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
           </div>
         )}
       </div>
+
+      {showImport && (
+        <EmlImportSheet
+          onClose={() => setShowImport(false)}
+          onImport={handleImport}
+        />
+      )}
 
       <AddPrepModal
         isOpen={showAdd}
