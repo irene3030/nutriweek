@@ -55,10 +55,9 @@ export default function SnackSuggestionSheet({ snackItems, inventoryItems, pantr
       onFetch={fetchProposals}
       onRefetch={fetchProposals}
       onClose={onClose}
-      onSelect={onSelect}
-      onSchedule={onSchedule}
+      onSelect={onSchedule ?? onSelect}
       inventoryItems={inventoryItems}
-      selectLabel="Preparar"
+      selectLabel={onSchedule ? 'Programar' : 'Preparar'}
     />
   );
 }

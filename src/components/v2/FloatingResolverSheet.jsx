@@ -58,10 +58,9 @@ export default function FloatingResolverSheet({ floatingItem, inventoryItems, we
       onFetch={fetchProposals}
       onRefetch={fetchProposals}
       onClose={onClose}
-      onSelect={onSelect}
-      onSchedule={onSchedule}
+      onSelect={onSchedule ?? onSelect}
       inventoryItems={inventoryItems}
-      selectLabel="Planear"
+      selectLabel={onSchedule ? 'Programar' : 'Planear'}
     />
   );
 }

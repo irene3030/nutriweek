@@ -22,7 +22,7 @@ function SourceIcon({ source }) {
   return                            <ShoppingCart className="w-3 h-3 text-amber-500 shrink-0" />;
 }
 
-export default function SuggestedPrepCard({ proposal, inventoryItems = [], onSelect, onSchedule, selectLabel = 'Seleccionar' }) {
+export default function SuggestedPrepCard({ proposal, inventoryItems = [], onSelect, selectLabel = 'Seleccionar' }) {
   const [recipe, setRecipe] = useState(null);
   const [recipeLoading, setRecipeLoading] = useState(false);
   const [recipeError, setRecipeError] = useState(null);
@@ -163,15 +163,7 @@ export default function SuggestedPrepCard({ proposal, inventoryItems = [], onSel
               {recipeLoading ? 'Generando…' : 'Receta'}
             </button>
           )}
-          {onSchedule && (
-            <button
-              onClick={() => onSchedule(proposal)}
-              className="text-xs font-medium px-4 py-1.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
-            >
-              Programar
-            </button>
-          )}
-          {!onSchedule && onSelect && (
+          {onSelect && (
             <button
               onClick={() => onSelect(proposal)}
               className="text-xs font-medium px-4 py-1.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"

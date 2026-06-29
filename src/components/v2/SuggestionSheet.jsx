@@ -10,7 +10,6 @@ export default function SuggestionSheet({
   onRefetch,
   onClose,
   onSelect,
-  onSchedule,
   inventoryItems = [],
   selectLabel = 'Seleccionar',
   headerContent,
@@ -92,7 +91,6 @@ export default function SuggestionSheet({
                   proposal={proposal}
                   inventoryItems={inventoryItems}
                   onSelect={onSelect}
-                  onSchedule={onSchedule}
                   selectLabel={selectLabel}
                 />
               ))}

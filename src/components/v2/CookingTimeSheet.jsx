@@ -131,7 +131,7 @@ export default function CookingTimeSheet({ inventoryItems, weeklyKpis, pantryIte
                 <div className="space-y-3">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Para tener listo</p>
                   {readyProposals.map((p, i) => (
-                    <SuggestedPrepCard key={i} proposal={p} inventoryItems={inventoryItems} onSelect={onSelect} onSchedule={onSchedule} selectLabel="Cocinar" />
+                    <SuggestedPrepCard key={i} proposal={p} inventoryItems={inventoryItems} onSelect={onSchedule ?? onSelect} selectLabel={onSchedule ? 'Programar' : 'Cocinar'} />
                   ))}
                 </div>
               )}
@@ -144,7 +144,7 @@ export default function CookingTimeSheet({ inventoryItems, weeklyKpis, pantryIte
                     <p className="text-xs font-semibold text-violet-600 uppercase tracking-wide">Base para agilizar la semana</p>
                   </div>
                   {baseProposals.map((p, i) => (
-                    <SuggestedPrepCard key={i} proposal={p} inventoryItems={inventoryItems} onSelect={onSelect} onSchedule={onSchedule} selectLabel="Preparar base" />
+                    <SuggestedPrepCard key={i} proposal={p} inventoryItems={inventoryItems} onSelect={onSchedule ?? onSelect} selectLabel={onSchedule ? 'Programar' : 'Preparar base'} />
                   ))}
                 </div>
               )}
