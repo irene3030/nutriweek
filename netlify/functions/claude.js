@@ -1103,12 +1103,34 @@ Devuelve SOLO este JSON (sin texto adicional):
       const distinctVeggies = parseInt(kpi.distinctVeggies) || 0;
       const veggieList = Array.isArray(kpi.veggieList) ? kpi.veggieList.map(v => sanitize(v, 30)).join(', ') : '';
 
+      // Compute daily gaps from confirmed slots
+      const confirmedTags = Object.values(safeSlots)
+        .filter(slot => slot?.confirmedAt)
+        .flatMap(slot => (slot?.items || []).flatMap(i => Array.isArray(i.tags) ? i.tags : []));
+
+      const dailyGaps = [];
+      if (!confirmedTags.includes('iron')) {
+        dailyGaps.push('hierro (carne roja, legumbre o pescado azul)');
+      }
+      if (!confirmedTags.includes('oily_fish') && fishDays < 3) {
+        dailyGaps.push('pescado azul (salmón, caballa, sardina, atún o boquerón)');
+      }
+      const confirmedVeggies = new Set(confirmedTags.filter(t => t.startsWith('veggie:')));
+      if (confirmedVeggies.size === 0) {
+        dailyGaps.push('verduras (al menos 2 distintas en el día)');
+      } else if (confirmedVeggies.size < 2) {
+        dailyGaps.push('una verdura más (distinta a las ya confirmadas)');
+      }
+
+      const dailyGapsInstruction = dailyGaps.length > 0
+        ? `\nATENCIÓN — GAPS NUTRICIONALES DEL DÍA: ${dailyGaps.join('; ')}.\nAl menos 2 de las 3 propuestas DEBEN cubrir uno o más de estos gaps. Esto es OBLIGATORIO, no opcional.`
+        : '';
+
       const dayGapsSection = isCena ? `
-Slots confirmados hoy (para analizar qué falta nutricionalmente en el día):
+Slots confirmados hoy:
 ${confirmedSlotLines.length > 0 ? confirmedSlotLines.join('\n') : '(ningún slot confirmado aún)'}
 
-ANÁLISIS DE GAPS DEL DÍA (solo para cena):
-Antes de las propuestas, analiza qué grupos nutricionales faltan o están poco representados en los slots confirmados de hoy. Genera una frase corta, concreta y sin juicio. Ejemplos: "Falta una fuente de carbs y una verdura nueva", "El día tiene poca proteína vegetal", "Bien cubierto, la cena puede ser ligera". Máximo 12 palabras. Si el día está bien equilibrado, dilo brevemente.` : '';
+Genera también una frase corta (máx 12 palabras) sobre el estado del día para el campo dayGaps. Ejemplos: "Falta proteína y una verdura nueva", "El día está bien cubierto, cena ligera". Si hay gaps obligatorios arriba, refléjalos.` : '';
 
       const safePantry = Array.isArray(pantryItems)
         ? pantryItems.map(i => sanitize(i, 100)).filter(Boolean).slice(0, 30)
@@ -1155,9 +1177,9 @@ ${dayGapsSection}
 INSTRUCCIONES:
 1. Prioriza usar ingredientes del inventario disponible.
 2. Cada opción debe complementar nutricionalmente lo ya planificado hoy.
-3. Si algún KPI está bajo (hierro < 3, pescado < 2, legumbre < 2, verduras < 3), cubre uno con alguna de las opciones.
+3. Si algún KPI semanal está bajo (hierro < 3 días, pescado azul < 3 días, legumbre < 2, verduras < 3), cubre uno con alguna de las opciones.
 4. Las opciones deben ser variadas entre sí (no 3 variantes del mismo plato).
-5. Para ingredients, usa "stock" solo si el ingrediente está en el inventario disponible e incluye su inventoryId.${timeContext}${priorityInstruction}
+5. Para ingredients, usa "stock" solo si el ingrediente está en el inventario disponible e incluye su inventoryId.${timeContext}${dailyGapsInstruction}${priorityInstruction}
 
 Devuelve SOLO este JSON:
 {
