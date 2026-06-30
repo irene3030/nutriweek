@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, PenLine, User, Baby, ChevronRight } from 'lucide-react';
+import { X, User, Baby, ChevronRight } from 'lucide-react';
 import FreshnessIndicator from './FreshnessIndicator';
 import TagConfirm from './TagConfirm';
 import { daysUntil } from '../../hooks/useInventory';
@@ -48,7 +48,6 @@ const DEFAULT_PORTIONS = {
 };
 
 export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onClose }) {
-  const [manualMode, setManualMode] = useState(false);
   const [manualText, setManualText] = useState('');
   const [manualPrepNote, setManualPrepNote] = useState('');
   const [manualTagStep, setManualTagStep] = useState(false);
@@ -67,12 +66,10 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
       setPendingAccel(item);
       setAccelMealName('');
       setAccelPrepTime('');
-      setManualMode(false);
       setPendingItem(null);
     } else {
       setPendingItem(item);
       setPendingAccel(null);
-      setManualMode(false);
     }
   };
 
@@ -128,7 +125,6 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
   };
 
   const resetManual = () => {
-    setManualMode(false);
     setManualText('');
     setManualPrepNote('');
     setManualTagStep(false);
@@ -158,7 +154,67 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
         </div>
 
         <div className="overflow-y-auto flex-1 px-4 pb-6 space-y-2">
-          {sorted.length === 0 && !manualMode && (
+          {/* Manual entry — always first */}
+          {!manualTagStep ? (
+            <div className="space-y-2 pt-1">
+              <input
+                type="text"
+                value={manualText}
+                onChange={(e) => setManualText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && manualText.trim() && handleManualNext()}
+                placeholder="Ej: Lubina, tostada con hummus…"
+                autoFocus
+                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+              />
+              <input
+                type="text"
+                value={manualPrepNote}
+                onChange={(e) => setManualPrepNote(e.target.value)}
+                placeholder="¿Cómo lo preparas? (opcional) — Ej: 8 min air fryer"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent text-gray-500"
+              />
+              {manualText.trim() && (
+                <button
+                  onClick={handleManualNext}
+                  className="w-full bg-brand-600 text-white rounded-xl py-2 text-sm font-medium hover:bg-brand-700 transition-colors"
+                >
+                  Siguiente →
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3 pt-1 border border-gray-200 rounded-xl p-3">
+              <p className="text-xs text-gray-500">
+                Etiquetas para <span className="font-medium text-gray-800">{manualText}</span>. Ajusta si es necesario.
+              </p>
+              <TagConfirm value={manualTags} onChange={setManualTags} />
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => setManualTagStep(false)}
+                  className="flex-1 border border-gray-300 text-gray-600 rounded-xl py-2 text-sm hover:bg-gray-50 transition-colors"
+                >
+                  ← Atrás
+                </button>
+                <button
+                  onClick={handleManualConfirm}
+                  className="flex-1 bg-brand-600 text-white rounded-xl py-2 text-sm font-medium hover:bg-brand-700 transition-colors"
+                >
+                  Añadir
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Divider */}
+          {sorted.length > 0 && (
+            <div className="flex items-center gap-2 py-1">
+              <div className="flex-1 h-px bg-gray-100" />
+              <span className="text-xs text-gray-300">o elige del inventario</span>
+              <div className="flex-1 h-px bg-gray-100" />
+            </div>
+          )}
+
+          {sorted.length === 0 && (
             <p className="text-sm text-gray-400 text-center py-6">
               No hay nada en el inventario todavía.
             </p>
@@ -290,71 +346,6 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
             );
           })}
 
-          {/* Manual entry */}
-          {!manualMode ? (
-            <button
-              onClick={() => { setManualMode(true); setPendingAccel(null); setPendingItem(null); }}
-              className="w-full flex items-center gap-2 p-3 rounded-xl border border-dashed border-gray-300 text-sm text-gray-400 hover:text-gray-600 hover:border-gray-400 transition-colors"
-            >
-              <PenLine className="w-4 h-4" />
-              Escribir a mano
-            </button>
-          ) : !manualTagStep ? (
-            <div className="space-y-2 pt-1">
-              <input
-                type="text"
-                value={manualText}
-                onChange={(e) => setManualText(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && manualText.trim() && handleManualNext()}
-                placeholder="Ej: Lubina, tostada con hummus…"
-                autoFocus
-                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
-              />
-              <input
-                type="text"
-                value={manualPrepNote}
-                onChange={(e) => setManualPrepNote(e.target.value)}
-                placeholder="¿Cómo lo preparas? (opcional) — Ej: 8 min air fryer"
-                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent text-gray-500"
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={resetManual}
-                  className="flex-1 border border-gray-300 text-gray-600 rounded-xl py-2 text-sm hover:bg-gray-50 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleManualNext}
-                  disabled={!manualText.trim()}
-                  className="flex-1 bg-brand-600 text-white rounded-xl py-2 text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-40"
-                >
-                  Siguiente →
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3 pt-1 border border-gray-200 rounded-xl p-3">
-              <p className="text-xs text-gray-500">
-                Etiquetas para <span className="font-medium text-gray-800">{manualText}</span>. Ajusta si es necesario.
-              </p>
-              <TagConfirm value={manualTags} onChange={setManualTags} />
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={() => setManualTagStep(false)}
-                  className="flex-1 border border-gray-300 text-gray-600 rounded-xl py-2 text-sm hover:bg-gray-50 transition-colors"
-                >
-                  ← Atrás
-                </button>
-                <button
-                  onClick={handleManualConfirm}
-                  className="flex-1 bg-brand-600 text-white rounded-xl py-2 text-sm font-medium hover:bg-brand-700 transition-colors"
-                >
-                  Añadir
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </>

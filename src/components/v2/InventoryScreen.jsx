@@ -67,6 +67,7 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
   const [search, setSearch]               = useState('');
   const [activeTypes, setActiveTypes]     = useState(new Set());
   const [activeNutr, setActiveNutr]       = useState(new Set());
+  const [hideFruit, setHideFruit]         = useState(true);
 
   if (loading) {
     return (
@@ -136,6 +137,7 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
     setSearch('');
     setActiveTypes(new Set());
     setActiveNutr(new Set());
+    setHideFruit(true);
   }
 
   // ── filtering ─────────────────────────────────────────────────────────────
@@ -149,6 +151,7 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
 
     return list.filter(item => {
       if (query && !item.name.toLowerCase().includes(query)) return false;
+      if (hideFruit && (item.tags || []).includes('fruit')) return false;
       if (!hasAnyFilters) return true;
 
       if (hasTypeFilters && activeTypes.has(item.type)) return true;
@@ -166,7 +169,15 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
     });
   }
 
-  const hasActiveFilters = activeTypes.size > 0 || activeNutr.size > 0 || !!query;
+  const hasActiveFilters = activeTypes.size > 0 || activeNutr.size > 0 || !!query || !hideFruit;
+
+  const PROTEIN_TAGS = ['iron', 'fish', 'oily_fish', 'legume', 'egg'];
+  function flotanteOrder(item) {
+    const tags = item.tags || [];
+    if (tags.some(t => PROTEIN_TAGS.includes(t))) return 0;
+    if (tags.some(t => t.startsWith('veggie:')))   return 1;
+    return 2;
+  }
 
   const hasResults = SECTIONS.some(({ type }) =>
     filterItems(items.filter(i => i.type === type)).length > 0
@@ -253,6 +264,19 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
                 />
               ))}
 
+              {/* Fruit visibility toggle */}
+              <div className="w-px h-4 bg-gray-200 shrink-0 mx-0.5" />
+              <button
+                onClick={() => setHideFruit(h => !h)}
+                className={`shrink-0 text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
+                  hideFruit
+                    ? 'bg-white text-gray-400 border-gray-200 hover:border-gray-400 hover:text-gray-600'
+                    : 'bg-gray-900 text-white border-gray-900'
+                }`}
+              >
+                {hideFruit ? '🍎 Mostrar fruta' : '🍎 Ocultar fruta'}
+              </button>
+
               {/* Clear all */}
               {hasActiveFilters && (
                 <>
@@ -274,7 +298,10 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
       {/* ── Content ── */}
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-5">
         {SECTIONS.map(({ type, label }) => {
-          const sectionItems = filterItems(items.filter(i => i.type === type));
+          const filtered = filterItems(items.filter(i => i.type === type));
+          const sectionItems = type === 'flotante'
+            ? [...filtered].sort((a, b) => flotanteOrder(a) - flotanteOrder(b))
+            : filtered;
           if (sectionItems.length === 0) return null;
           return (
             <section key={type}>
