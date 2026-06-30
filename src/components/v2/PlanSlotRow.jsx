@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, Check, User, Baby, Sparkles, Pencil } from 'lucide-react';
+import { Plus, X, Check, User, Baby, Sparkles, Pencil, BookmarkPlus } from 'lucide-react';
 
 const SLOT_LABELS = {
   desayuno: 'Desayuno',
@@ -45,7 +45,7 @@ function PortionCounter({ icon, value, onChange }) {
 const AI_SLOTS = new Set(['comida', 'cena']);
 
 // slot = { items: SlotEntry[], confirmedAt: string|null } | null
-export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onEditItem, onConfirm, onUpdatePortions, onAiPropose, disabled }) {
+export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onEditItem, onConfirm, onUpdatePortions, onAiPropose, disabled, template, onSaveTemplate, onApplyTemplate }) {
   const [editingIdx, setEditingIdx] = useState(null);
   const [draftAdult, setDraftAdult] = useState(0);
   const [draftBaby, setDraftBaby] = useState(0);
@@ -78,25 +78,37 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onE
       {/* Content */}
       <div className="flex-1 min-w-0">
         {isEmpty ? (
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onAddItem}
-              disabled={disabled}
-              className="flex items-center gap-1 text-sm text-gray-400 hover:text-brand-600 transition-colors group"
-            >
-              <Plus className="w-4 h-4 group-hover:text-brand-500" />
-              <span className="text-xs">Añadir</span>
-            </button>
-            {AI_SLOTS.has(slotId) && onAiPropose && (
+          <div className="space-y-1.5">
+            {template?.length > 0 && onApplyTemplate && (
               <button
-                onClick={onAiPropose}
+                onClick={onApplyTemplate}
                 disabled={disabled}
-                className="flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700 transition-colors"
+                className="flex items-center gap-1.5 text-xs font-medium text-brand-700 bg-brand-50 border border-brand-200 rounded-lg px-2 py-1 hover:bg-brand-100 transition-colors"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Proponer</span>
+                <BookmarkPlus className="w-3 h-3" />
+                Usar {label.toLowerCase()} habitual
               </button>
             )}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onAddItem}
+                disabled={disabled}
+                className="flex items-center gap-1 text-sm text-gray-400 hover:text-brand-600 transition-colors group"
+              >
+                <Plus className="w-4 h-4 group-hover:text-brand-500" />
+                <span className="text-xs">Añadir</span>
+              </button>
+              {AI_SLOTS.has(slotId) && onAiPropose && (
+                <button
+                  onClick={onAiPropose}
+                  disabled={disabled}
+                  className="flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700 transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Proponer</span>
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="space-y-2.5">
@@ -210,9 +222,20 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onE
                 </button>
               )}
               {isConfirmed && (
-                <span className="flex items-center justify-center w-7 h-7 rounded-full bg-green-100">
-                  <Check className="w-4 h-4 text-green-600" />
-                </span>
+                <div className="flex items-center gap-2">
+                  {onSaveTemplate && (
+                    <button
+                      onClick={() => onSaveTemplate(items.map(({ label: l, itemType, tags }) => ({ label: l, itemType, tags: tags || [] })))}
+                      className="text-xs text-gray-400 hover:text-brand-600 transition-colors flex items-center gap-1"
+                      title="Guardar como habitual"
+                    >
+                      <BookmarkPlus className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  <span className="flex items-center justify-center w-7 h-7 rounded-full bg-green-100">
+                    <Check className="w-4 h-4 text-green-600" />
+                  </span>
+                </div>
               )}
             </div>
           </div>

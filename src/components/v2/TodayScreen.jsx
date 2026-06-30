@@ -4,6 +4,7 @@ import { useInventory } from '../../hooks/useInventory';
 import { useDailyPlan, todayStr } from '../../hooks/useDailyPlan';
 import { useUsualMeals } from '../../hooks/useUsualMeals';
 import { usePrepQueue } from '../../hooks/usePrepQueue';
+import { useSlotTemplates } from '../../hooks/useSlotTemplates';
 import DayPlanSection from './DayPlanSection';
 import WeeklyKpiStrip from './WeeklyKpiStrip';
 import AddPrepModal from './AddPrepModal';
@@ -70,6 +71,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
   } = useInventory(householdId);
 
   const { prepQueue, addToPrepQueue, removeFromPrepQueue } = usePrepQueue(householdId);
+  const { templates: slotTemplates, saveTemplate } = useSlotTemplates(householdId);
 
   const { usualMeals, addUsualMeal } = useUsualMeals(householdId);
 
@@ -423,6 +425,9 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
                 defaultExpanded={true}
                 autoPropose={offset === 0}
                 timeOfDay={offset === 0 ? getTimeOfDay() : undefined}
+                isToday={offset === 0}
+                slotTemplates={slotTemplates}
+                onSaveTemplate={saveTemplate}
                 onAddSlotItem={addSlotItem}
                 onRemoveSlotItem={handleRemoveSlotItem}
                 onConfirmSlot={handleConfirmSlot}
