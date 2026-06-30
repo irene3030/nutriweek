@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, Check, User, Baby, Sparkles, Pencil, BookmarkPlus } from 'lucide-react';
+import { Plus, X, User, Baby, Sparkles, Pencil, BookmarkPlus } from 'lucide-react';
 
 const SLOT_LABELS = {
   desayuno: 'Desayuno',
@@ -185,6 +185,15 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onE
 
                   {/* Per-item actions */}
                   <div className="flex items-center gap-0.5 shrink-0 mt-0.5">
+                    {isConfirmed && idx === 0 && onSaveTemplate && (
+                      <button
+                        onClick={() => onSaveTemplate(items.map(({ label: l, itemType, tags }) => ({ label: l, itemType, tags: tags || [] })))}
+                        className="flex items-center justify-center w-6 h-6 rounded-lg text-gray-300 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                        title="Guardar como habitual"
+                      >
+                        <BookmarkPlus className="w-3 h-3" />
+                      </button>
+                    )}
                     <button
                       onClick={() => onEditItem?.(idx)}
                       className="flex items-center justify-center w-6 h-6 rounded-lg text-gray-300 hover:text-brand-500 hover:bg-brand-50 transition-colors"
@@ -204,15 +213,8 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onE
               );
             })}
 
-            {/* Bottom row: add another + confirm/checkmark */}
-            <div className="flex items-center justify-between pt-0.5">
-              <button
-                onClick={onAddItem}
-                className="flex items-center gap-1 text-xs text-gray-400 hover:text-brand-600 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Añadir otro</span>
-              </button>
+            {/* Bottom row */}
+            <div className="flex items-center justify-end pt-0.5 gap-2">
               {isPlanned && (
                 <button
                   onClick={onConfirm}
@@ -221,22 +223,13 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onE
                   Confirmar
                 </button>
               )}
-              {isConfirmed && (
-                <div className="flex items-center gap-2">
-                  {onSaveTemplate && (
-                    <button
-                      onClick={() => onSaveTemplate(items.map(({ label: l, itemType, tags }) => ({ label: l, itemType, tags: tags || [] })))}
-                      className="text-xs text-gray-400 hover:text-brand-600 transition-colors flex items-center gap-1"
-                      title="Guardar como habitual"
-                    >
-                      <BookmarkPlus className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                  <span className="flex items-center justify-center w-7 h-7 rounded-full bg-green-100">
-                    <Check className="w-4 h-4 text-green-600" />
-                  </span>
-                </div>
-              )}
+              <button
+                onClick={onAddItem}
+                className="flex items-center justify-center w-6 h-6 rounded-lg text-gray-300 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                aria-label="Añadir otro"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         )}
