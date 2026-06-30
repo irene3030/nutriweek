@@ -7,7 +7,7 @@
   node_bundler = "esbuild"
 
 [dev]
-  framework = "vite"
+  command = "npm run dev"
   targetPort = 5173
   port = 8888
   functions = "netlify/functions"
