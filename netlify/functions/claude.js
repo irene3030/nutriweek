@@ -70,7 +70,7 @@ Para cada comida devuelve:
 - babyShort: nombre muy corto para vista de calendario (máx 20 caracteres, solo lo esencial — ej: "Puré de zanahoria", "Salmón con brócoli", "Tortilla de patata")
 - tags: array con los tags aplicables. Definición de cada tag:
   - iron → contiene carne roja (ternera, cerdo, cordero) o legumbre o pescado azul (salmón, caballa, sardina, atún, boquerón)
-  - oily_fish → contiene pescado azul alto en omega-3 (salmón, caballa, sardina, atún, boquerón) — también añade siempre el tag fish
+  - oily_fish → contiene pescado azul alto en omega-3 (salmón, caballa, sardina, atún, boquerón) — también añade siempre el tag fish. NUNCA para pescado blanco (dorada, lubina, merluza, bacalao, rape, lenguado, rodaballo).
   - fish → contiene cualquier pescado o marisco (incluido pescado blanco: merluza, bacalao, dorada, lubina...)
   - legume → contiene legumbre (lentejas, garbanzos, judías, guisantes, edamame)
   - egg → contiene huevo
@@ -638,7 +638,8 @@ Comida: "${safeText}"
 
 Tags posibles:
 - iron → contiene carne roja, legumbre o pescado azul (fuentes de hierro)
-- fish → contiene pescado (cualquier tipo)
+- oily_fish → salmón, caballa, sardina, atún, boquerón. NUNCA para pescado blanco (dorada, lubina, merluza, bacalao, rape).
+- fish → contiene pescado (cualquier tipo, incluyendo blanco: dorada, lubina, merluza, bacalao)
 - legume → contiene legumbre (lentejas, garbanzos, judías, guisantes...)
 - egg → contiene huevo
 - dairy → contiene lácteo (yogur, queso, leche...)
@@ -840,7 +841,8 @@ Comida: "${safeText}"
 
 Tags posibles:
 - iron → contiene carne roja, legumbre o pescado azul (fuentes de hierro)
-- fish → contiene pescado (cualquier tipo)
+- oily_fish → salmón, caballa, sardina, atún, boquerón. NUNCA para pescado blanco (dorada, lubina, merluza, bacalao, rape).
+- fish → contiene pescado (cualquier tipo, incluyendo blanco: dorada, lubina, merluza, bacalao)
 - legume → contiene legumbre (lentejas, garbanzos, judías, guisantes...)
 - egg → contiene huevo
 - dairy → contiene lácteo (yogur, queso, leche...)
@@ -886,7 +888,8 @@ Devuelve SOLO este JSON (sin texto adicional):
 
 Reglas para tags (incluye TODOS los que apliquen):
 - iron → si hay carne roja, legumbre o pescado azul
-- fish → si hay cualquier pescado
+- oily_fish → salmón, caballa, sardina, atún, boquerón. NUNCA para pescado blanco (dorada, lubina, merluza, bacalao, rape).
+- fish → si hay cualquier pescado (incluido blanco: dorada, lubina, merluza, bacalao)
 - legume → si hay legumbre (lentejas, garbanzos, guisantes...)
 - egg → si hay huevo
 - dairy → si hay lácteo (yogur, queso, leche)
@@ -1632,8 +1635,8 @@ Devuelve SOLO este JSON:
    - "snack-batch": snacks individuales para bebé/familia sin preparación (galletas bebé, barritas, fruta en bolsita exprimible, snacks de maíz o cereales)
 3. Infiere las etiquetas nutricionales:
    - iron → carne roja (ternera, cerdo, cordero), legumbre, o pescado azul
-   - oily_fish → salmón, caballa, sardina, atún, boquerón (incluye también fish)
-   - fish → cualquier pescado o marisco (también blanco: merluza, bacalao, dorada)
+   - oily_fish → salmón, caballa, sardina, atún, boquerón (incluye también fish). NUNCA para pescado blanco (dorada, lubina, merluza, bacalao, rape).
+   - fish → cualquier pescado o marisco (también blanco: merluza, bacalao, dorada, lubina)
    - legume → lentejas, garbanzos, judías, guisantes, edamame
    - egg → huevo
    - dairy → yogur, queso, leche
