@@ -49,7 +49,8 @@ export default function InventoryItemCard({ item, onDelete, onEdit, onAddToToday
           <button
             onClick={() => onAddToToday(item)}
             className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-gray-300 hover:text-brand-500 hover:bg-brand-50 transition-colors"
-            aria-label={`Añadir ${item.name} a hoy`}
+            aria-label="Añadir a hoy"
+            title="Añadir a hoy"
           >
             <CalendarPlus className="w-4 h-4" />
           </button>
@@ -58,7 +59,7 @@ export default function InventoryItemCard({ item, onDelete, onEdit, onAddToToday
           <button
             onClick={() => onMoveToPantry(item)}
             className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-gray-300 hover:text-amber-500 hover:bg-amber-50 transition-colors"
-            aria-label={`Mover ${item.name} a la despensa`}
+            aria-label="Mover a despensa"
             title="Mover a despensa"
           >
             <Archive className="w-4 h-4" />
@@ -67,14 +68,16 @@ export default function InventoryItemCard({ item, onDelete, onEdit, onAddToToday
         <button
           onClick={() => onEdit?.(item)}
           className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-gray-300 hover:text-brand-500 hover:bg-brand-50 transition-colors"
-          aria-label={`Editar ${item.name}`}
+          aria-label="Editar"
+          title="Editar"
         >
           <Pencil className="w-4 h-4" />
         </button>
         <button
           onClick={() => onDelete(item.id)}
           className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors"
-          aria-label={`Eliminar ${item.name}`}
+          aria-label="Eliminar"
+          title="Eliminar"
         >
           <Trash2 className="w-4 h-4" />
         </button>
