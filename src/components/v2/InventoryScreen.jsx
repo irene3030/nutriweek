@@ -4,6 +4,7 @@ import { useInventory, addDays } from '../../hooks/useInventory';
 import { useUsualMeals } from '../../hooks/useUsualMeals';
 import { useDailyPlan, todayStr } from '../../hooks/useDailyPlan';
 import { usePantry } from '../../hooks/usePantry';
+import { usePrepQueue } from '../../hooks/usePrepQueue';
 import InventoryItemCard from './InventoryItemCard';
 import AddPrepModal from './AddPrepModal';
 import FloatingResolverSheet from './FloatingResolverSheet';
@@ -57,6 +58,7 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
   const { usualMeals, addUsualMeal } = useUsualMeals(householdId);
   const { todayPlan, addSlotItem } = useDailyPlan(householdId);
   const { addItem: addToPantry } = usePantry(householdId);
+  const { addToPrepQueue } = usePrepQueue(householdId);
 
   const [showAdd, setShowAdd]             = useState(false);
   const [showImport, setShowImport]       = useState(false);
@@ -102,6 +104,19 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
     });
     setResolvingItem(null);
     setShowAdd(true);
+  }
+
+  async function handleSchedulePrep(proposal) {
+    await addToPrepQueue({
+      label:         proposal.name,
+      prepType:      proposal.prepType,
+      prepTime:      proposal.prepTime ?? null,
+      adultPortions: proposal.adultPortions ?? null,
+      babyPortions:  proposal.babyPortions  ?? null,
+      tags:          proposal.tags ?? [],
+      ingredients:   proposal.ingredients ?? [],
+    });
+    setResolvingItem(null);
   }
 
   async function handleAssignToToday(slotId, entry) {
@@ -395,6 +410,7 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
           pantryItems={pantryItems}
           onClose={() => setResolvingItem(null)}
           onSelect={handleSuggestionSelect}
+          onSchedule={handleSchedulePrep}
         />
       )}
 
