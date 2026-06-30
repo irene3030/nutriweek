@@ -10,7 +10,7 @@ const SLOTS = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
 
 const DAILY_KPIS = [
   { key: 'iron',   icon: Droplets, label: 'Hierro',   count: (tags) => tags.includes('iron') ? 1 : 0 },
-  { key: 'fish',   icon: Fish,     label: 'Pescado',  count: (tags) => tags.includes('oily_fish') ? 1 : 0 },
+  { key: 'fish',   icon: Fish,     label: 'Pesc. azul', count: (tags) => tags.includes('oily_fish') ? 1 : 0, weeklyOnly: true },
   { key: 'legume', icon: Bean,     label: 'Legumbre', count: (tags) => tags.includes('legume') ? 1 : 0 },
   { key: 'veggie', icon: Leaf,     label: 'Verduras', count: (tags) => new Set(tags.filter(t => t.startsWith('veggie:')).map(t => t.slice(7))).size },
   { key: 'fruit',  icon: Apple,    label: 'Fruta',    count: (tags) => tags.filter(t => t === 'fruit').length },
@@ -61,8 +61,9 @@ function DailyKpiRow({ slots }) {
 
   return (
     <div className="flex flex-wrap gap-1.5 pt-1 pb-2">
-      {DAILY_KPIS.map(({ key, icon: Icon, label, count }) => {
+      {DAILY_KPIS.map(({ key, icon: Icon, label, count, weeklyOnly }) => {
         const n = count(tags);
+        if (weeklyOnly && n === 0) return null;
         return (
           <span
             key={key}
@@ -160,9 +161,6 @@ export default function DayPlanSection({
         <div className="px-4 pb-3">
           <DailyKpiRow slots={slots} />
 
-          {/* Balance hint — only for today */}
-          {isToday && <DailyBalanceHint slots={slots} weeklyKpis={weeklyKpis} />}
-
           {/* CTA: Sugerir comida y cena (shown when both are empty) */}
           {hasAiAccess && !slots.comida?.items?.length && !slots.cena?.items?.length && (
             <button
@@ -208,6 +206,9 @@ export default function DayPlanSection({
               />
             );
           })}
+
+          {/* Balance hint — below cena, only for today */}
+          {isToday && <DailyBalanceHint slots={slots} weeklyKpis={weeklyKpis} />}
         </div>
       )}
 
