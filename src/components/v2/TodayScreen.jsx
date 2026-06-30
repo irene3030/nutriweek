@@ -91,7 +91,8 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
   const [showAddPrep, setShowAddPrep]             = useState(false);
   const [showShopping, setShowShopping]           = useState(false);
   const [prepopulated, setPrepopulated]           = useState(null);
-  const [prepQueueItemToRemove, setPrepQueueItemToRemove] = useState(null);
+  const [prepQueueItemToRemove, setPrepQueueItemToRemove]     = useState(null);
+  const [prepQueueSourceItemId, setPrepQueueSourceItemId]     = useState(null);
   const [resolvingItem, setResolvingItem]     = useState(null);
   const [showSnackSheet, setShowSnackSheet]   = useState(false);
   const [showCookingTime, setShowCookingTime] = useState(false);
@@ -229,13 +230,16 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
 
   async function handleSchedulePrep(proposal) {
     await addToPrepQueue({
-      label:         proposal.name,
-      prepType:      proposal.prepType,
-      prepTime:      proposal.prepTime ?? null,
-      adultPortions: proposal.adultPortions ?? null,
-      babyPortions:  proposal.babyPortions  ?? null,
-      tags:          proposal.tags ?? [],
-      ingredients:   proposal.ingredients ?? [],
+      label:                 proposal.name,
+      prepType:              proposal.prepType,
+      prepTime:              proposal.prepTime ?? null,
+      adultPortions:         proposal.adultPortions ?? null,
+      babyPortions:          proposal.babyPortions  ?? null,
+      tags:                  proposal.tags ?? [],
+      ingredients:           proposal.ingredients ?? [],
+      description:           proposal.description ?? null,
+      quickDishes:           proposal.quickDishes ?? [],
+      sourceInventoryItemId: resolvingItem?.id ?? null,
     });
     setResolvingItem(null);
     setShowCookingTime(false);
@@ -251,6 +255,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
       tags:          item.tags ?? [],
     });
     setPrepQueueItemToRemove(item.id);
+    setPrepQueueSourceItemId(item.sourceInventoryItemId ?? null);
     setShowAddPrep(true);
   }
 
@@ -259,6 +264,10 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
     if (prepQueueItemToRemove) {
       await removeFromPrepQueue(prepQueueItemToRemove);
       setPrepQueueItemToRemove(null);
+    }
+    if (prepQueueSourceItemId) {
+      await deleteItem(prepQueueSourceItemId);
+      setPrepQueueSourceItemId(null);
     }
     // Auto-inference: if same name already exists in inventory → recurring meal
     const sameName = inventoryItems.filter(

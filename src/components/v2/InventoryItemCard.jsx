@@ -1,4 +1,4 @@
-import { Trash2, Baby, User, Pencil, CalendarPlus, Cookie, Archive } from 'lucide-react';
+import { Trash2, Baby, User, Pencil, CalendarPlus, Cookie, Archive, ChefHat } from 'lucide-react';
 import TagChip from '../ui/TagChip';
 import FreshnessIndicator from './FreshnessIndicator';
 import { daysUntil } from '../../hooks/useInventory';
@@ -10,7 +10,7 @@ const TYPE_CONFIG = {
   flotante:       { label: 'Sin plan', color: 'bg-rose-100 text-rose-700' },
 };
 
-export default function InventoryItemCard({ item, onDelete, onEdit, onAddToToday, onMoveToPantry }) {
+export default function InventoryItemCard({ item, onDelete, onEdit, onAddToToday, onMoveToPantry, hasPendingPrep }) {
   const typeConfig = TYPE_CONFIG[item.type] || { label: item.type, color: 'bg-gray-100 text-gray-600' };
   const isSnack = item.type === 'snack-batch';
 
@@ -27,6 +27,11 @@ export default function InventoryItemCard({ item, onDelete, onEdit, onAddToToday
           <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${typeConfig.color}`}>
             {typeConfig.label}
           </span>
+          {hasPendingPrep && (
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full shrink-0 bg-violet-100 text-violet-700 flex items-center gap-1">
+              <ChefHat className="w-3 h-3" /> En cola
+            </span>
+          )}
         </div>
 
         {/* Portions / units */}

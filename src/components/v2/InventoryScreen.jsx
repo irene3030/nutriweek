@@ -58,7 +58,7 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
   const { usualMeals, addUsualMeal } = useUsualMeals(householdId);
   const { todayPlan, addSlotItem } = useDailyPlan(householdId);
   const { addItem: addToPantry } = usePantry(householdId);
-  const { addToPrepQueue } = usePrepQueue(householdId);
+  const { prepQueue, addToPrepQueue } = usePrepQueue(householdId);
 
   const [showAdd, setShowAdd]             = useState(false);
   const [showImport, setShowImport]       = useState(false);
@@ -108,13 +108,16 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
 
   async function handleSchedulePrep(proposal) {
     await addToPrepQueue({
-      label:         proposal.name,
-      prepType:      proposal.prepType,
-      prepTime:      proposal.prepTime ?? null,
-      adultPortions: proposal.adultPortions ?? null,
-      babyPortions:  proposal.babyPortions  ?? null,
-      tags:          proposal.tags ?? [],
-      ingredients:   proposal.ingredients ?? [],
+      label:                 proposal.name,
+      prepType:              proposal.prepType,
+      prepTime:              proposal.prepTime ?? null,
+      adultPortions:         proposal.adultPortions ?? null,
+      babyPortions:          proposal.babyPortions  ?? null,
+      tags:                  proposal.tags ?? [],
+      ingredients:           proposal.ingredients ?? [],
+      description:           proposal.description ?? null,
+      quickDishes:           proposal.quickDishes ?? [],
+      sourceInventoryItemId: resolvingItem?.id ?? null,
     });
     setResolvingItem(null);
   }
@@ -335,6 +338,7 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
                       onEdit={setEditingItem}
                       onAddToToday={setAssigningItem}
                       onMoveToPantry={handleMoveToPantry}
+                      hasPendingPrep={prepQueue.some(q => q.sourceInventoryItemId === item.id)}
                     />
                     {type === 'flotante' && hasAiAccess && (
                       <button

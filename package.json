@@ -5,9 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:local": "netlify dev",
-    "dev:local:2": "VITE_PORT=5174 netlify dev --port 8889 --target-port 5174",
-    "dev:local:3": "VITE_PORT=5175 netlify dev --port 8890 --target-port 5175",
+    "dev:local": "node scripts/netlify-dev.js",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"

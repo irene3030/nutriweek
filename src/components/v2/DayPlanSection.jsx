@@ -13,7 +13,7 @@ const DAILY_KPIS = [
   { key: 'fish',   icon: Fish,     label: 'Pescado',  count: (tags) => tags.includes('oily_fish') ? 1 : 0 },
   { key: 'legume', icon: Bean,     label: 'Legumbre', count: (tags) => tags.includes('legume') ? 1 : 0 },
   { key: 'veggie', icon: Leaf,     label: 'Verduras', count: (tags) => new Set(tags.filter(t => t.startsWith('veggie:')).map(t => t.slice(7))).size },
-  { key: 'fruit',  icon: Apple,    label: 'Fruta',    count: (tags) => tags.includes('fruit') ? 1 : 0 },
+  { key: 'fruit',  icon: Apple,    label: 'Fruta',    count: (tags) => tags.filter(t => t === 'fruit').length },
 ];
 
 function computeDailyTags(slots) {
