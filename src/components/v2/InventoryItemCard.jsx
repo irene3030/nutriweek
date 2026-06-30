@@ -1,8 +1,8 @@
-import { Trash2, Pencil, CalendarPlus, Archive, ChefHat } from 'lucide-react';
+import { Trash2, Pencil, CalendarPlus, Archive, ChefHat, Wand2 } from 'lucide-react';
 import TagChip from '../ui/TagChip';
 
 
-export default function InventoryItemCard({ item, onDelete, onEdit, onAddToToday, onMoveToPantry, hasPendingPrep }) {
+export default function InventoryItemCard({ item, onDelete, onEdit, onAddToToday, onMoveToPantry, onResolve, hasPendingPrep }) {
   const borderClass = item.type === 'flotante' ? 'border-rose-100' : 'border-gray-100';
 
   return (
@@ -35,6 +35,16 @@ export default function InventoryItemCard({ item, onDelete, onEdit, onAddToToday
 
       {/* Actions */}
       <div className="flex items-center gap-1 shrink-0">
+        {onResolve && (
+          <button
+            onClick={() => onResolve(item)}
+            className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl text-rose-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+            aria-label="Sugerir qué hacer"
+            title="¿Qué hago con esto?"
+          >
+            <Wand2 className="w-4 h-4" />
+          </button>
+        )}
         {onAddToToday && (
           <button
             onClick={() => onAddToToday(item)}

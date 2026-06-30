@@ -331,24 +331,16 @@ export default function InventoryScreen({ householdId, hasAiAccess, pantryItems 
               </h2>
               <div className="space-y-2">
                 {sectionItems.map((item) => (
-                  <div key={item.id} className="space-y-1">
-                    <InventoryItemCard
-                      item={item}
-                      onDelete={handleDelete}
-                      onEdit={setEditingItem}
-                      onAddToToday={setAssigningItem}
-                      onMoveToPantry={handleMoveToPantry}
-                      hasPendingPrep={prepQueue.some(q => q.sourceInventoryItemId === item.id)}
-                    />
-                    {type === 'flotante' && hasAiAccess && (
-                      <button
-                        onClick={() => setResolvingItem(item)}
-                        className="w-full text-xs text-rose-600 font-medium py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 transition-colors"
-                      >
-                        ¿Qué hago con esto?
-                      </button>
-                    )}
-                  </div>
+                  <InventoryItemCard
+                    key={item.id}
+                    item={item}
+                    onDelete={handleDelete}
+                    onEdit={setEditingItem}
+                    onAddToToday={setAssigningItem}
+                    onMoveToPantry={handleMoveToPantry}
+                    onResolve={type === 'flotante' && hasAiAccess ? setResolvingItem : undefined}
+                    hasPendingPrep={prepQueue.some(q => q.sourceInventoryItemId === item.id)}
+                  />
                 ))}
               </div>
             </section>
