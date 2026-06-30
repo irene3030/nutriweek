@@ -1205,7 +1205,14 @@ Devuelve SOLO este JSON:
 
 prepType debe ser: "ya-preparado" | "acelerador" | "justo-antes"
 source debe ser: "stock" (en inventario) | "despensa" (despensa base, siempre disponible) | "compra" (habría que comprar)
-kpiBoost: "legume" | "fish" | "iron" | "veggie" | null`;
+kpiBoost: "legume" | "fish" | "iron" | "veggie" | null
+
+DEFINICIÓN DE TAGS NUTRICIONALES (OBLIGATORIA):
+- oily_fish → SOLO salmón, caballa, sardina, atún, boquerón, anchoa, arenque. NUNCA dorada, lubina, merluza, bacalao, rape, lenguado, rodaballo, trucha, besugo ni ningún otro pescado blanco. La dorada es pescado BLANCO — NO lleva oily_fish.
+- iron → carne roja, hígado, legumbre, yema de huevo, espinacas
+- legume → lentejas, garbanzos, judías, alubias, guisantes, edamame
+- veggie:X → verdura concreta X (ej: veggie:zanahoria). No uses veggie para fruta.
+- fish → cualquier pescado o marisco (incluido blanco)`;
 
     } else if (type === 'suggest_shopping') {
       const { inventoryItems, weeklyKpis, expiringItems, floatingItems, pantryItems } = payload;
