@@ -198,9 +198,10 @@ export default function DayPlanSection({
       ) : (
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 transition-colors"
+          className="w-full flex items-center px-2 py-2.5 hover:bg-gray-50 transition-colors gap-1"
         >
-          <div className="flex items-center gap-3">
+          <div className="w-7 shrink-0" />
+          <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
             <span className="text-xs font-semibold text-gray-700">
               {formatDateHeader(date, offsetLabel)}
             </span>
@@ -219,10 +220,12 @@ export default function DayPlanSection({
               </div>
             )}
           </div>
-          {expanded
-            ? <ChevronUp className="w-4 h-4 text-gray-400 shrink-0" />
-            : <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />
-          }
+          <div className="w-7 shrink-0 flex items-center justify-center">
+            {expanded
+              ? <ChevronUp className="w-4 h-4 text-gray-400" />
+              : <ChevronDown className="w-4 h-4 text-gray-400" />
+            }
+          </div>
         </button>
       )}
 
