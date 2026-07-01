@@ -148,8 +148,6 @@ export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveIte
           <div className="space-y-2.5">
             {items.map((item, idx) => {
               const badge = TYPE_BADGES[item.itemType];
-              const showPortions = SHOWS_PORTIONS.has(item.itemType);
-              const isEditingThis = editingIdx === idx;
               const isLast = idx === items.length - 1;
 
               return (
