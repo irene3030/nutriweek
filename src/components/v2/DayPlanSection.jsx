@@ -109,6 +109,8 @@ export default function DayPlanSection({
   onUpdateSlotItemPortions,
   onUpdateSlotItem,
   onSaveTemplate,
+  dragActive = false,
+  onDropItem,
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [pickerSlot, setPickerSlot] = useState(null);
@@ -203,6 +205,8 @@ export default function DayPlanSection({
                     portionsBabyConsumed: 0,
                   }));
                 } : undefined}
+                dragActive={dragActive}
+                onDropItem={onDropItem ? () => onDropItem(date, slotId, offsetLabel) : undefined}
               />
             );
           })}
