@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { X, Sparkles, User, Baby, Check, Package, ShoppingCart, Home, RefreshCw } from 'lucide-react';
-import { proposeMeal } from '../../lib/claude';
+import { useState, useRef } from 'react';
+import { X, Sparkles, User, Baby, Check, Package, ShoppingCart, Home, RefreshCw, Plus, Loader2 } from 'lucide-react';
+import { proposeMeal, detectTags } from '../../lib/claude';
 import { daysUntil } from '../../hooks/useInventory';
 
 const SLOT_LABELS = {
@@ -31,15 +31,57 @@ function SourceIcon({ source }) {
 }
 
 function ProposalCard({ proposal, onSelect, onPlan }) {
+  const [extras, setExtras] = useState([]);
+  const [extraInput, setExtraInput] = useState('');
+  const [inferring, setInferring] = useState(false);
+  const inputRef = useRef(null);
+
   const badge = PREP_TYPE_BADGES[proposal.prepType];
   const kpiLabel = proposal.kpiBoost ? KPI_BOOST_LABELS[proposal.kpiBoost] : null;
+
+  async function handleAddExtra(e) {
+    e.preventDefault();
+    const name = extraInput.trim();
+    if (!name) return;
+    setExtraInput('');
+    setInferring(true);
+    try {
+      const result = await detectTags({ text: name });
+      const newTags = result?.tags ?? [];
+      setExtras(prev => [...prev, { name, tags: newTags }]);
+    } catch {
+      setExtras(prev => [...prev, { name, tags: [] }]);
+    } finally {
+      setInferring(false);
+      inputRef.current?.focus();
+    }
+  }
+
+  function buildMerged() {
+    const extraIngredients = extras.map(e => ({ name: e.name, source: 'despensa' }));
+    const extraTags = [...new Set(extras.flatMap(e => e.tags))];
+    const mergedTags = [...new Set([...(proposal.tags ?? []), ...extraTags])];
+    const suffix = extras.length
+      ? ' y ' + extras.map(e => e.name).join(', ')
+      : '';
+    return {
+      ...proposal,
+      name: proposal.name + suffix,
+      ingredients: [...(proposal.ingredients ?? []), ...extraIngredients],
+      tags: mergedTags,
+    };
+  }
 
   return (
     <div className="bg-white border border-gray-100 rounded-2xl p-4 space-y-3">
       {/* Header */}
       <div className="space-y-1">
         <div className="flex items-start gap-2 flex-wrap">
-          <span className="flex-1 text-sm font-semibold text-gray-900 leading-tight">{proposal.name}</span>
+          <span className="flex-1 text-sm font-semibold text-gray-900 leading-tight">
+            {proposal.name}{extras.length > 0 && (
+              <span className="text-brand-600"> y {extras.map(e => e.name).join(', ')}</span>
+            )}
+          </span>
           {badge && (
             <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${badge.color}`}>
               {badge.label}
@@ -62,16 +104,43 @@ function ProposalCard({ proposal, onSelect, onPlan }) {
       </div>
 
       {/* Ingredients */}
-      {proposal.ingredients?.length > 0 && (
-        <div className="flex flex-wrap gap-x-3 gap-y-1">
-          {proposal.ingredients.map((ing, i) => (
-            <span key={i} className="flex items-center gap-1 text-xs text-gray-600">
-              <SourceIcon source={ing.source} />
-              {ing.name}
-            </span>
-          ))}
-        </div>
-      )}
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {proposal.ingredients?.map((ing, i) => (
+          <span key={i} className="flex items-center gap-1 text-xs text-gray-600">
+            <SourceIcon source={ing.source} />
+            {ing.name}
+          </span>
+        ))}
+        {extras.map((e, i) => (
+          <span key={`extra-${i}`} className="flex items-center gap-1 text-xs text-brand-600 font-medium">
+            <Plus className="w-2.5 h-2.5" />
+            {e.name}
+            {e.tags.length > 0 && (
+              <span className="text-gray-400 font-normal">({e.tags.filter(t => !proposal.tags?.includes(t)).join(', ')})</span>
+            )}
+          </span>
+        ))}
+      </div>
+
+      {/* Extra ingredient input */}
+      <form onSubmit={handleAddExtra} className="flex items-center gap-2">
+        <input
+          ref={inputRef}
+          type="text"
+          value={extraInput}
+          onChange={e => setExtraInput(e.target.value)}
+          placeholder="Añadir ingrediente…"
+          className="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-300 bg-white placeholder-gray-400"
+          disabled={inferring}
+        />
+        <button
+          type="submit"
+          disabled={!extraInput.trim() || inferring}
+          className="flex items-center justify-center w-7 h-7 rounded-lg bg-brand-50 border border-brand-200 text-brand-600 hover:bg-brand-100 transition-colors disabled:opacity-40"
+        >
+          {inferring ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+        </button>
+      </form>
 
       {/* Portions + CTAs */}
       <div className="flex items-center justify-between pt-1">
@@ -86,14 +155,14 @@ function ProposalCard({ proposal, onSelect, onPlan }) {
         <div className="flex items-center gap-2">
           {onPlan && (
             <button
-              onClick={() => onPlan(proposal)}
+              onClick={() => onPlan(buildMerged())}
               className="text-xs font-medium px-3 py-1.5 rounded-xl border border-brand-300 text-brand-600 hover:bg-brand-50 transition-colors"
             >
               Planear
             </button>
           )}
           <button
-            onClick={() => onSelect(proposal)}
+            onClick={() => onSelect(buildMerged())}
             className="text-xs font-medium px-4 py-1.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
           >
             Seleccionar
