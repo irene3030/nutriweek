@@ -123,7 +123,8 @@ export default function IngredientShelf({ inventoryItems, onDragStart }) {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar…"
-            className="text-[11px] font-medium bg-transparent border-0 outline-none w-20 placeholder-gray-300 text-gray-600"
+            className="bg-transparent border-0 outline-none w-20 placeholder-gray-300 text-gray-600"
+            style={{ fontSize: '11px', fontWeight: 500, lineHeight: 1 }}
           />
         </div>
         <div className="w-px h-3.5 bg-gray-200 shrink-0" />
