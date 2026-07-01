@@ -56,7 +56,7 @@ export default function PrepQueueSection({ items, onDone, onRemove, onAdd }) {
     <section className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-50">
         <ChefHat className="w-3.5 h-3.5 text-gray-400" />
-        <span className="text-xs font-medium text-gray-500">Por preparar</span>
+        <span className="text-sm font-semibold text-gray-700">Por preparar</span>
         {items.length > 0 && (
           <span className="ml-auto text-xs text-gray-400">{items.length}</span>
         )}

@@ -111,7 +111,7 @@ export default function IngredientShelf({ inventoryItems, onDragStart }) {
       {/* Row 1: icon + label */}
       <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-gray-50">
         <Refrigerator className="w-3.5 h-3.5 text-gray-400" />
-        <span className="text-xs font-medium text-gray-500">Nevera</span>
+        <span className="text-sm font-semibold text-gray-700">Nevera</span>
       </div>
 
       {/* Row 2: search + filters */}
