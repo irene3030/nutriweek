@@ -463,14 +463,6 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
         <WeekHistoryStrip plans={plans} />
       </div>
 
-      {/* FAB — nueva preparación */}
-      <button
-        onClick={() => setShowAddPrep(true)}
-        className="fixed right-4 z-20 flex items-center gap-2 bg-brand-600 text-white text-sm font-medium px-4 py-3 rounded-2xl shadow-lg hover:bg-brand-700 transition-colors bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] lg:bottom-6"
-      >
-        <Plus className="w-4 h-4" />
-        Nueva preparación
-      </button>
 
       {/* Toast: añadido a habituales */}
       {usualToast && (

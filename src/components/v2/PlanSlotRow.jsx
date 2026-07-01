@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, User, Baby, Sparkles, Pencil, BookmarkPlus, Clock, Sun, Apple, UtensilsCrossed, Cookie, Moon } from 'lucide-react';
+import { Plus, X, Sparkles, Pencil, BookmarkPlus, Clock, Sun, Apple, UtensilsCrossed, Cookie, Moon } from 'lucide-react';
 
 const SLOT_LABELS = {
   desayuno: 'Desayuno',
@@ -24,8 +24,6 @@ const TYPE_BADGES = {
   flotante:       null,
   manual:         null,
 };
-
-const SHOWS_PORTIONS = new Set(['ya-preparado', 'acelerador', 'snack-batch']);
 
 function PortionCounter({ icon, value, onChange }) {
   return (
@@ -185,44 +183,6 @@ export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveIte
                       </div>
                     )}
 
-                    {/* Portions — editable when planned */}
-                    {showPortions && !isConfirmed && (
-                      <div className="flex items-center gap-3">
-                        {isEditingThis ? (
-                          <>
-                            <PortionCounter icon={<User className="w-3 h-3" />} value={draftAdult} onChange={setDraftAdult} />
-                            <PortionCounter icon={<Baby className="w-3 h-3" />} value={draftBaby} onChange={setDraftBaby} />
-                            <button onClick={savePortions} className="text-xs text-brand-600 font-medium hover:underline">
-                              Listo
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => openPortionEditor(idx)}
-                            className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-600 transition-colors"
-                          >
-                            <span className="flex items-center gap-0.5">
-                              <User className="w-3 h-3" /> {item.portionsAdultConsumed ?? 0}
-                            </span>
-                            <span className="flex items-center gap-0.5">
-                              <Baby className="w-3 h-3" /> {item.portionsBabyConsumed ?? 0}
-                            </span>
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Portions — read-only when confirmed */}
-                    {showPortions && isConfirmed && (
-                      <div className="flex items-center gap-2 text-xs text-gray-400">
-                        <span className="flex items-center gap-0.5">
-                          <User className="w-3 h-3" /> {item.portionsAdultConsumed ?? 0}
-                        </span>
-                        <span className="flex items-center gap-0.5">
-                          <Baby className="w-3 h-3" /> {item.portionsBabyConsumed ?? 0}
-                        </span>
-                      </div>
-                    )}
                   </div>
 
                   {/* Per-item actions — hidden until hover */}
