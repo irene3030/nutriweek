@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, User, Baby, Sparkles, Pencil, BookmarkPlus, Clock } from 'lucide-react';
+import { Plus, X, User, Baby, Sparkles, Pencil, BookmarkPlus, Clock, Sun, Apple, UtensilsCrossed, Cookie, Moon } from 'lucide-react';
 
 const SLOT_LABELS = {
   desayuno: 'Desayuno',
@@ -7,6 +7,14 @@ const SLOT_LABELS = {
   comida:   'Comida',
   merienda: 'Merienda',
   cena:     'Cena',
+};
+
+const SLOT_ICONS = {
+  desayuno: Sun,
+  snack:    Apple,
+  comida:   UtensilsCrossed,
+  merienda: Cookie,
+  cena:     Moon,
 };
 
 const TYPE_BADGES = {
@@ -51,6 +59,7 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onE
   const [draftBaby, setDraftBaby] = useState(0);
 
   const label = SLOT_LABELS[slotId] || slotId;
+  const SlotIcon = SLOT_ICONS[slotId] ?? UtensilsCrossed;
   const items = slot?.items || [];
   const isEmpty = !slot || items.length === 0;
   const isConfirmed = !!slot?.confirmedAt;
@@ -69,10 +78,10 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onE
   };
 
   return (
-    <div className={`flex items-start gap-3 py-2.5 border-b border-gray-50 last:border-0 ${disabled ? 'opacity-50' : ''}`}>
-      {/* Slot label */}
-      <span className="w-20 shrink-0 text-xs font-medium text-gray-400 uppercase tracking-wide pt-1">
-        {label}
+    <div className={`flex items-start gap-3 py-3 border-b border-gray-100 last:border-0 ${disabled ? 'opacity-50' : ''}`}>
+      {/* Slot icon */}
+      <span className="shrink-0 pt-0.5" title={label}>
+        <SlotIcon className={`w-4 h-4 ${isConfirmed ? 'text-green-400' : isEmpty ? 'text-gray-300' : 'text-gray-400'}`} />
       </span>
 
       {/* Content */}
