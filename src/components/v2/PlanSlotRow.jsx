@@ -14,7 +14,7 @@ const TYPE_BADGES = {
   acelerador:     { label: 'Base',        color: 'bg-violet-100 text-violet-700' },
   'snack-batch':  { label: 'Snack',       color: 'bg-amber-100 text-amber-700' },
   flotante:       { label: 'Ingrediente', color: 'bg-rose-100 text-rose-700' },
-  manual:         { label: 'Manual',      color: 'bg-gray-100 text-gray-600' },
+  manual:         null,
 };
 
 const SHOWS_PORTIONS = new Set(['ya-preparado', 'acelerador', 'snack-batch']);
