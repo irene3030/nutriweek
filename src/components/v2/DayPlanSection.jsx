@@ -69,7 +69,7 @@ function DailyKpiRow({ slots }) {
   const hasAny = tags.length > 0;
 
   return (
-    <div className="flex flex-wrap gap-1.5 pt-1 pb-2">
+    <div className="flex gap-1.5 pt-1 pb-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
       {DAILY_KPIS.map(({ key, icon: Icon, label, count, weeklyOnly }) => {
         const n = count(tags);
         if (weeklyOnly && n === 0) return null;
