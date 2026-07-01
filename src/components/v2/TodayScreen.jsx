@@ -407,6 +407,81 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-4 pb-24 lg:pb-6 lg:max-w-none lg:px-6">
+        {/* Briefing del lunes */}
+        {showBriefing && lastWeekKpis && (
+          <WeeklyBriefing lastWeekKpis={lastWeekKpis} onDismiss={handleDismissBriefing} />
+        )}
+
+        {/* KPI strip semanal (accionables cuando hay acceso IA) */}
+        <WeeklyKpiStrip kpis={weeklyKpis} onKpiTap={hasAiAccess ? handleKpiTap : undefined} />
+
+        {/* Alerts */}
+        {alertsVisible && (
+          <section className="space-y-2">
+            {alertableFloating.map((item) => (
+              <div key={item.id} className="flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2.5">
+                <MapPin className="w-4 h-4 text-rose-400 shrink-0" />
+                <span className="flex-1 text-sm text-rose-800 font-medium truncate">{item.name}</span>
+                {hasAiAccess && (
+                  <button
+                    onClick={() => setResolvingItem(item)}
+                    className="text-xs text-rose-600 font-medium shrink-0 hover:underline"
+                  >
+                    ¿Qué hago?
+                  </button>
+                )}
+                <button
+                  onClick={() => dismissFloating(item.id)}
+                  className="w-6 h-6 flex items-center justify-center rounded-full text-rose-300 hover:text-rose-500 hover:bg-rose-100 transition-colors shrink-0"
+                  aria-label="Descartar hasta mañana"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+            {hasAiAccess && lowSnackItems.length > 0 && (
+              <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                <Cookie className="w-4 h-4 text-amber-500 shrink-0" />
+                <span className="flex-1 text-sm text-amber-800 font-medium">Snack casi agotado</span>
+                <button
+                  onClick={() => setShowSnackSheet(true)}
+                  className="text-xs text-amber-700 font-medium shrink-0 hover:underline"
+                >
+                  Preparar snack
+                </button>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Cola de preparaciones pendientes */}
+        <PrepQueueSection
+          items={prepQueue}
+          onDone={handlePrepQueueDone}
+          onRemove={removeFromPrepQueue}
+          onAdd={addToPrepQueue}
+        />
+
+        {/* F8 — Tengo tiempo para cocinar (mobile only — en desktop aparece en el header) */}
+        {hasAiAccess && (
+          <button
+            onClick={() => setShowCookingTime(true)}
+            className="lg:hidden w-full flex items-center gap-3 bg-brand-600 text-white rounded-2xl px-4 py-3 text-sm font-medium hover:bg-brand-700 transition-colors"
+          >
+            <Clock className="w-4 h-4 shrink-0" />
+            <span className="flex-1 text-left">Tengo tiempo para cocinar</span>
+            <ChevronRight className="w-4 h-4 opacity-70 shrink-0" />
+          </button>
+        )}
+
+        {/* Ingredient shelf — drag source */}
+        <div onDragEnd={handleDragEnd}>
+          <IngredientShelf
+            inventoryItems={inventoryItems}
+            onDragStart={handleDragStart}
+          />
+        </div>
+
         {/* Day planning sections */}
         <div className="flex items-start gap-1">
           <button
@@ -418,75 +493,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
             <ChevronLeft className="w-4 h-4" />
           </button>
 
-          <div className="flex-1 space-y-4">
-            {/* Briefing del lunes */}
-            {showBriefing && lastWeekKpis && (
-              <WeeklyBriefing lastWeekKpis={lastWeekKpis} onDismiss={handleDismissBriefing} />
-            )}
-
-            {/* KPI strip semanal */}
-            <WeeklyKpiStrip kpis={weeklyKpis} onKpiTap={hasAiAccess ? handleKpiTap : undefined} />
-
-            {/* Alerts */}
-            {alertsVisible && (
-              <section className="space-y-2">
-                {alertableFloating.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2.5">
-                    <MapPin className="w-4 h-4 text-rose-400 shrink-0" />
-                    <span className="flex-1 text-sm text-rose-800 font-medium truncate">{item.name}</span>
-                    {hasAiAccess && (
-                      <button onClick={() => setResolvingItem(item)} className="text-xs text-rose-600 font-medium shrink-0 hover:underline">
-                        ¿Qué hago?
-                      </button>
-                    )}
-                    <button
-                      onClick={() => dismissFloating(item.id)}
-                      className="w-6 h-6 flex items-center justify-center rounded-full text-rose-300 hover:text-rose-500 hover:bg-rose-100 transition-colors shrink-0"
-                      aria-label="Descartar hasta mañana"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-                {hasAiAccess && lowSnackItems.length > 0 && (
-                  <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
-                    <Cookie className="w-4 h-4 text-amber-500 shrink-0" />
-                    <span className="flex-1 text-sm text-amber-800 font-medium">Snack casi agotado</span>
-                    <button onClick={() => setShowSnackSheet(true)} className="text-xs text-amber-700 font-medium shrink-0 hover:underline">
-                      Preparar snack
-                    </button>
-                  </div>
-                )}
-              </section>
-            )}
-
-            {/* Cola de preparaciones pendientes */}
-            <PrepQueueSection
-              items={prepQueue}
-              onDone={handlePrepQueueDone}
-              onRemove={removeFromPrepQueue}
-              onAdd={addToPrepQueue}
-            />
-
-            {/* F8 — Tengo tiempo para cocinar (mobile only) */}
-            {hasAiAccess && (
-              <button
-                onClick={() => setShowCookingTime(true)}
-                className="lg:hidden w-full flex items-center gap-3 bg-brand-600 text-white rounded-2xl px-4 py-3 text-sm font-medium hover:bg-brand-700 transition-colors"
-              >
-                <Clock className="w-4 h-4 shrink-0" />
-                <span className="flex-1 text-left">Tengo tiempo para cocinar</span>
-                <ChevronRight className="w-4 h-4 opacity-70 shrink-0" />
-              </button>
-            )}
-
-            {/* Ingredient shelf — drag source */}
-            <div onDragEnd={handleDragEnd}>
-              <IngredientShelf inventoryItems={inventoryItems} onDragStart={handleDragStart} />
-            </div>
-
-            {/* Day cards */}
-            <div className="lg:grid lg:grid-cols-3 lg:gap-4 space-y-4 lg:space-y-0">
+          <div className="flex-1 lg:grid lg:grid-cols-3 lg:gap-4 space-y-4 lg:space-y-0">
           {getDays(dayOffset).map(({ offset, label }) => {
             const dateStr = offsetDateStr(offset);
             return (
@@ -518,8 +525,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
               />
             );
           })}
-            </div>{/* end day cards grid */}
-          </div>{/* end flex-1 */}
+          </div>
 
           <button
             onClick={() => setDayOffset(o => o + 1)}
