@@ -498,7 +498,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
                 weeklyKpis={weeklyKpis}
                 hasAiAccess={hasAiAccess}
                 pantryItems={pantryItems}
-                defaultExpanded={false}
+                defaultExpanded={true}
                 autoPropose={offset === 0}
                 timeOfDay={offset === 0 ? getTimeOfDay() : undefined}
                 isToday={offset === 0}
