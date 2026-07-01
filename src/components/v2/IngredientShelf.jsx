@@ -116,18 +116,6 @@ export default function IngredientShelf({ inventoryItems, onDragStart }) {
 
       {/* Row 2: search + filters */}
       <div className="flex items-center gap-3 px-4 py-2 border-b border-gray-50 flex-wrap">
-        <div className="flex items-center gap-1 text-gray-400 shrink-0">
-          <Search className="w-3 h-3" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar…"
-            className="bg-transparent border-0 outline-none w-20 placeholder-gray-300 text-gray-600"
-            style={{ fontSize: '11px', fontWeight: 500, lineHeight: 1 }}
-          />
-        </div>
-        <div className="w-px h-3.5 bg-gray-200 shrink-0" />
         <div className="flex items-center gap-1 flex-wrap">
           <button
             onClick={() => setActiveFilters(new Set())}
