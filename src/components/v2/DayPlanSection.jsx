@@ -99,6 +99,7 @@ function formatDateHeader(dateStr, offsetLabel) {
 }
 
 export default function DayPlanSection({
+  isCenter = false,
   date,
   offsetLabel,
   plan,
@@ -150,7 +151,7 @@ export default function DayPlanSection({
   }).length;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+    <div className={`bg-white rounded-2xl border overflow-hidden ${isCenter ? 'border-brand-300 ring-2 ring-brand-100' : 'border-gray-100'}`}>
       {/* Header */}
       <button
         onClick={() => setExpanded((v) => !v)}

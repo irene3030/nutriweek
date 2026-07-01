@@ -423,6 +423,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
             return (
               <DayPlanSection
                 key={dateStr}
+                isCenter={offset === dayOffset}
                 date={dateStr}
                 offsetLabel={label}
                 plan={getPlan(dateStr)}
