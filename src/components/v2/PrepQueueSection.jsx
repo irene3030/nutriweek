@@ -1,6 +1,25 @@
 import { useState } from 'react';
 import { Plus, CheckCircle2, X, ChefHat, ChevronDown, ChevronUp, Zap, ShoppingCart, Home, Check } from 'lucide-react';
 
+const SLOT_LABELS = {
+  desayuno: 'desayuno', snack: 'snack', comida: 'comida', merienda: 'merienda', cena: 'cena',
+};
+
+function formatSlotTarget(targetDate, targetSlot) {
+  if (!targetDate || !targetSlot) return null;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const tomorrowStr = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  let day;
+  if (targetDate === todayStr) day = 'Hoy';
+  else if (targetDate === tomorrowStr) day = 'Mañana';
+  else {
+    const d = new Date(targetDate + 'T12:00:00');
+    const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    day = `${DAYS[d.getDay()]} ${d.getDate()}`;
+  }
+  return `${day} ${SLOT_LABELS[targetSlot] ?? targetSlot}`;
+}
+
 const PREP_TYPE_BADGES = {
   'ya-preparado': { label: 'Listo',       color: 'bg-brand-100 text-brand-700' },
   acelerador:     { label: 'Base',        color: 'bg-violet-100 text-violet-700' },
@@ -35,9 +54,9 @@ export default function PrepQueueSection({ items, onDone, onRemove, onAdd }) {
 
   return (
     <section className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
-      <div className="flex items-center gap-2 px-4 pt-4 pb-3">
-        <ChefHat className="w-4 h-4 text-gray-400" />
-        <h2 className="text-sm font-semibold text-gray-700">Por preparar</h2>
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-50">
+        <ChefHat className="w-3.5 h-3.5 text-gray-400" />
+        <span className="text-xs font-medium text-gray-500">Por preparar</span>
         {items.length > 0 && (
           <span className="ml-auto text-xs text-gray-400">{items.length}</span>
         )}
@@ -60,6 +79,11 @@ export default function PrepQueueSection({ items, onDone, onRemove, onAdd }) {
                       {badge && (
                         <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium shrink-0 ${badge.color}`}>
                           {badge.label}
+                        </span>
+                      )}
+                      {formatSlotTarget(item.targetDate, item.targetSlot) && (
+                        <span className="text-xs text-gray-400 shrink-0">
+                          {formatSlotTarget(item.targetDate, item.targetSlot)}
                         </span>
                       )}
                     </div>

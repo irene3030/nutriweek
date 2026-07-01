@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, Sparkles, Pencil, BookmarkPlus, Clock, Sun, Apple, UtensilsCrossed, Cookie, Moon } from 'lucide-react';
+import { Plus, X, Sparkles, Pencil, BookmarkPlus, Clock, Sun, Apple, UtensilsCrossed, Cookie, Moon, ArrowDown } from 'lucide-react';
 
 const SLOT_LABELS = {
   desayuno: 'Desayuno',
@@ -77,10 +77,11 @@ const SLOT_ICON_COLOR = {
 };
 
 // slot = { items: SlotEntry[], confirmedAt: string|null } | null
-export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveItem, onEditItem, onConfirm, onUpdatePortions, onAiPropose, disabled, template, onSaveTemplate, onApplyTemplate }) {
+export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveItem, onEditItem, onConfirm, onUpdatePortions, onAiPropose, disabled, template, onSaveTemplate, onApplyTemplate, dragActive, onDropItem }) {
   const [editingIdx, setEditingIdx] = useState(null);
   const [draftAdult, setDraftAdult] = useState(0);
   const [draftBaby, setDraftBaby] = useState(0);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const label = SLOT_LABELS[slotId] || slotId;
   const SlotIcon = SLOT_ICONS[slotId] ?? UtensilsCrossed;
@@ -89,6 +90,21 @@ export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveIte
   const isConfirmed = !!slot?.confirmedAt;
   const isPlanned = !isEmpty && !isConfirmed;
   const slotStatus = getSlotStatus(slotId, slot, date);
+  const isDropTarget = dragActive && !isConfirmed;
+
+  function handleDragOver(e) {
+    if (!isDropTarget) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    setIsDragOver(true);
+  }
+  function handleDragLeave() { setIsDragOver(false); }
+  function handleDrop(e) {
+    if (!isDropTarget) return;
+    e.preventDefault();
+    setIsDragOver(false);
+    onDropItem?.();
+  }
 
   const openPortionEditor = (idx) => {
     const item = items[idx];
@@ -103,7 +119,16 @@ export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveIte
   };
 
   return (
-    <div className={`flex items-start gap-3 py-3 border-b border-gray-100 last:border-0 ${disabled ? 'opacity-50' : ''}`}>
+    <div
+      className={`flex items-start gap-3 py-3 border-b border-gray-100 last:border-0 transition-colors rounded-xl
+        ${disabled ? 'opacity-50' : ''}
+        ${isDragOver ? 'bg-brand-50 ring-1 ring-brand-300 px-2 -mx-2' : ''}
+        ${isDropTarget && !isDragOver ? 'cursor-copy' : ''}
+      `}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       {/* Slot icon */}
       <span className="shrink-0 pt-0.5" title={label}>
         <SlotIcon className={`w-4 h-4 ${SLOT_ICON_COLOR[slotStatus]}`} />
@@ -111,7 +136,12 @@ export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveIte
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        {isEmpty ? (
+        {isEmpty && isDragOver ? (
+          <div className="flex items-center gap-1.5 text-xs text-brand-600 font-medium py-1">
+            <ArrowDown className="w-3.5 h-3.5" />
+            Soltar aquí
+          </div>
+        ) : isEmpty ? (
           <div className="space-y-1.5">
             {template?.length > 0 && onApplyTemplate && (
               <button
@@ -153,22 +183,45 @@ export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveIte
               return (
                 <div key={idx} className="flex items-start gap-2 group/item">
                   <div className="flex-1 min-w-0 space-y-0.5">
-                    {/* Label + badge */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-sm font-medium ${isConfirmed ? 'text-gray-400' : 'text-gray-800'}`}>
-                        {item.itemType === 'acelerador' ? (item.accelBase || item.label) : item.label}
-                      </span>
-                      {badge && (
-                        <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium ${badge.color}`}>
-                          {badge.label}
+                    {/* Label + badge — flotante-aware */}
+                    {item.itemType === 'flotante' && item.isNamedDish ? (
+                      // Named dish: no badge, all ingredients in subtitle
+                      <>
+                        <span className={`text-sm font-medium ${isConfirmed ? 'text-gray-400' : 'text-gray-800'}`}>
+                          {item.label}
                         </span>
-                      )}
-                      {item.pendingPrep && (
-                        <span className="shrink-0 flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">
-                          <Clock className="w-2.5 h-2.5" /> Por preparar
+                        {(() => {
+                          const all = [item.primaryIngredientName, ...(item.additionalIngredientNames || [])].filter(Boolean);
+                          return all.length > 0 ? (
+                            <p className="text-[10px] text-gray-400 leading-tight">{all.join(', ')}</p>
+                          ) : null;
+                        })()}
+                      </>
+                    ) : item.itemType === 'flotante' && item.additionalIngredientNames?.length > 0 ? (
+                      // Raw ingredient + extras: everything inline
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-sm font-medium ${isConfirmed ? 'text-gray-400' : 'text-gray-800'}`}>
+                          {[item.label, ...item.additionalIngredientNames].join(' · ')}
                         </span>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      // Default: label + badge + pendingPrep
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-sm font-medium ${isConfirmed ? 'text-gray-400' : 'text-gray-800'}`}>
+                          {item.itemType === 'acelerador' ? (item.accelBase || item.label) : item.label}
+                        </span>
+                        {badge && (
+                          <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium ${badge.color}`}>
+                            {badge.label}
+                          </span>
+                        )}
+                        {item.pendingPrep && (
+                          <span className="shrink-0 flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">
+                            <Clock className="w-2.5 h-2.5" /> Por preparar
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     {/* Acelerador meta: prep note + time */}
                     {item.itemType === 'acelerador' && (item.label !== item.accelBase || item.prepTime) && (
@@ -180,7 +233,6 @@ export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveIte
                         )}
                       </div>
                     )}
-
                   </div>
 
                   {/* Per-item actions — hidden until hover */}

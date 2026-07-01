@@ -17,6 +17,8 @@ import MealProposalSheet from './MealProposalSheet';
 import WeeklyBriefing from './WeeklyBriefing';
 import WeekHistoryStrip from './WeekHistoryStrip';
 import PrepQueueSection from './PrepQueueSection';
+import IngredientShelf from './IngredientShelf';
+import DropPrepSheet from './DropPrepSheet';
 import { daysUntil } from '../../hooks/useInventory';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
@@ -65,6 +67,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
     floatingItems,
     loading: invLoading,
     addItem,
+    updateItem,
     consumePortions,
     consumeUnits,
     restorePortions,
@@ -94,6 +97,11 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
   const [showAddPrep, setShowAddPrep]             = useState(false);
   const [showShopping, setShowShopping]           = useState(false);
   const [prepopulated, setPrepopulated]           = useState(null);
+
+  // Drag-and-drop state
+  const [draggedItem, setDraggedItem]   = useState(null);
+  const [dropTarget, setDropTarget]     = useState(null); // { dateStr, slotId, dayLabel } for flotante sheet
+  const [resolveSlotCtx, setResolveSlotCtx] = useState(null); // { dateStr, slotId } preserved when AI opens from a drag-drop
   const [prepQueueItemToRemove, setPrepQueueItemToRemove]     = useState(null);
   const [prepQueueSourceItemId, setPrepQueueSourceItemId]     = useState(null);
   const [resolvingItem, setResolvingItem]     = useState(null);
@@ -183,10 +191,16 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
 
     // Decrement inventory for each item in the slot
     for (const item of slot.items) {
-      if (!item.inventoryItemId) continue;
-      if (item.itemType === 'snack-batch') {
+      if (item.itemType === 'snack-batch' && item.inventoryItemId) {
         await consumeUnits(item.inventoryItemId, 1);
-      } else if (item.itemType !== 'manual' && item.itemType !== 'flotante') {
+      } else if (item.itemType === 'flotante' && item.inventoryItemId) {
+        // Deactivate primary flotante ingredient
+        await updateItem(item.inventoryItemId, { isActive: false });
+        // Deactivate any extra ingredients combined into this dish
+        for (const extraId of (item.additionalInventoryIds || [])) {
+          await updateItem(extraId, { isActive: false });
+        }
+      } else if (item.inventoryItemId && item.itemType !== 'manual' && item.itemType !== 'flotante') {
         await consumePortions(
           item.inventoryItemId,
           item.portionsAdultConsumed || 0,
@@ -243,8 +257,11 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
       description:           proposal.description ?? null,
       quickDishes:           proposal.quickDishes ?? [],
       sourceInventoryItemId: resolvingItem?.id ?? null,
+      targetDate:            resolveSlotCtx?.dateStr ?? null,
+      targetSlot:            resolveSlotCtx?.slotId ?? null,
     });
     setResolvingItem(null);
+    setResolveSlotCtx(null);
     setShowCookingTime(false);
     setShowSnackSheet(false);
   }
@@ -300,6 +317,57 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
       setTimeout(() => setUsualToast(null), 3000);
     }
   };
+
+  // ── Drag handlers ───────────────────────────────────────────────────────────
+
+  function handleDragStart(item) {
+    setDraggedItem(item);
+  }
+
+  function handleDragEnd() {
+    setDraggedItem(null);
+  }
+
+  function handleDropOnSlot(dateStr, slotId, dayLabel) {
+    if (!draggedItem) return;
+    const item = draggedItem;
+    setDraggedItem(null);
+
+    // Snack: add directly, no sheet needed
+    if (item.type === 'snack' || item.type === 'snack-batch') {
+      addSlotItem(dateStr, slotId, {
+        inventoryItemId: item.id,
+        label: item.name,
+        itemType: 'snack-batch',
+        tags: item.tags || [],
+        portionsAdultConsumed: 0,
+        portionsBabyConsumed: 0,
+        prepTime: null,
+        accelBase: null,
+      });
+      return;
+    }
+
+    // Everything else opens the sheet:
+    // - flotante → name input + extra ingredients
+    // - ya-preparado / acelerador → portions stepper
+    setDropTarget({ dateStr, slotId, dayLabel, item });
+  }
+
+  function handleDropPrepConfirm(entry) {
+    if (!dropTarget) return;
+    addSlotItem(dropTarget.dateStr, dropTarget.slotId, entry);
+    setDropTarget(null);
+  }
+
+  function handleDropPrepOpenAi() {
+    if (!dropTarget) return;
+    setResolveSlotCtx({ dateStr: dropTarget.dateStr, slotId: dropTarget.slotId });
+    setResolvingItem(dropTarget.item);
+    setDropTarget(null);
+  }
+
+  // ── End drag handlers ────────────────────────────────────────────────────────
 
   const PROTEIN_TAGS = ['iron', 'fish', 'oily_fish', 'legume', 'egg'];
   const alertableFloating = floatingItems.filter(item =>
@@ -406,6 +474,14 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
           </button>
         )}
 
+        {/* Ingredient shelf — drag source */}
+        <div onDragEnd={handleDragEnd}>
+          <IngredientShelf
+            inventoryItems={inventoryItems}
+            onDragStart={handleDragStart}
+          />
+        </div>
+
         {/* Day planning sections */}
         <div className="flex items-start gap-1">
           <button
@@ -444,6 +520,8 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
                 onUpdateSlotItemPortions={updateSlotItemPortions}
                 onUpdateSlotItem={updateSlotItem}
                 onSchedulePrep={handleScheduleMealProposal}
+                dragActive={!!draggedItem}
+                onDropItem={handleDropOnSlot}
               />
             );
           })}
@@ -496,7 +574,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
           inventoryItems={inventoryItems}
           weeklyKpis={weeklyKpis}
           pantryItems={pantryItems}
-          onClose={() => setResolvingItem(null)}
+          onClose={() => { setResolvingItem(null); setResolveSlotCtx(null); }}
           onSelect={handleSuggestionSelect}
           onSchedule={handleSchedulePrep}
         />
@@ -521,6 +599,20 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
           onClose={() => setShowCookingTime(false)}
           onSelect={handleSuggestionSelect}
           onSchedule={handleSchedulePrep}
+        />
+      )}
+
+      {/* Drop prep sheet: opens when a flotante is dropped on a slot */}
+      {dropTarget && (
+        <DropPrepSheet
+          item={dropTarget.item}
+          targetSlot={dropTarget.slotId}
+          dayLabel={dropTarget.dayLabel}
+          hasAiAccess={hasAiAccess}
+          flotanteItems={floatingItems}
+          onClose={() => setDropTarget(null)}
+          onConfirm={handleDropPrepConfirm}
+          onOpenAi={hasAiAccess ? handleDropPrepOpenAi : undefined}
         />
       )}
 

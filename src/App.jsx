@@ -423,7 +423,7 @@ function AppContent() {
             />
           )}
 
-          {activeTab === 'day' && (
+{activeTab === 'day' && (
             <DayPlayground
               hasAiAccess={
                 !!householdApiKey ||
