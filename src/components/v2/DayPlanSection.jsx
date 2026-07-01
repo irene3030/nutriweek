@@ -186,6 +186,7 @@ export default function DayPlanSection({
                 key={slotId}
                 slotId={slotId}
                 slot={slot}
+                date={date}
                 onAddItem={() => setPickerSlot(slotId)}
                 onRemoveItem={(idx) => onRemoveSlotItem(date, slotId, idx)}
                 onEditItem={(idx) => {

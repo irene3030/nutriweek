@@ -52,8 +52,34 @@ function PortionCounter({ icon, value, onChange }) {
 
 const AI_SLOTS = new Set(['comida', 'cena']);
 
+const SLOT_CUTOFF_HOUR = {
+  desayuno: 10, snack: 12, comida: 15, merienda: 18, cena: 22,
+};
+
+function getSlotStatus(slotId, slot, date) {
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const isConfirmed = !!slot?.confirmedAt;
+  const hasItems = (slot?.items?.length ?? 0) > 0;
+
+  const isPast = date < today;
+  const isToday = date === today;
+
+  if (isPast || (isToday && now.getHours() >= (SLOT_CUTOFF_HOUR[slotId] ?? 22))) {
+    return isConfirmed ? 'confirmed' : 'missed';
+  }
+  return hasItems ? 'planned' : 'empty';
+}
+
+const SLOT_ICON_COLOR = {
+  confirmed: 'text-green-400',
+  missed:    'text-red-400',
+  planned:   'text-amber-400',
+  empty:     'text-gray-300',
+};
+
 // slot = { items: SlotEntry[], confirmedAt: string|null } | null
-export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onEditItem, onConfirm, onUpdatePortions, onAiPropose, disabled, template, onSaveTemplate, onApplyTemplate }) {
+export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveItem, onEditItem, onConfirm, onUpdatePortions, onAiPropose, disabled, template, onSaveTemplate, onApplyTemplate }) {
   const [editingIdx, setEditingIdx] = useState(null);
   const [draftAdult, setDraftAdult] = useState(0);
   const [draftBaby, setDraftBaby] = useState(0);
@@ -64,6 +90,7 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onE
   const isEmpty = !slot || items.length === 0;
   const isConfirmed = !!slot?.confirmedAt;
   const isPlanned = !isEmpty && !isConfirmed;
+  const slotStatus = getSlotStatus(slotId, slot, date);
 
   const openPortionEditor = (idx) => {
     const item = items[idx];
@@ -81,7 +108,7 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onE
     <div className={`flex items-start gap-3 py-3 border-b border-gray-100 last:border-0 ${disabled ? 'opacity-50' : ''}`}>
       {/* Slot icon */}
       <span className="shrink-0 pt-0.5" title={label}>
-        <SlotIcon className={`w-4 h-4 ${isConfirmed ? 'text-green-400' : isEmpty ? 'text-gray-300' : 'text-gray-400'}`} />
+        <SlotIcon className={`w-4 h-4 ${SLOT_ICON_COLOR[slotStatus]}`} />
       </span>
 
       {/* Content */}
