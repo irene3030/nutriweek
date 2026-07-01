@@ -161,7 +161,8 @@ export default function PrepQueueSection({ items, onDone, onRemove, onAdd }) {
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder="Añadir tarea de cocina…"
-          className="flex-1 text-sm text-gray-700 placeholder-gray-400 bg-transparent focus:outline-none"
+          className="flex-1 text-gray-700 placeholder-gray-400 bg-transparent focus:outline-none"
+          style={{ fontSize: '14px', fontWeight: 400, lineHeight: 1 }}
         />
         <button
           type="submit"
