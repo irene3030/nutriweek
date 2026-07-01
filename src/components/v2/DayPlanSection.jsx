@@ -76,12 +76,12 @@ function DailyKpiRow({ slots }) {
         return (
           <span
             key={key}
+            title={label}
             className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg font-medium transition-colors ${
               n > 0 ? 'bg-green-50 text-green-700' : hasAny ? 'bg-gray-100 text-gray-400' : 'bg-gray-50 text-gray-300'
             }`}
           >
             <Icon className="w-3.5 h-3.5" />
-            <span>{label}</span>
             {n > 0 && <span className="font-bold">+{n}</span>}
           </span>
         );
