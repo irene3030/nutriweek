@@ -125,9 +125,10 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onE
               const badge = TYPE_BADGES[item.itemType];
               const showPortions = SHOWS_PORTIONS.has(item.itemType);
               const isEditingThis = editingIdx === idx;
+              const isLast = idx === items.length - 1;
 
               return (
-                <div key={idx} className="flex items-start gap-2">
+                <div key={idx} className="flex items-start gap-2 group/item">
                   <div className="flex-1 min-w-0 space-y-0.5">
                     {/* Label + badge */}
                     <div className="flex items-center gap-2 flex-wrap">
@@ -197,8 +198,8 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onE
                     )}
                   </div>
 
-                  {/* Per-item actions */}
-                  <div className="flex items-center gap-0.5 shrink-0 mt-0.5">
+                  {/* Per-item actions — hidden until hover */}
+                  <div className="flex items-center gap-0.5 shrink-0 mt-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity">
                     {isConfirmed && idx === 0 && onSaveTemplate && (
                       <button
                         onClick={() => onSaveTemplate(items.map(({ label: l, itemType, tags }) => ({ label: l, itemType, tags: tags || [] })))}
@@ -212,6 +213,7 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onE
                       onClick={() => onEditItem?.(idx)}
                       className="flex items-center justify-center w-6 h-6 rounded-lg text-gray-300 hover:text-brand-500 hover:bg-brand-50 transition-colors"
                       aria-label="Editar"
+                      title="Editar"
                     >
                       <Pencil className="w-3 h-3" />
                     </button>
@@ -219,32 +221,35 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onE
                       onClick={() => onRemoveItem?.(idx)}
                       className="flex items-center justify-center w-6 h-6 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-colors"
                       aria-label="Quitar"
+                      title="Eliminar"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
+                    {isLast && (
+                      <button
+                        onClick={onAddItem}
+                        className="flex items-center justify-center w-6 h-6 rounded-lg text-gray-300 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                        aria-label="Añadir otro"
+                        title="Añadir otro"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
             })}
 
-            {/* Bottom row */}
-            <div className="flex items-center justify-end pt-0.5 gap-2">
-              {isPlanned && (
+            {isPlanned && (
+              <div className="flex justify-end pt-1">
                 <button
                   onClick={onConfirm}
-                  className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors min-h-[32px]"
+                  className="text-xs font-medium px-3 py-1.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
                 >
                   Confirmar
                 </button>
-              )}
-              <button
-                onClick={onAddItem}
-                className="flex items-center justify-center w-6 h-6 rounded-lg text-gray-300 hover:text-brand-600 hover:bg-brand-50 transition-colors"
-                aria-label="Añadir otro"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>
-            </div>
+              </div>
+            )}
           </div>
         )}
       </div>
