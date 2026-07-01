@@ -168,7 +168,7 @@ export default function DayPlanSection({
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
-            <span className="text-xs font-semibold text-gray-800">
+            <span className="text-sm font-semibold text-gray-800">
               {formatDateHeader(date, offsetLabel)}
             </span>
             {plannedCount > 0 && (
@@ -193,7 +193,7 @@ export default function DayPlanSection({
         >
           <div className="w-7 shrink-0" />
           <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
-            <span className="text-xs font-semibold text-gray-700">
+            <span className="text-sm font-semibold text-gray-700">
               {formatDateHeader(date, offsetLabel)}
             </span>
             {plannedCount > 0 && (
