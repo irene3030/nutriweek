@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, User, Baby, Sparkles, Pencil, BookmarkPlus } from 'lucide-react';
+import { Plus, X, User, Baby, Sparkles, Pencil, BookmarkPlus, Clock } from 'lucide-react';
 
 const SLOT_LABELS = {
   desayuno: 'Desayuno',
@@ -128,6 +128,11 @@ export default function PlanSlotRow({ slotId, slot, onAddItem, onRemoveItem, onE
                       {badge && (
                         <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded-full font-medium ${badge.color}`}>
                           {badge.label}
+                        </span>
+                      )}
+                      {item.pendingPrep && (
+                        <span className="shrink-0 flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">
+                          <Clock className="w-2.5 h-2.5" /> Por preparar
                         </span>
                       )}
                     </div>

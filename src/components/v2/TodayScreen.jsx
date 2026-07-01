@@ -244,6 +244,21 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
     setShowSnackSheet(false);
   }
 
+  async function handleScheduleMealProposal(proposal) {
+    await addToPrepQueue({
+      label:                 proposal.name,
+      prepType:              proposal.prepType,
+      prepTime:              proposal.prepTime ?? null,
+      adultPortions:         proposal.adultPortions ?? null,
+      babyPortions:          proposal.babyPortions  ?? null,
+      tags:                  proposal.tags ?? [],
+      ingredients:           proposal.ingredients ?? [],
+      description:           proposal.description ?? null,
+      quickDishes:           proposal.quickDishes ?? [],
+      sourceInventoryItemId: null,
+    });
+  }
+
   function handlePrepQueueDone(item) {
     setPrepopulated({
       name:          item.label,
@@ -412,6 +427,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
                 onClearSlot={clearSlot}
                 onUpdateSlotItemPortions={updateSlotItemPortions}
                 onUpdateSlotItem={updateSlotItem}
+                onSchedulePrep={handleScheduleMealProposal}
               />
             );
           })}

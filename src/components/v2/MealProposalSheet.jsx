@@ -30,7 +30,7 @@ function SourceIcon({ source }) {
   return <ShoppingCart className="w-3 h-3 text-amber-500 shrink-0" />;
 }
 
-function ProposalCard({ proposal, onSelect }) {
+function ProposalCard({ proposal, onSelect, onPlan }) {
   const badge = PREP_TYPE_BADGES[proposal.prepType];
   const kpiLabel = proposal.kpiBoost ? KPI_BOOST_LABELS[proposal.kpiBoost] : null;
 
@@ -73,7 +73,7 @@ function ProposalCard({ proposal, onSelect }) {
         </div>
       )}
 
-      {/* Portions + CTA */}
+      {/* Portions + CTAs */}
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-3 text-xs text-gray-400">
           <span className="flex items-center gap-0.5">
@@ -83,12 +83,22 @@ function ProposalCard({ proposal, onSelect }) {
             <Baby className="w-3 h-3" /> {proposal.babyPortions ?? 1}
           </span>
         </div>
-        <button
-          onClick={() => onSelect(proposal)}
-          className="text-xs font-medium px-4 py-1.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
-        >
-          Seleccionar
-        </button>
+        <div className="flex items-center gap-2">
+          {onPlan && (
+            <button
+              onClick={() => onPlan(proposal)}
+              className="text-xs font-medium px-3 py-1.5 rounded-xl border border-brand-300 text-brand-600 hover:bg-brand-50 transition-colors"
+            >
+              Planear
+            </button>
+          )}
+          <button
+            onClick={() => onSelect(proposal)}
+            className="text-xs font-medium px-4 py-1.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
+          >
+            Seleccionar
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -106,6 +116,7 @@ export default function MealProposalSheet({
   weeklyKpis,
   pantryItems,
   onSelect,
+  onSchedule,
   onClose,
   timeOfDay,
   priorityKpi,
@@ -164,16 +175,12 @@ export default function MealProposalSheet({
     }
   }
 
-  function handleSelect(proposal) {
-    // Find primary stock ingredient for inventoryItemId
+  function buildEntry(proposal, pending = false) {
     const stockIng = proposal.ingredients?.find(i => i.source === 'stock' && i.inventoryId);
-
-    // Map prepType to SlotEntry itemType
     let itemType = 'manual';
     if (proposal.prepType === 'ya-preparado') itemType = 'ya-preparado';
     else if (proposal.prepType === 'acelerador') itemType = 'acelerador';
-
-    const entry = {
+    return {
       inventoryItemId: stockIng?.inventoryId ?? null,
       label: proposal.name,
       itemType,
@@ -182,9 +189,27 @@ export default function MealProposalSheet({
       accelBase: proposal.prepType === 'acelerador' ? proposal.description : null,
       portionsAdultConsumed: proposal.adultPortions ?? 2,
       portionsBabyConsumed: proposal.babyPortions ?? 1,
+      ...(pending && { pendingPrep: true }),
     };
+  }
 
-    onSelect(entry);
+  function handleSelect(proposal) {
+    onSelect(buildEntry(proposal));
+  }
+
+  function handlePlan(proposal) {
+    onSchedule?.({
+      name: proposal.name,
+      prepType: proposal.prepType,
+      prepTime: proposal.prepTime ?? null,
+      adultPortions: proposal.adultPortions ?? 2,
+      babyPortions: proposal.babyPortions ?? 1,
+      tags: proposal.tags ?? [],
+      ingredients: proposal.ingredients ?? [],
+      description: proposal.description ?? null,
+      quickDishes: proposal.quickDishes ?? [],
+    });
+    onSelect(buildEntry(proposal, true));
   }
 
   return (
@@ -291,7 +316,12 @@ export default function MealProposalSheet({
                 </div>
               )}
               {proposals.map((proposal, i) => (
-                <ProposalCard key={i} proposal={proposal} onSelect={handleSelect} />
+                <ProposalCard
+                  key={i}
+                  proposal={proposal}
+                  onSelect={handleSelect}
+                  onPlan={onSchedule ? handlePlan : undefined}
+                />
               ))}
 
               {/* Other options */}

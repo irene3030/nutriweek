@@ -117,6 +117,7 @@ export default function DayPlanSection({
   onUpdateSlotItemPortions,
   onUpdateSlotItem,
   onSaveTemplate,
+  onSchedulePrep,
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [pickerSlot, setPickerSlot] = useState(null);
@@ -257,6 +258,7 @@ export default function DayPlanSection({
             onAddSlotItem(date, proposalSlot, entry);
             setProposalSlot(null);
           }}
+          onSchedule={onSchedulePrep}
           onClose={() => setProposalSlot(null)}
         />
       )}
@@ -278,6 +280,7 @@ export default function DayPlanSection({
             setGapProposalSlot(null);
             setGapPriorityKpi(null);
           }}
+          onSchedule={onSchedulePrep}
           onClose={() => { setGapProposalSlot(null); setGapPriorityKpi(null); }}
         />
       )}
