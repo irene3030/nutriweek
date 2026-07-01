@@ -483,23 +483,14 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
         </div>
 
         {/* Day planning sections */}
-        <div className="flex items-start gap-1">
-          <button
-            onClick={() => setDayOffset(o => o - 1)}
-            disabled={dayOffset <= -5}
-            className="shrink-0 mt-3 flex items-center justify-center w-7 h-7 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-white border border-transparent hover:border-gray-200 transition-colors disabled:opacity-20"
-            aria-label="Días anteriores"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-
-          <div className="flex-1 lg:grid lg:grid-cols-3 lg:gap-4 space-y-4 lg:space-y-0">
+        <div className="lg:grid lg:grid-cols-3 lg:gap-4 space-y-4 lg:space-y-0">
           {getDays(dayOffset).map(({ offset, label }) => {
             const dateStr = offsetDateStr(offset);
+            const isCenter = offset === dayOffset;
             return (
               <DayPlanSection
                 key={dateStr}
-                isCenter={offset === dayOffset}
+                isCenter={isCenter}
                 date={dateStr}
                 offsetLabel={label}
                 plan={getPlan(dateStr)}
@@ -507,7 +498,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
                 weeklyKpis={weeklyKpis}
                 hasAiAccess={hasAiAccess}
                 pantryItems={pantryItems}
-                defaultExpanded={true}
+                defaultExpanded={false}
                 autoPropose={offset === 0}
                 timeOfDay={offset === 0 ? getTimeOfDay() : undefined}
                 isToday={offset === 0}
@@ -522,19 +513,11 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
                 onSchedulePrep={handleScheduleMealProposal}
                 dragActive={!!draggedItem}
                 onDropItem={handleDropOnSlot}
+                onPrev={isCenter && dayOffset > -5 ? () => setDayOffset(o => o - 1) : undefined}
+                onNext={isCenter && dayOffset < 5  ? () => setDayOffset(o => o + 1) : undefined}
               />
             );
           })}
-          </div>
-
-          <button
-            onClick={() => setDayOffset(o => o + 1)}
-            disabled={dayOffset >= 5}
-            className="shrink-0 mt-3 flex items-center justify-center w-7 h-7 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-white border border-transparent hover:border-gray-200 transition-colors disabled:opacity-20"
-            aria-label="Días siguientes"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
         </div>
 
         {/* Historial semanal discreto */}
