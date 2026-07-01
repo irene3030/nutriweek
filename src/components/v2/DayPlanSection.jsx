@@ -160,19 +160,10 @@ export default function DayPlanSection({
           <span className="text-sm font-semibold text-gray-800">
             {formatDateHeader(date, offsetLabel)}
           </span>
-          {(confirmedCount > 0 || plannedCount > 0) && (
-            <div className="flex items-center gap-1.5">
-              {confirmedCount > 0 && (
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                  {confirmedCount} ✓
-                </span>
-              )}
-              {plannedCount > 0 && (
-                <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-medium">
-                  {plannedCount} por confirmar
-                </span>
-              )}
-            </div>
+          {plannedCount > 0 && (
+            <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-medium">
+              {plannedCount} por confirmar
+            </span>
           )}
         </div>
         {expanded
