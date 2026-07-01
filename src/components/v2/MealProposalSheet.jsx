@@ -112,12 +112,20 @@ function ProposalCard({ proposal, onSelect, onPlan }) {
           </span>
         ))}
         {extras.map((e, i) => (
-          <span key={`extra-${i}`} className="flex items-center gap-1 text-xs text-brand-600 font-medium">
-            <Plus className="w-2.5 h-2.5" />
+          <span key={`extra-${i}`} className="flex items-center gap-1 text-xs bg-brand-50 border border-brand-200 text-brand-700 font-medium px-2 py-0.5 rounded-full">
+            <Plus className="w-2.5 h-2.5 shrink-0" />
             {e.name}
-            {e.tags.length > 0 && (
-              <span className="text-gray-400 font-normal">({e.tags.filter(t => !proposal.tags?.includes(t)).join(', ')})</span>
+            {e.tags.filter(t => !proposal.tags?.includes(t)).length > 0 && (
+              <span className="text-brand-400 font-normal">· {e.tags.filter(t => !proposal.tags?.includes(t)).join(', ')}</span>
             )}
+            <button
+              type="button"
+              onClick={() => setExtras(prev => prev.filter((_, j) => j !== i))}
+              className="ml-0.5 text-brand-400 hover:text-brand-700 transition-colors leading-none"
+              aria-label="Quitar ingrediente"
+            >
+              ×
+            </button>
           </span>
         ))}
       </div>
