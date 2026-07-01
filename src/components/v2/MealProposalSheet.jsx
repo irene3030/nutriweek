@@ -160,22 +160,37 @@ function ProposalCard({ proposal, onSelect, onPlan }) {
             <Baby className="w-3 h-3" /> {proposal.babyPortions ?? 1}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          {onPlan && (
-            <button
-              onClick={() => onPlan(buildMerged())}
-              className="text-xs font-medium px-3 py-1.5 rounded-xl border border-brand-300 text-brand-600 hover:bg-brand-50 transition-colors"
-            >
-              Planear
-            </button>
-          )}
-          <button
-            onClick={() => onSelect(buildMerged())}
-            className="text-xs font-medium px-4 py-1.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
-          >
-            Seleccionar
-          </button>
-        </div>
+        {(() => {
+          const needsPrep = onPlan && (proposal.prepType === 'justo-antes' || proposal.prepType === 'acelerador');
+          if (needsPrep) {
+            return (
+              <button
+                onClick={() => onPlan(buildMerged())}
+                className="text-xs font-medium px-4 py-1.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
+              >
+                Planear
+              </button>
+            );
+          }
+          return (
+            <div className="flex items-center gap-2">
+              {onPlan && (
+                <button
+                  onClick={() => onPlan(buildMerged())}
+                  className="text-xs font-medium px-3 py-1.5 rounded-xl border border-brand-300 text-brand-600 hover:bg-brand-50 transition-colors"
+                >
+                  Planear
+                </button>
+              )}
+              <button
+                onClick={() => onSelect(buildMerged())}
+                className="text-xs font-medium px-4 py-1.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
+              >
+                Seleccionar
+              </button>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
