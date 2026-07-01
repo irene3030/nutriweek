@@ -125,10 +125,19 @@ export default function DayPlanSection({
   const [gapPriorityKpi, setGapPriorityKpi] = useState(null);
   const [editTarget, setEditTarget] = useState(null);
 
+  const KPI_SLOT_PRIORITY = {
+    iron:   ['comida', 'cena'],
+    fish:   ['comida', 'cena'],
+    legume: ['comida', 'cena'],
+    veggie: ['cena', 'comida'],
+    fruit:  ['merienda', 'snack', 'desayuno', 'comida', 'cena'],
+  };
+
   function handleGapPropose(kpi) {
-    const firstOpen = SLOTS.find(s => !slots[s]?.confirmedAt);
+    const priority = KPI_SLOT_PRIORITY[kpi] ?? ['comida', 'cena'];
+    const best = priority.find(s => !slots[s]?.confirmedAt) ?? priority.at(-1);
     setGapPriorityKpi(kpi);
-    setGapProposalSlot(firstOpen || 'cena');
+    setGapProposalSlot(best);
   }
 
   const slots = plan?.slots || {};
