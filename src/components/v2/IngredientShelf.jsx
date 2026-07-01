@@ -49,6 +49,8 @@ const FILTERS = [
   { id: 'acelerador', label: 'Acelerador', match: (i) => i.type === 'acelerador' },
 ];
 
+const DEFAULT_FILTERS = new Set(['proteina', 'verdura', 'preparado', 'snack', 'acelerador']);
+
 const SHELF_TYPES = new Set(['flotante', 'ya-preparado', 'acelerador', 'snack', 'snack-batch']);
 
 // ── Chip ───────────────────────────────────────────────────────────────────────
@@ -77,21 +79,19 @@ function InventoryChip({ item, onDragStart }) {
 // ── Main ───────────────────────────────────────────────────────────────────────
 
 export default function IngredientShelf({ inventoryItems, onDragStart }) {
-  const [search, setSearch]       = useState('');
-  const [activeFilter, setFilter] = useState(null);
+  const [search,        setSearch]        = useState('');
+  const [activeFilters, setActiveFilters] = useState(() => new Set(DEFAULT_FILTERS));
 
   const allItems = inventoryItems.filter(i => i.isActive !== false && SHELF_TYPES.has(i.type));
 
   if (allItems.length === 0) return null;
 
+  const noFilters = activeFilters.size === 0;
+
   const visibleItems = allItems.filter(item => {
-    if (activeFilter) {
-      const filterDef = FILTERS.find(f => f.id === activeFilter);
-      if (filterDef && !filterDef.match(item)) return false;
-    }
-    if (search.trim()) {
-      return item.name.toLowerCase().includes(search.trim().toLowerCase());
-    }
+    const matchesFilter = noFilters || FILTERS.some(f => activeFilters.has(f.id) && f.match(item));
+    if (!matchesFilter) return false;
+    if (search.trim()) return item.name.toLowerCase().includes(search.trim().toLowerCase());
     return true;
   });
 
@@ -99,19 +99,23 @@ export default function IngredientShelf({ inventoryItems, onDragStart }) {
   const preps     = visibleItems.filter(i => i.type !== 'flotante');
 
   function toggleFilter(id) {
-    setFilter(prev => prev === id ? null : id);
+    setActiveFilters(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   }
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      {/* Header: label + search + filters */}
-      <div className="flex items-center gap-3 px-4 pt-2.5 pb-2 border-b border-gray-50 flex-wrap">
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Refrigerator className="w-3.5 h-3.5 text-gray-400" />
-          <span className="text-xs text-gray-400">Nevera</span>
-        </div>
+      {/* Row 1: icon + label */}
+      <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-gray-50">
+        <Refrigerator className="w-3.5 h-3.5 text-gray-400" />
+        <span className="text-xs font-medium text-gray-500">Nevera</span>
+      </div>
 
-        {/* Search */}
+      {/* Row 2: search + filters */}
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-gray-50 flex-wrap">
         <div className="flex items-center gap-1 text-gray-400 shrink-0">
           <Search className="w-3 h-3" />
           <input
@@ -122,16 +126,12 @@ export default function IngredientShelf({ inventoryItems, onDragStart }) {
             className="text-xs bg-transparent border-0 outline-none w-20 placeholder-gray-300 text-gray-600"
           />
         </div>
-
-        {/* Divider */}
         <div className="w-px h-3.5 bg-gray-200 shrink-0" />
-
-        {/* Filter pills */}
         <div className="flex items-center gap-1 flex-wrap">
           <button
-            onClick={() => setFilter(null)}
+            onClick={() => setActiveFilters(new Set())}
             className={`text-[11px] font-medium px-2 py-0.5 rounded-full transition-colors ${
-              activeFilter === null
+              noFilters
                 ? 'bg-gray-800 text-white'
                 : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
             }`}
@@ -143,7 +143,7 @@ export default function IngredientShelf({ inventoryItems, onDragStart }) {
               key={f.id}
               onClick={() => toggleFilter(f.id)}
               className={`text-[11px] font-medium px-2 py-0.5 rounded-full transition-colors ${
-                activeFilter === f.id
+                activeFilters.has(f.id)
                   ? 'bg-gray-800 text-white'
                   : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
               }`}

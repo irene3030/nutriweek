@@ -20,7 +20,6 @@ import QuickMealModal from './components/week/QuickMealModal';
 import InventoryScreen from './components/v2/InventoryScreen';
 import TodayScreen from './components/v2/TodayScreen';
 import DespensaScreen from './components/v2/DespensaScreen';
-import IngredientPanelPrototype from './components/v2/IngredientPanelPrototype';
 import { DEFAULT_PANTRY_ITEMS } from './lib/pantryData';
 import {
   collection,
@@ -329,21 +328,6 @@ function AppContent() {
                 {tab.label}
               </button>
             ))}
-            {import.meta.env.DEV && (
-              <button
-                onClick={() => setActiveTab('proto')}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors mt-4 border-t border-gray-100 pt-4 ${
-                  activeTab === 'proto'
-                    ? 'bg-violet-50 text-violet-700'
-                    : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
-                }`}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
-                </svg>
-                Prototipo nevera
-              </button>
-            )}
           </nav>
         </aside>
 
@@ -439,11 +423,7 @@ function AppContent() {
             />
           )}
 
-          {activeTab === 'proto' && import.meta.env.DEV && (
-            <IngredientPanelPrototype />
-          )}
-
-          {activeTab === 'day' && (
+{activeTab === 'day' && (
             <DayPlayground
               hasAiAccess={
                 !!householdApiKey ||

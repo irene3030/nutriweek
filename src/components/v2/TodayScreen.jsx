@@ -100,6 +100,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
   // Drag-and-drop state
   const [draggedItem, setDraggedItem]   = useState(null);
   const [dropTarget, setDropTarget]     = useState(null); // { dateStr, slotId, dayLabel } for flotante sheet
+  const [resolveSlotCtx, setResolveSlotCtx] = useState(null); // { dateStr, slotId } preserved when AI opens from a drag-drop
   const [prepQueueItemToRemove, setPrepQueueItemToRemove]     = useState(null);
   const [prepQueueSourceItemId, setPrepQueueSourceItemId]     = useState(null);
   const [resolvingItem, setResolvingItem]     = useState(null);
@@ -255,8 +256,11 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
       description:           proposal.description ?? null,
       quickDishes:           proposal.quickDishes ?? [],
       sourceInventoryItemId: resolvingItem?.id ?? null,
+      targetDate:            resolveSlotCtx?.dateStr ?? null,
+      targetSlot:            resolveSlotCtx?.slotId ?? null,
     });
     setResolvingItem(null);
+    setResolveSlotCtx(null);
     setShowCookingTime(false);
     setShowSnackSheet(false);
   }
@@ -342,6 +346,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
 
   function handleDropPrepOpenAi() {
     if (!dropTarget) return;
+    setResolveSlotCtx({ dateStr: dropTarget.dateStr, slotId: dropTarget.slotId });
     setResolvingItem(dropTarget.item);
     setDropTarget(null);
   }
@@ -557,7 +562,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
           inventoryItems={inventoryItems}
           weeklyKpis={weeklyKpis}
           pantryItems={pantryItems}
-          onClose={() => setResolvingItem(null)}
+          onClose={() => { setResolvingItem(null); setResolveSlotCtx(null); }}
           onSelect={handleSuggestionSelect}
           onSchedule={handleSchedulePrep}
         />
