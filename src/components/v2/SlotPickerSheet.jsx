@@ -17,7 +17,7 @@ const TYPE_CONFIG = {
   'ya-preparado': { label: 'Listo',       color: 'bg-brand-100 text-brand-700' },
   acelerador:     { label: 'Justo-antes', color: 'bg-violet-100 text-violet-700' },
   'snack-batch':  { label: 'Snack',       color: 'bg-amber-100 text-amber-700' },
-  flotante:       { label: 'Ingrediente', color: 'bg-rose-100 text-rose-700' },
+  flotante:       null,
 };
 
 function relevanceScore(item, slotId) {
