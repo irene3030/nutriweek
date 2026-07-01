@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Droplets, Fish, Bean, Leaf, Apple, AlertCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronRight, Droplets, Fish, Bean, Leaf, Apple, AlertCircle } from 'lucide-react';
 import PlanSlotRow from './PlanSlotRow';
 import SlotPickerSheet from './SlotPickerSheet';
 import MealProposalSheet from './MealProposalSheet';
@@ -26,30 +26,40 @@ function computeBalanceGaps(slots, weeklyKpis) {
   const allTags = computeDailyTags(slots);
   const gaps = [];
 
-  if (!allTags.includes('iron')) gaps.push('hierro');
+  if (!allTags.includes('iron')) gaps.push({ label: 'hierro', kpi: 'iron' });
 
   const veggies = new Set(allTags.filter(t => t.startsWith('veggie:')));
-  if (veggies.size === 0) gaps.push('verduras');
-  else if (veggies.size === 1) gaps.push('una verdura más');
+  if (veggies.size === 0) gaps.push({ label: 'verduras', kpi: 'veggie' });
+  else if (veggies.size === 1) gaps.push({ label: 'una verdura más', kpi: 'veggie' });
 
   if (!allTags.includes('oily_fish') && (weeklyKpis?.fishDays ?? 0) < 3) {
-    gaps.push('pescado azul');
+    gaps.push({ label: 'pescado azul', kpi: 'fish' });
   }
 
   return gaps.length ? gaps : null;
 }
 
-function DailyBalanceHint({ slots, weeklyKpis }) {
+function DailyBalanceHint({ slots, weeklyKpis, onPropose }) {
   const gaps = computeBalanceGaps(slots, weeklyKpis);
   if (!gaps) return null;
 
   const hasOpen = SLOTS.some(id => !slots[id]?.confirmedAt);
   const verb = hasOpen ? 'Para completar el día:' : 'Al día le faltó:';
+  const firstKpi = gaps[0]?.kpi;
 
   return (
-    <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 mb-2 text-xs text-amber-800">
-      <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-      <span>{verb} <span className="font-medium">{gaps.join(' y ')}</span></span>
+    <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 mb-2 text-xs text-amber-800">
+      <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+      <span className="flex-1">{verb} <span className="font-medium">{gaps.map(g => g.label).join(' y ')}</span></span>
+      {onPropose && firstKpi && hasOpen && (
+        <button
+          onClick={() => onPropose(firstKpi)}
+          className="shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-amber-200 hover:bg-amber-300 text-amber-700 transition-colors"
+          title="Ver propuestas para cubrir este gap"
+        >
+          <ChevronRight className="w-3 h-3" />
+        </button>
+      )}
     </div>
   );
 }
@@ -111,7 +121,15 @@ export default function DayPlanSection({
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [pickerSlot, setPickerSlot] = useState(null);
   const [proposalSlot, setProposalSlot] = useState(null);
+  const [gapProposalSlot, setGapProposalSlot] = useState(null);
+  const [gapPriorityKpi, setGapPriorityKpi] = useState(null);
   const [editTarget, setEditTarget] = useState(null);
+
+  function handleGapPropose(kpi) {
+    const firstOpen = SLOTS.find(s => !slots[s]?.confirmedAt);
+    setGapPriorityKpi(kpi);
+    setGapProposalSlot(firstOpen || 'cena');
+  }
 
   const slots = plan?.slots || {};
 
@@ -194,7 +212,13 @@ export default function DayPlanSection({
           })}
 
           {/* Balance hint — below cena, only for today */}
-          {isToday && <DailyBalanceHint slots={slots} weeklyKpis={weeklyKpis} />}
+          {isToday && (
+            <DailyBalanceHint
+              slots={slots}
+              weeklyKpis={weeklyKpis}
+              onPropose={hasAiAccess ? handleGapPropose : undefined}
+            />
+          )}
         </div>
       )}
 
@@ -228,6 +252,26 @@ export default function DayPlanSection({
         />
       )}
 
+
+      {/* Gap proposal sheet (from balance hint) */}
+      {gapProposalSlot && (
+        <MealProposalSheet
+          slotId={gapProposalSlot}
+          date={date}
+          inventoryItems={inventoryItems}
+          todaySlots={slots}
+          weeklyKpis={weeklyKpis}
+          pantryItems={pantryItems}
+          priorityKpi={gapPriorityKpi}
+          timeOfDay={timeOfDay}
+          onSelect={(entry) => {
+            onAddSlotItem(date, gapProposalSlot, entry);
+            setGapProposalSlot(null);
+            setGapPriorityKpi(null);
+          }}
+          onClose={() => { setGapProposalSlot(null); setGapPriorityKpi(null); }}
+        />
+      )}
 
       {/* Edit slot item modal */}
       <EditSlotItemModal

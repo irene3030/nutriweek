@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, AlertTriangle, MapPin, ShoppingCart, Clock, ChevronRight, ChevronLeft, Cookie, X } from 'lucide-react';
+import { Plus, MapPin, ShoppingCart, Clock, ChevronRight, Cookie, X } from 'lucide-react';
 import { useInventory } from '../../hooks/useInventory';
 import { useDailyPlan, todayStr } from '../../hooks/useDailyPlan';
 import { useUsualMeals } from '../../hooks/useUsualMeals';
@@ -38,15 +38,12 @@ function getMondayStr() {
 const LAST_WEEK_KPIS_KEY = 'mealops_lastWeekKpis';
 const BRIEFING_DISMISSED_KEY = 'mealops_briefingDismissed';
 
-function getDays(base) {
-  const labels = {
-    [-2]: 'Anteayer', [-1]: 'Ayer', [0]: 'Hoy', [1]: 'Mañana', [2]: 'Pasado mañana',
-  };
-  return [base, base + 1, base + 2].map((offset) => ({
-    offset,
-    label: labels[offset] ?? (offset < 0 ? `Hace ${-offset} días` : `En ${offset} días`),
-    defaultExpanded: true,
-  }));
+function getDays() {
+  return [
+    { offset: -1, label: 'Ayer' },
+    { offset:  0, label: 'Hoy' },
+    { offset:  1, label: 'Mañana' },
+  ];
 }
 
 const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -103,7 +100,6 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
   const [kpiPriority, setKpiPriority]         = useState(null);
   const [showBriefing, setShowBriefing]       = useState(false);
   const [lastWeekKpis, setLastWeekKpis]       = useState(null);
-  const [dayOffset, setDayOffset]             = useState(0);
   const savedKpisRef = useRef(false);
 
   const FLOATING_DISMISSED_KEY = `dismissed_floating_${householdId}_${todayStr()}`;
@@ -297,27 +293,9 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
       {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between lg:max-w-none lg:pl-6 lg:pr-16">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setDayOffset((o) => o - 1)}
-              disabled={dayOffset <= -5}
-              className="flex items-center justify-center w-8 h-8 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-20"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <div className="text-center">
-              <p className="text-xs text-gray-400 capitalize">{formatTodayHeader()}</p>
-              <h1 className="text-lg font-bold text-gray-900">
-                {dayOffset === 0 ? 'Hoy' : dayOffset === -1 ? 'Ayer' : dayOffset < 0 ? `Hace ${-dayOffset} días` : `En ${dayOffset} días`}
-              </h1>
-            </div>
-            <button
-              onClick={() => setDayOffset((o) => o + 1)}
-              disabled={dayOffset >= 5}
-              className="flex items-center justify-center w-8 h-8 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-20"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+          <div>
+            <h1 className="text-base font-bold text-gray-900">Planificación</h1>
+            <p className="text-xs text-gray-400 capitalize">{formatTodayHeader()}</p>
           </div>
           {hasAiAccess && (
             <div className="flex items-center gap-2">
@@ -410,7 +388,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
 
         {/* Day planning sections */}
         <div className="lg:grid lg:grid-cols-3 lg:gap-4 space-y-4 lg:space-y-0">
-          {getDays(dayOffset).map(({ offset, label }) => {
+          {getDays().map(({ offset, label }) => {
             const dateStr = offsetDateStr(offset);
             return (
               <DayPlanSection
