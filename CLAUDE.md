@@ -97,19 +97,17 @@ Todos en `src/components/v2/`. Son la implementación actual de Features 1 y 2:
 ## Git & Deployment Workflow
 
 ### Branch strategy
-- `dev` → staging (auto-deploy Netlify staging)
-- `main` → producción (auto-deploy Netlify production)
-- `feat/v2-logistics` → rama activa de desarrollo v2, parte de `dev`
+- `main` → producción (auto-deploy Netlify producción). Es la única rama larga viva; no existe `dev`.
+- `legacy` → snapshot histórico, no se toca.
+- `feat/<slug>` → ramas de feature de corta duración, normalmente en worktrees (ver sección de worktrees), creadas a partir de `main`.
 
 ### Reglas — seguir estrictamente
-1. **Trabajar siempre en `feat/v2-logistics`** durante el desarrollo v2.
-2. Antes de empezar cualquier tarea, confirmar rama:
-   `git checkout feat/v2-logistics && git pull origin feat/v2-logistics`
-3. Al completar una tarea, commit descriptivo y push:
-   `git add -A && git commit -m "<type>: <description>" && git push origin feat/v2-logistics`
-4. **Nunca hacer merge a `dev` o `main`** sin aprobación explícita mía.
-5. Cuando diga "merge a dev", hacer:
-   `git checkout dev && git pull origin dev && git merge feat/v2-logistics && git push origin dev && git checkout feat/v2-logistics`
+1. Antes de empezar cualquier tarea, confirmar rama con `git branch --show-current`. Para trabajo no trivial, usa un worktree con rama `feat/<slug>` en vez de trabajar directo en `main`.
+2. Al completar una tarea en una rama de feature, commit descriptivo y push:
+   `git add -A && git commit -m "<type>: <description>" && git push origin feat/<slug>`
+3. **Nunca hacer merge ni push a `main`** sin aprobación explícita mía.
+4. Cuando diga "merge a main", hacer:
+   `git checkout main && git pull origin main && git merge feat/<slug> && git push origin main`
 
 ### Formato de commits (conventional commits)
 - `feat: add inventory crud hooks`
@@ -125,13 +123,13 @@ Cuando la usuaria diga **"quiero abrir una rama nueva con worktree para X"** (o 
 
 ```bash
 # 1. Crear el worktree con nombre derivado de la feature
-git worktree add ../mealops-v2-<slug> feat/v2-<slug>
+git worktree add ../mealops-<slug> feat/<slug>
 
 # 2. Copiar archivos locales necesarios
-cd ../mealops-v2-<slug> && bash scripts/setup-worktree.sh
+cd ../mealops-<slug> && bash scripts/setup-worktree.sh
 ```
 
-El `<slug>` se deriva del nombre de la feature en kebab-case (ej: "shopping list" → `shopping-list`, rama `feat/v2-shopping-list`, carpeta `../mealops-v2-shopping-list`).
+El `<slug>` se deriva del nombre de la feature en kebab-case (ej: "shopping list" → `shopping-list`, rama `feat/shopping-list`, carpeta `../mealops-shopping-list`).
 
 Terminar informando a la usuaria de la ruta del worktree y que puede abrirlo en su editor.
 
