@@ -9,6 +9,7 @@
 [dev]
   command = "npm run dev"
   targetPort = 5173
+  framework = "#custom"
   functions = "netlify/functions"
 
 [[redirects]]
