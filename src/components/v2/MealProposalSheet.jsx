@@ -267,7 +267,7 @@ export default function MealProposalSheet({
     }
   }
 
-  function buildEntry(proposal, pending = false) {
+  function buildEntry(proposal, pending = false, prepQueueId = null) {
     const stockIng = proposal.ingredients?.find(i => i.source === 'stock' && i.inventoryId);
     let itemType = 'manual';
     if (proposal.prepType === 'ya-preparado') itemType = 'ya-preparado';
@@ -282,6 +282,7 @@ export default function MealProposalSheet({
       portionsAdultConsumed: proposal.adultPortions ?? 2,
       portionsBabyConsumed: proposal.babyPortions ?? 1,
       ...(pending && { pendingPrep: true }),
+      ...(prepQueueId && { prepQueueId }),
     };
   }
 
@@ -289,8 +290,8 @@ export default function MealProposalSheet({
     onSelect(buildEntry(proposal));
   }
 
-  function handlePlan(proposal) {
-    onSchedule?.({
+  async function handlePlan(proposal) {
+    const prepQueueId = await onSchedule?.({
       name: proposal.name,
       prepType: proposal.prepType,
       prepTime: proposal.prepTime ?? null,
@@ -301,7 +302,7 @@ export default function MealProposalSheet({
       description: proposal.description ?? null,
       quickDishes: proposal.quickDishes ?? [],
     });
-    onSelect(buildEntry(proposal, true));
+    onSelect(buildEntry(proposal, true, prepQueueId));
   }
 
   return (

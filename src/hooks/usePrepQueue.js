@@ -27,9 +27,10 @@ export function usePrepQueue(householdId) {
   }, [householdId]);
 
   async function addToPrepQueue(data) {
-    if (!householdId) return;
+    if (!householdId) return null;
     const ref = collection(db, 'households', householdId, 'prepQueue');
-    await addDoc(ref, { ...data, createdAt: serverTimestamp() });
+    const docRef = await addDoc(ref, { ...data, createdAt: serverTimestamp() });
+    return docRef.id;
   }
 
   async function removeFromPrepQueue(id) {

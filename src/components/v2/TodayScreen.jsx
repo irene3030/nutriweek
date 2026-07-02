@@ -19,6 +19,8 @@ import WeekHistoryStrip from './WeekHistoryStrip';
 import PrepQueueSection from './PrepQueueSection';
 import IngredientShelf from './IngredientShelf';
 import DropPrepSheet from './DropPrepSheet';
+import PendingMealsConfirmModal from './PendingMealsConfirmModal';
+import { hasSlotTimePassed } from './PlanSlotRow';
 import { daysUntil } from '../../hooks/useInventory';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
@@ -39,6 +41,7 @@ function getMondayStr() {
 
 const LAST_WEEK_KPIS_KEY = 'mealops_lastWeekKpis';
 const BRIEFING_DISMISSED_KEY = 'mealops_briefingDismissed';
+const PENDING_SLOT_ORDER = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
 
 const DAY_LABELS = {
   [-3]: 'Hace 3 días', [-2]: 'Anteayer', [-1]: 'Ayer',
@@ -89,8 +92,8 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
     removeSlotItem,
     updateSlotItem,
     updateSlotItemPortions,
-    confirmSlot,
     clearSlot,
+    resolvePendingSlot,
     offsetDateStr,
   } = useDailyPlan(householdId);
 
@@ -126,6 +129,21 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
       const next = new Set(prev);
       next.add(itemId);
       localStorage.setItem(FLOATING_DISMISSED_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }
+
+  const PENDING_CONFIRM_DISMISSED_KEY = `mealops_pendingConfirmDismissed_${householdId}`;
+  const [dismissedPending, setDismissedPending] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(PENDING_CONFIRM_DISMISSED_KEY) || '[]')); }
+    catch { return new Set(); }
+  });
+
+  function dismissPendingKey(key) {
+    setDismissedPending(prev => {
+      const next = new Set(prev);
+      next.add(key);
+      localStorage.setItem(PENDING_CONFIRM_DISMISSED_KEY, JSON.stringify([...next]));
       return next;
     });
   }
@@ -182,15 +200,8 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
     );
   }
 
-  const handleConfirmSlot = async (dateStr, slotId) => {
-    const plan = getPlan(dateStr);
-    const slot = plan?.slots?.[slotId];
-    if (!slot?.items?.length || slot.confirmedAt) return;
-
-    await confirmSlot(dateStr, slotId);
-
-    // Decrement inventory for each item in the slot
-    for (const item of slot.items) {
+  const consumeSlotInventory = async (items) => {
+    for (const item of items) {
       if (item.itemType === 'snack-batch' && item.inventoryItemId) {
         await consumeUnits(item.inventoryItemId, 1);
       } else if (item.itemType === 'flotante' && item.inventoryItemId) {
@@ -209,6 +220,79 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
       }
     }
   };
+
+  // Elimina la(s) preparación(es) de la cola asociadas a items ya confirmados como comidos
+  const clearAssociatedPrep = async (items) => {
+    for (const item of items) {
+      if (item.prepQueueId) {
+        await removeFromPrepQueue(item.prepQueueId);
+      }
+    }
+  };
+
+  const handleConfirmSlot = async (dateStr, slotId) => {
+    const plan = getPlan(dateStr);
+    const slot = plan?.slots?.[slotId];
+    if (!slot?.items?.length || slot.confirmedAt) return;
+
+    await resolvePendingSlot(dateStr, slotId);
+    await consumeSlotInventory(slot.items);
+    await clearAssociatedPrep(slot.items);
+  };
+
+  // Confirma retroactivamente un slot pendiente (sin confirmedAt, o con algún
+  // item aún marcado "por preparar"). keepIndices filtra qué items se conservan
+  // (los descartados se eliminan del slot, restaurando inventario si ya estaba confirmado).
+  const handleConfirmPendingSlot = async (dateStr, slotId, keepIndices) => {
+    const plan = getPlan(dateStr);
+    const slot = plan?.slots?.[slotId];
+    if (!slot?.items?.length) return;
+    const wasConfirmed = !!slot.confirmedAt;
+
+    const keptItems = slot.items.filter((_, idx) => keepIndices.has(idx));
+    const removedItems = slot.items.filter((_, idx) => !keepIndices.has(idx));
+
+    if (wasConfirmed) {
+      for (const item of removedItems) {
+        if (!item.inventoryItemId) continue;
+        if (item.itemType === 'snack-batch') {
+          await restoreUnits(item.inventoryItemId, 1);
+        } else if (item.itemType !== 'manual' && item.itemType !== 'flotante') {
+          await restorePortions(item.inventoryItemId, item.portionsAdultConsumed || 0, item.portionsBabyConsumed || 0);
+        }
+      }
+    }
+
+    await resolvePendingSlot(dateStr, slotId, keepIndices);
+    if (!wasConfirmed) {
+      await consumeSlotInventory(keptItems);
+    }
+    await clearAssociatedPrep(keptItems);
+  };
+
+  // Slots pendientes de confirmar cuya hora ya pasó (de hoy o de días anteriores):
+  // sin confirmedAt, o con algún item aún "por preparar"
+  const PENDING_SCAN_DAYS = 7;
+  const pendingSlots = [];
+  for (let i = PENDING_SCAN_DAYS; i >= 0; i--) {
+    const dateStr = offsetDateStr(-i);
+    const dayPlan = getPlan(dateStr);
+    if (!dayPlan?.slots) continue;
+    for (const slotId of PENDING_SLOT_ORDER) {
+      const slot = dayPlan.slots[slotId];
+      if (!slot?.items?.length) continue;
+      if (dismissedPending.has(`${dateStr}:${slotId}`)) continue;
+      if (!hasSlotTimePassed(slotId, dateStr)) continue;
+      const needsAttention = !slot.confirmedAt || slot.items.some((item) => item.pendingPrep);
+      if (!needsAttention) continue;
+      pendingSlots.push({
+        dateStr,
+        dateLabel: DAY_LABELS[-i] ?? `Hace ${i} días`,
+        slotId,
+        items: slot.items,
+      });
+    }
+  }
 
   const handleRemoveSlotItem = async (dateStr, slotId, itemIdx) => {
     const plan = getPlan(dateStr);
@@ -267,7 +351,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
   }
 
   async function handleScheduleMealProposal(proposal) {
-    await addToPrepQueue({
+    return await addToPrepQueue({
       label:                 proposal.name,
       prepType:              proposal.prepType,
       prepTime:              proposal.prepTime ?? null,
@@ -530,6 +614,17 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-xs font-medium px-4 py-2 rounded-full shadow-lg">
           "{usualToast}" añadido a habituales ⭐
         </div>
+      )}
+
+      {pendingSlots.length > 0 && (
+        <PendingMealsConfirmModal
+          pendingSlots={pendingSlots}
+          onConfirmSlot={(dateStr, slotId, keepIndices) => handleConfirmPendingSlot(dateStr, slotId, keepIndices)}
+          onUpdateItem={(dateStr, slotId, idx, fields) => updateSlotItem(dateStr, slotId, idx, fields)}
+          onDismiss={() => {
+            pendingSlots.forEach(({ dateStr, slotId }) => dismissPendingKey(`${dateStr}:${slotId}`));
+          }}
+        />
       )}
 
       <AddPrepModal

@@ -50,20 +50,24 @@ function PortionCounter({ icon, value, onChange }) {
 
 const AI_SLOTS = new Set(['comida', 'cena']);
 
-const SLOT_CUTOFF_HOUR = {
+export const SLOT_CUTOFF_HOUR = {
   desayuno: 10, snack: 12, comida: 15, merienda: 18, cena: 22,
 };
 
-function getSlotStatus(slotId, slot, date) {
+// Ha llegado o pasado la hora habitual de ese slot para esa fecha
+export function hasSlotTimePassed(slotId, date) {
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
+  if (date < today) return true;
+  if (date > today) return false;
+  return now.getHours() >= (SLOT_CUTOFF_HOUR[slotId] ?? 22);
+}
+
+function getSlotStatus(slotId, slot, date) {
   const isConfirmed = !!slot?.confirmedAt;
   const hasItems = (slot?.items?.length ?? 0) > 0;
 
-  const isPast = date < today;
-  const isToday = date === today;
-
-  if (isPast || (isToday && now.getHours() >= (SLOT_CUTOFF_HOUR[slotId] ?? 22))) {
+  if (hasSlotTimePassed(slotId, date)) {
     return isConfirmed ? 'confirmed' : 'missed';
   }
   return hasItems ? 'planned' : 'empty';

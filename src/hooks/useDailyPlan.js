@@ -142,16 +142,33 @@ export function useDailyPlan(householdId) {
     await writeSlot(dateStr, slotId, { ...existing, items: newItems });
   }, [plans, writeSlot]);
 
-  const confirmSlot = useCallback(async (dateStr, slotId) => {
-    const plan = plans[dateStr];
-    const slot = plan?.slots?.[slotId];
-    if (!slot?.items?.length || slot.confirmedAt) return;
-    await writeSlot(dateStr, slotId, { ...slot, confirmedAt: new Date().toISOString() });
-  }, [plans, writeSlot]);
-
   const clearSlot = useCallback(async (dateStr, slotId) => {
     await writeSlot(dateStr, slotId, null);
   }, [writeSlot]);
+
+  // Confirma un slot (marca confirmedAt si no lo tenía) y limpia el flag pendingPrep
+  // de sus items. Usado tanto por el botón "Confirmar" normal como por el modal
+  // "¿qué comiste?" para slots pasados con items aún "por preparar".
+  // keepIndices, si se pasa, filtra qué items del slot se conservan (los demás se descartan).
+  const resolvePendingSlot = useCallback(async (dateStr, slotId, keepIndices = null) => {
+    const plan = plans[dateStr];
+    const slot = plan?.slots?.[slotId];
+    if (!slot?.items?.length) return;
+    const filtered = keepIndices
+      ? slot.items.filter((_, idx) => keepIndices.has(idx))
+      : slot.items;
+    if (filtered.length === 0) {
+      await writeSlot(dateStr, slotId, null);
+      return;
+    }
+    const newItems = filtered.map((item) =>
+      item.pendingPrep ? { ...item, pendingPrep: false } : item
+    );
+    await writeSlot(dateStr, slotId, {
+      items: newItems,
+      confirmedAt: slot.confirmedAt || new Date().toISOString(),
+    });
+  }, [plans, writeSlot]);
 
   // ── weekly KPIs from confirmed slots ────────────────────────────────────────
 
@@ -223,8 +240,8 @@ export function useDailyPlan(householdId) {
     removeSlotItem,
     updateSlotItem,
     updateSlotItemPortions,
-    confirmSlot,
     clearSlot,
+    resolvePendingSlot,
     weeklyKpis,
     projectedWeeklyKpis,
     todayStr,
