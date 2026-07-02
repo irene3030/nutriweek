@@ -53,6 +53,21 @@ const DEFAULT_FILTERS = new Set(['proteina', 'verdura', 'preparado', 'snack', 'a
 
 const SHELF_TYPES = new Set(['flotante', 'ya-preparado', 'acelerador', 'snack', 'snack-batch']);
 
+// ── Sorting: group items by category (same order as the filter pills) ─────────
+
+function categoryRank(item) {
+  const idx = FILTERS.findIndex(f => f.match(item));
+  return idx === -1 ? FILTERS.length : idx;
+}
+
+function sortByCategory(items) {
+  return [...items].sort((a, b) => {
+    const rankDiff = categoryRank(a) - categoryRank(b);
+    if (rankDiff !== 0) return rankDiff;
+    return a.name.localeCompare(b.name, 'es');
+  });
+}
+
 // ── Chip ───────────────────────────────────────────────────────────────────────
 
 function InventoryChip({ item, onDragStart }) {
@@ -95,8 +110,8 @@ export default function IngredientShelf({ inventoryItems, onDragStart }) {
     return true;
   });
 
-  const flotantes = visibleItems.filter(i => i.type === 'flotante');
-  const preps     = visibleItems.filter(i => i.type !== 'flotante');
+  const flotantes = sortByCategory(visibleItems.filter(i => i.type === 'flotante'));
+  const preps     = sortByCategory(visibleItems.filter(i => i.type !== 'flotante'));
 
   function toggleFilter(id) {
     setActiveFilters(prev => {
