@@ -193,7 +193,7 @@ export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveIte
                         {(() => {
                           const all = [item.primaryIngredientName, ...(item.additionalIngredientNames || [])].filter(Boolean);
                           return all.length > 0 ? (
-                            <p className="text-[10px] text-gray-400 leading-tight">{all.join(', ')}</p>
+                            <p className="text-xs text-gray-400 leading-tight">{all.join(', ')}</p>
                           ) : null;
                         })()}
                       </>

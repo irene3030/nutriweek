@@ -69,8 +69,8 @@ function InventoryChip({ item, onDragStart }) {
     >
       <Icon className={`w-4 h-4 shrink-0 ${icon}`} />
       <div className="leading-tight">
-        <p className="text-xs font-semibold text-gray-700 whitespace-nowrap">{item.name}</p>
-        <p className="text-[10px] text-gray-400">{getSubtitle(item)}</p>
+        <p className="text-sm font-semibold text-gray-700 whitespace-nowrap">{item.name}</p>
+        <p className="text-xs text-gray-400">{getSubtitle(item)}</p>
       </div>
     </div>
   );

@@ -53,27 +53,39 @@ const VEGGIES = [
   ['hinojo', 'hinojo'],
 ];
 
+function capitalize(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/**
+ * Infer nutritional tags from a preparation name, along with which specific
+ * word in the text triggered each group of tags (e.g. "salmón" → oily_fish, iron).
+ * @param {string} name
+ * @returns {{ name: string, tags: string[] }[]}
+ */
+export function inferLabelSources(name) {
+  if (!name) return [];
+  const lower = name.toLowerCase();
+  const sources = [];
+
+  for (const rule of RULES) {
+    const matched = rule.keywords.find((kw) => lower.includes(kw));
+    if (matched) sources.push({ name: capitalize(matched), tags: rule.tags });
+  }
+
+  for (const [key, ...keywords] of VEGGIES) {
+    const matched = keywords.find((kw) => lower.includes(kw));
+    if (matched) sources.push({ name: capitalize(matched), tags: [`veggie:${key}`] });
+  }
+
+  return sources;
+}
+
 /**
  * Infer nutritional tags from a preparation name.
  * @param {string} name
  * @returns {string[]} array of tag IDs (e.g. ['iron', 'oily_fish', 'veggie:zanahoria'])
  */
 export function inferLabels(name) {
-  if (!name) return [];
-  const lower = name.toLowerCase();
-  const tagSet = new Set();
-
-  for (const rule of RULES) {
-    if (rule.keywords.some((kw) => lower.includes(kw))) {
-      rule.tags.forEach((t) => tagSet.add(t));
-    }
-  }
-
-  for (const [key, ...keywords] of VEGGIES) {
-    if (keywords.some((kw) => lower.includes(kw))) {
-      tagSet.add(`veggie:${key}`);
-    }
-  }
-
-  return [...tagSet];
+  return [...new Set(inferLabelSources(name).flatMap((s) => s.tags))];
 }

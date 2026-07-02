@@ -78,6 +78,10 @@ export default function DropPrepSheet({
         ...(item.tags || []),
         ...selectedExtras.flatMap(i => i.tags || []),
       ])];
+      const ingredientTags = [
+        { name: item.name, tags: item.tags || [] },
+        ...selectedExtras.map(i => ({ name: i.name, tags: i.tags || [] })),
+      ];
       onConfirm({
         inventoryItemId:           item.id,
         additionalInventoryIds:    selectedExtras.map(i => i.id),
@@ -87,6 +91,7 @@ export default function DropPrepSheet({
         label:                     name,
         itemType:                  'flotante',
         tags:                      allTags,
+        ingredientTags,
         portionsAdultConsumed:     0,
         portionsBabyConsumed:      0,
         prepTime:                  null,

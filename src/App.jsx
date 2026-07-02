@@ -80,6 +80,7 @@ const TabIcons = {
 function AppContent() {
   const auth = useAuth();
   const [activeTab, setActiveTab] = useState('today');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedDayIndex, setSelectedDayIndex] = useState(null);
   const [savedRecipes, setSavedRecipes] = useState([]);
   const [usualMeals, setUsualMeals] = useState([]);
@@ -301,8 +302,31 @@ function AppContent() {
 
   return (
       <div className="min-h-screen flex">
-        {/* Desktop sidebar */}
-        <aside className="hidden lg:flex flex-col fixed inset-y-0 left-0 w-56 bg-white border-r border-gray-200 z-20">
+        {/* Desktop sidebar toggle */}
+        <button
+          onClick={() => setSidebarOpen((v) => !v)}
+          className="hidden lg:flex fixed top-3.5 left-3 z-40 w-8 h-8 rounded-md items-center justify-center text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+          title="Menú"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+        {/* Desktop sidebar backdrop */}
+        {sidebarOpen && (
+          <div
+            className="hidden lg:block fixed inset-0 z-20 bg-black/20"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Desktop sidebar (hideable, slides in from the left) */}
+        <aside
+          className={`hidden lg:flex flex-col fixed inset-y-0 left-0 w-56 bg-white border-r border-gray-200 z-30 transition-transform duration-300 ${
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
           <div className="flex items-center gap-2.5 px-5 py-4 border-b border-gray-100">
             <Logo variant="full" className="w-7 h-7 object-contain" />
             <span className="font-bold text-base text-gray-900">MealOps</span>
@@ -317,7 +341,7 @@ function AppContent() {
               <button
                 key={tab.id}
                 data-tour={tab.tour}
-                onClick={() => { setActiveTab(tab.id); track('tab_viewed', { tab: tab.id }); }}
+                onClick={() => { setActiveTab(tab.id); setSidebarOpen(false); track('tab_viewed', { tab: tab.id }); }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                   activeTab === tab.id
                     ? 'bg-brand-50 text-brand-700'
@@ -332,7 +356,7 @@ function AppContent() {
         </aside>
 
         {/* Main content + mobile nav */}
-        <div className="flex-1 min-w-0 lg:ml-56">
+        <div className="flex-1 min-w-0">
         {/* Tab content */}
         <div className="pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0">
           {activeTab === 'week' && (
