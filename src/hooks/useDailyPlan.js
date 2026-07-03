@@ -191,6 +191,7 @@ export function useDailyPlan(householdId) {
               baby: item.label,
               adult: item.label,
               tags: item.tags || [],
+              ingredientTags: item.ingredientTags || null,
             }))
           );
         return { day: dayLabel(dateStr), meals };
@@ -222,6 +223,7 @@ export function useDailyPlan(householdId) {
               baby: item.label,
               adult: item.label,
               tags: item.tags || [],
+              ingredientTags: item.ingredientTags || null,
             }))
           );
         return { day: dayLabel(dateStr), meals };

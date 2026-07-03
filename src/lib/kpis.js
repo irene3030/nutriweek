@@ -106,6 +106,56 @@ function countDistinctVeggies(days) {
   return veggies.size;
 }
 
+/**
+ * Resolve the specific ingredient name that carries the given tag within a meal.
+ * Falls back to the full dish label when the meal has no per-ingredient breakdown
+ * (single-ingredient items, or dishes saved before ingredientTags existed).
+ */
+function resolveTagSource(meal, tag) {
+  if (Array.isArray(meal.ingredientTags) && meal.ingredientTags.length > 0) {
+    const matches = meal.ingredientTags
+      .filter((ing) => (ing.tags || []).some((t) => t === tag || t.startsWith(tag + ':')))
+      .map((ing) => ing.name)
+      .filter(Boolean);
+    if (matches.length > 0) return matches.join(' + ');
+  }
+  return meal.baby || meal.adult;
+}
+
+/** Get distinct meal labels (dish names) that carry the given tag, across all days */
+function getItemsWithTag(days, tag) {
+  const items = new Set();
+  for (const day of days) {
+    if (!day.meals) continue;
+    for (const meal of day.meals) {
+      if (!meal.tags) continue;
+      const hasTag = meal.tags.some((t) => t === tag || t.startsWith(tag + ':'));
+      if (hasTag) {
+        const name = resolveTagSource(meal, tag);
+        if (name) items.add(name);
+      }
+    }
+  }
+  return [...items];
+}
+
+/** Get every occurrence (one per meal, duplicates included) of dishes carrying the given tag, tagged with their day */
+function getOccurrencesWithTag(days, tag) {
+  const occurrences = [];
+  for (const day of days) {
+    if (!day.meals) continue;
+    for (const meal of day.meals) {
+      if (!meal.tags) continue;
+      const hasTag = meal.tags.some((t) => t === tag || t.startsWith(tag + ':'));
+      if (hasTag) {
+        const name = resolveTagSource(meal, tag);
+        if (name) occurrences.push(day.day ? `${name} · ${day.day}` : name);
+      }
+    }
+  }
+  return occurrences;
+}
+
 /** Get the distinct veggie names */
 function getDistinctVeggies(days) {
   const veggies = new Set();
@@ -269,6 +319,10 @@ export function calculateKPIs(weekDoc, customKPIs = []) {
       fruitDays: 0,
       distinctVeggies: 0,
       veggieList: [],
+      ironItems: [],
+      fishItems: [],
+      legumeItems: [],
+      fruitItems: [],
       consecutiveAlerts: [],
       dayKPIs: [],
       customResults: {},
@@ -298,6 +352,10 @@ export function calculateKPIs(weekDoc, customKPIs = []) {
     fruitDays: countDaysWithTag(effectiveDays, 'fruit'),
     distinctVeggies: countDistinctVeggies(effectiveDays),
     veggieList: getDistinctVeggies(effectiveDays),
+    ironItems: getOccurrencesWithTag(effectiveDays, 'iron'),
+    fishItems: getOccurrencesWithTag(effectiveDays, 'oily_fish'),
+    legumeItems: getOccurrencesWithTag(effectiveDays, 'legume'),
+    fruitItems: getItemsWithTag(effectiveDays, 'fruit'),
     consecutiveAlerts: detectConsecutiveProteinAlert(effectiveDays),
     dayKPIs: effectiveDays.map((day) => ({ day: day.day, ...getDayKPIs(day) })),
     customResults,

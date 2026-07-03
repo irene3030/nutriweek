@@ -3,7 +3,7 @@ import { X, User, Baby, ChevronRight } from 'lucide-react';
 import FreshnessIndicator from './FreshnessIndicator';
 import TagConfirm from './TagConfirm';
 import { daysUntil } from '../../hooks/useInventory';
-import { inferLabels } from '../../lib/inventoryLabels';
+import { inferLabelSources } from '../../lib/inventoryLabels';
 
 const SLOT_LABELS = {
   desayuno: 'Desayuno',
@@ -16,7 +16,7 @@ const SLOT_LABELS = {
 const TYPE_CONFIG = {
   'ya-preparado': { label: 'Listo',       color: 'bg-brand-100 text-brand-700' },
   acelerador:     { label: 'Justo-antes', color: 'bg-violet-100 text-violet-700' },
-  'snack-batch':  { label: 'Snack',       color: 'bg-amber-100 text-amber-700' },
+  'snack-batch':  null,
   flotante:       null,
 };
 
@@ -52,6 +52,7 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
   const [manualPrepNote, setManualPrepNote] = useState('');
   const [manualTagStep, setManualTagStep] = useState(false);
   const [manualTags, setManualTags] = useState([]);
+  const [manualTagSources, setManualTagSources] = useState([]);
   // For aceleradores: which item is being expanded for the prep form
   const [pendingAccel, setPendingAccel] = useState(null); // item
   const [accelMealName, setAccelMealName] = useState('');
@@ -106,7 +107,9 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
 
   const handleManualNext = () => {
     if (!manualText.trim()) return;
-    setManualTags(inferLabels(manualText));
+    const sources = inferLabelSources(manualText);
+    setManualTagSources(sources);
+    setManualTags([...new Set(sources.flatMap((s) => s.tags))]);
     setManualTagStep(true);
   };
 
@@ -117,6 +120,7 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
       itemType: 'manual',
       prepNote: manualPrepNote.trim() || null,
       tags: manualTags,
+      ingredientTags: manualTagSources,
       confirmedAt: null,
       prepTime: null,
       portionsAdultConsumed: 0,
@@ -129,6 +133,7 @@ export default function SlotPickerSheet({ slotId, inventoryItems, onSelect, onCl
     setManualPrepNote('');
     setManualTagStep(false);
     setManualTags([]);
+    setManualTagSources([]);
   };
 
   return (

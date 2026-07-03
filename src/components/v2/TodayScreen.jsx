@@ -55,14 +55,6 @@ function getDays(base) {
   }));
 }
 
-const MONTH_NAMES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-const DAY_NAMES_FULL = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-
-function formatTodayHeader() {
-  const d = new Date();
-  return `${DAY_NAMES_FULL[d.getDay()]} ${d.getDate()} de ${MONTH_NAMES[d.getMonth()]}`;
-}
-
 export default function TodayScreen({ householdId, hasAiAccess, pantryItems = [] }) {
   const {
     items: inventoryItems,
@@ -464,11 +456,8 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between lg:max-w-none lg:pl-6 lg:pr-16">
-          <div>
-            <h1 className="text-base font-bold text-gray-900">Planificación</h1>
-            <p className="text-xs text-gray-400 capitalize">{formatTodayHeader()}</p>
-          </div>
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between lg:max-w-none lg:pl-16 lg:pr-16">
+          <h1 className="text-base font-bold text-gray-900">Hoy</h1>
           {hasAiAccess && (
             <div className="flex items-center gap-2">
               <button

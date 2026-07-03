@@ -20,7 +20,7 @@ const SLOT_ICONS = {
 const TYPE_BADGES = {
   'ya-preparado': { label: 'Listo',       color: 'bg-brand-100 text-brand-700' },
   acelerador:     { label: 'Base',        color: 'bg-violet-100 text-violet-700' },
-  'snack-batch':  { label: 'Snack',       color: 'bg-amber-100 text-amber-700' },
+  'snack-batch':  null,
   flotante:       null,
   manual:         null,
 };
@@ -197,7 +197,7 @@ export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveIte
                         {(() => {
                           const all = [item.primaryIngredientName, ...(item.additionalIngredientNames || [])].filter(Boolean);
                           return all.length > 0 ? (
-                            <p className="text-[10px] text-gray-400 leading-tight">{all.join(', ')}</p>
+                            <p className="text-xs text-gray-400 leading-tight">{all.join(', ')}</p>
                           ) : null;
                         })()}
                       </>
