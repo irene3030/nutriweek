@@ -57,8 +57,14 @@ meta/ffActivation                     # contador global de activaciones F&F (má
     // ...
   }
 }
-// SlotEntry: { inventoryItemId, label, itemType, tags, prepTime, accelBase,
+// SlotEntry: { id, inventoryItemId, additionalInventoryIds, label, itemType, tags,
+//              prepTime, accelBase, prepMethod, pendingPrep, depletedInventoryIds,
 //              portionsAdultConsumed, portionsBabyConsumed }
+// - id: uuid estable, solo se asigna a entries que generan tarea en prepQueue
+//   (vincula SlotEntry <-> prepQueue.linkedEntryId)
+// - depletedInventoryIds: subset de [inventoryItemId, ...additionalInventoryIds]
+//   que se desactiva en inventario al confirmar el slot (y se reactiva al eliminar
+//   el item del slot) — evita vaciar del todo un ingrediente del que solo se usó una parte
 ```
 
 #### Tipos de item de inventario (`type`)

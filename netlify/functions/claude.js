@@ -1722,6 +1722,22 @@ Si no hay productos alimentarios identificables, devuelve { "items": [] }.`;
         userMessage = `Analiza el siguiente texto de una confirmación de compra online y extrae los productos alimentarios.\n\nTexto:\n---\n${safeText}\n---\n\n${SHOPPING_INSTRUCTIONS}`;
       }
 
+    } else if (type === 'infer_prep_method') {
+      const { dishName, ingredients } = payload;
+      const safeDishName = sanitize(dishName, 100);
+      const safeIngredients = Array.isArray(ingredients)
+        ? ingredients.map(i => sanitize(i, 60)).filter(Boolean).slice(0, 10)
+        : [];
+
+      userMessage = `Un usuario va a cocinar "${safeDishName}"${safeIngredients.length > 0 ? ` con estos ingredientes: ${safeIngredients.join(', ')}` : ''}.
+
+Infiere el método de cocción/preparación más probable, eligiendo uno de: Air fryer, Horno, Plancha, Sartén, Olla, Vapor, Microondas, Crudo / Sin cocción.
+
+Devuelve SOLO este JSON:
+{
+  "method": "Horno"
+}`;
+
     } else {
       return {
         statusCode: 400,

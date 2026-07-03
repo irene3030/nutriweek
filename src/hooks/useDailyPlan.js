@@ -47,10 +47,15 @@ function dayLabel(dateStr) {
 // slots.{slotId} = { items: SlotEntry[], confirmedAt: string | null }
 //
 // SlotEntry = {
-//   inventoryItemId, label, itemType, tags,
-//   prepTime, accelBase,
+//   id, inventoryItemId, additionalInventoryIds, label, itemType, tags,
+//   prepTime, accelBase, prepMethod, pendingPrep, depletedInventoryIds,
 //   portionsAdultConsumed, portionsBabyConsumed
 // }
+// - id: uuid estable, solo se asigna a entries que pueden generar una tarea
+//   en prepQueue (vincula SlotEntry <-> prepQueue.linkedEntryId)
+// - depletedInventoryIds: subset de [inventoryItemId, ...additionalInventoryIds]
+//   que se desactivan en inventario al confirmar el slot (y se reactivan al
+//   eliminar el item del slot)
 
 // ── hook ──────────────────────────────────────────────────────────────────────
 

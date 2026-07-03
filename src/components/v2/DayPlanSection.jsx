@@ -121,6 +121,7 @@ export default function DayPlanSection({
   onSchedulePrep,
   dragActive = false,
   onDropItem,
+  onRepeatItem,
   onPrev,
   onNext,
 }) {
@@ -250,6 +251,7 @@ export default function DayPlanSection({
                 } : undefined}
                 dragActive={dragActive}
                 onDropItem={onDropItem ? () => onDropItem(date, slotId, offsetLabel) : undefined}
+                onRepeat={onRepeatItem ? () => onRepeatItem(date, slotId, offsetLabel) : undefined}
               />
             );
           })}
