@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, Sparkles, Pencil, BookmarkPlus, Clock, Sun, Apple, UtensilsCrossed, Cookie, Moon, ArrowDown } from 'lucide-react';
+import { Plus, X, Sparkles, Pencil, BookmarkPlus, Clock, Sun, Apple, UtensilsCrossed, Cookie, Moon, ArrowDown, RotateCcw } from 'lucide-react';
 
 const SLOT_LABELS = {
   desayuno: 'Desayuno',
@@ -50,34 +50,57 @@ function PortionCounter({ icon, value, onChange }) {
 
 const AI_SLOTS = new Set(['comida', 'cena']);
 
+const SLOT_ORDER = ['desayuno', 'snack', 'comida', 'merienda', 'cena'];
+
 const SLOT_CUTOFF_HOUR = {
   desayuno: 10, snack: 12, comida: 15, merienda: 18, cena: 22,
 };
 
+// Un slot "empieza" cuando termina el anterior — evita definir horas mágicas nuevas.
+function getSlotStartHour(slotId) {
+  const idx = SLOT_ORDER.indexOf(slotId);
+  if (idx <= 0) return 0;
+  return SLOT_CUTOFF_HOUR[SLOT_ORDER[idx - 1]] ?? 0;
+}
+
+// Estados: empty (sin items) · planned (con items, sin confirmar — da igual si
+// toca hoy o es un día futuro, es un único "no confirmado todavía") · missed
+// (pasó la franja sin confirmar) · confirmed (confirmado)
 function getSlotStatus(slotId, slot, date) {
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
   const isConfirmed = !!slot?.confirmedAt;
   const hasItems = (slot?.items?.length ?? 0) > 0;
+  if (isConfirmed) return 'confirmed';
+  if (!hasItems) return 'empty';
 
   const isPast = date < today;
   const isToday = date === today;
 
   if (isPast || (isToday && now.getHours() >= (SLOT_CUTOFF_HOUR[slotId] ?? 22))) {
-    return isConfirmed ? 'confirmed' : 'missed';
+    return 'missed';
   }
-  return hasItems ? 'planned' : 'empty';
+  return 'planned';
+}
+
+// No se puede marcar "Ya comido" para un día futuro, ni antes de que empiece la franja del slot hoy.
+function canConfirmSlot(slotId, date) {
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  if (date > today) return false;
+  if (date < today) return true;
+  return now.getHours() >= getSlotStartHour(slotId);
 }
 
 const SLOT_ICON_COLOR = {
   confirmed: 'text-green-400',
   missed:    'text-red-400',
-  planned:   'text-amber-400',
+  planned:   'text-indigo-300',
   empty:     'text-gray-300',
 };
 
 // slot = { items: SlotEntry[], confirmedAt: string|null } | null
-export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveItem, onEditItem, onConfirm, onUpdatePortions, onAiPropose, disabled, template, onSaveTemplate, onApplyTemplate, dragActive, onDropItem }) {
+export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveItem, onEditItem, onConfirm, onUpdatePortions, onAiPropose, onRepeat, disabled, template, onSaveTemplate, onApplyTemplate, dragActive, onDropItem }) {
   const [editingIdx, setEditingIdx] = useState(null);
   const [draftAdult, setDraftAdult] = useState(0);
   const [draftBaby, setDraftBaby] = useState(0);
@@ -88,9 +111,9 @@ export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveIte
   const items = slot?.items || [];
   const isEmpty = !slot || items.length === 0;
   const isConfirmed = !!slot?.confirmedAt;
-  const isPlanned = !isEmpty && !isConfirmed;
   const slotStatus = getSlotStatus(slotId, slot, date);
   const isDropTarget = dragActive && !isConfirmed;
+  const confirmable = canConfirmSlot(slotId, date);
 
   function handleDragOver(e) {
     if (!isDropTarget) return;
@@ -172,6 +195,16 @@ export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveIte
                   <span>Proponer</span>
                 </button>
               )}
+              {onRepeat && (
+                <button
+                  onClick={onRepeat}
+                  disabled={disabled}
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-brand-600 transition-colors"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Repetir</span>
+                </button>
+              )}
             </div>
           </div>
         ) : (
@@ -180,16 +213,28 @@ export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveIte
               const badge = TYPE_BADGES[item.itemType];
               const isLast = idx === items.length - 1;
 
+              const pendingPrepBadge = item.pendingPrep ? (
+                <span className="shrink-0 flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">
+                  <Clock className="w-2.5 h-2.5" /> Por preparar
+                </span>
+              ) : null;
+
               return (
                 <div key={idx} className="flex items-start gap-2 group/item">
                   <div className="flex-1 min-w-0 space-y-0.5">
                     {/* Label + badge — flotante-aware */}
                     {item.itemType === 'flotante' && item.isNamedDish ? (
-                      // Named dish: no badge, all ingredients in subtitle
+                      // Named dish: no type badge, all ingredients in subtitle
                       <>
-                        <span className={`text-sm font-medium ${isConfirmed ? 'text-gray-400' : 'text-gray-800'}`}>
-                          {item.label}
-                        </span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-sm font-medium ${isConfirmed ? 'text-gray-400' : 'text-gray-800'}`}>
+                            {item.label}
+                          </span>
+                          {pendingPrepBadge}
+                        </div>
+                        {item.prepMethod && (
+                          <p className="text-[10px] text-violet-500 font-medium">{item.prepMethod}</p>
+                        )}
                         {(() => {
                           const all = [item.primaryIngredientName, ...(item.additionalIngredientNames || [])].filter(Boolean);
                           return all.length > 0 ? (
@@ -199,11 +244,17 @@ export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveIte
                       </>
                     ) : item.itemType === 'flotante' && item.additionalIngredientNames?.length > 0 ? (
                       // Raw ingredient + extras: everything inline
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-sm font-medium ${isConfirmed ? 'text-gray-400' : 'text-gray-800'}`}>
-                          {[item.label, ...item.additionalIngredientNames].join(' · ')}
-                        </span>
-                      </div>
+                      <>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-sm font-medium ${isConfirmed ? 'text-gray-400' : 'text-gray-800'}`}>
+                            {[item.label, ...item.additionalIngredientNames].join(' · ')}
+                          </span>
+                          {pendingPrepBadge}
+                        </div>
+                        {item.prepMethod && (
+                          <p className="text-[10px] text-violet-500 font-medium">{item.prepMethod}</p>
+                        )}
+                      </>
                     ) : (
                       // Default: label + badge + pendingPrep
                       <div className="flex items-center gap-2 flex-wrap">
@@ -215,11 +266,7 @@ export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveIte
                             {badge.label}
                           </span>
                         )}
-                        {item.pendingPrep && (
-                          <span className="shrink-0 flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">
-                            <Clock className="w-2.5 h-2.5" /> Por preparar
-                          </span>
-                        )}
+                        {pendingPrepBadge}
                       </div>
                     )}
 
@@ -277,13 +324,23 @@ export default function PlanSlotRow({ slotId, slot, date, onAddItem, onRemoveIte
               );
             })}
 
-            {isPlanned && (
+            {slotStatus === 'planned' && confirmable && (
               <div className="flex justify-end pt-1">
                 <button
                   onClick={onConfirm}
                   className="text-xs font-medium px-3 py-1.5 rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition-colors"
                 >
-                  Confirmar
+                  Ya comido
+                </button>
+              </div>
+            )}
+            {slotStatus === 'missed' && (
+              <div className="flex justify-end pt-1">
+                <button
+                  onClick={onConfirm}
+                  className="text-xs font-medium px-3 py-1.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  Marcar como comido
                 </button>
               </div>
             )}

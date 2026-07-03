@@ -19,6 +19,7 @@ import WeekHistoryStrip from './WeekHistoryStrip';
 import PrepQueueSection from './PrepQueueSection';
 import IngredientShelf from './IngredientShelf';
 import DropPrepSheet from './DropPrepSheet';
+import RepeatMealSheet from './RepeatMealSheet';
 import { daysUntil } from '../../hooks/useInventory';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
@@ -68,6 +69,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
     loading: invLoading,
     addItem,
     updateItem,
+    deleteItem,
     consumePortions,
     consumeUnits,
     restorePortions,
@@ -101,6 +103,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
   // Drag-and-drop state
   const [draggedItem, setDraggedItem]   = useState(null);
   const [dropTarget, setDropTarget]     = useState(null); // { dateStr, slotId, dayLabel } for flotante sheet
+  const [repeatTarget, setRepeatTarget] = useState(null); // { dateStr, slotId, dayLabel } for repeat-meal sheet
   const [resolveSlotCtx, setResolveSlotCtx] = useState(null); // { dateStr, slotId } preserved when AI opens from a drag-drop
   const [prepQueueItemToRemove, setPrepQueueItemToRemove]     = useState(null);
   const [prepQueueSourceItemId, setPrepQueueSourceItemId]     = useState(null);
@@ -187,18 +190,17 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
     const slot = plan?.slots?.[slotId];
     if (!slot?.items?.length || slot.confirmedAt) return;
 
-    await confirmSlot(dateStr, slotId);
+    const clearedItems = slot.items.map(it => it.pendingPrep ? { ...it, pendingPrep: false } : it);
+    await confirmSlot(dateStr, slotId, clearedItems);
 
     // Decrement inventory for each item in the slot
     for (const item of slot.items) {
       if (item.itemType === 'snack-batch' && item.inventoryItemId) {
         await consumeUnits(item.inventoryItemId, 1);
       } else if (item.itemType === 'flotante' && item.inventoryItemId) {
-        // Deactivate primary flotante ingredient
-        await updateItem(item.inventoryItemId, { isActive: false });
-        // Deactivate any extra ingredients combined into this dish
-        for (const extraId of (item.additionalInventoryIds || [])) {
-          await updateItem(extraId, { isActive: false });
+        // Only deactivate ingredients the user explicitly marked as "se acabó"
+        for (const id of (item.depletedInventoryIds || [])) {
+          await updateItem(id, { isActive: false });
         }
       } else if (item.inventoryItemId && item.itemType !== 'manual' && item.itemType !== 'flotante') {
         await consumePortions(
@@ -206,6 +208,12 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
           item.portionsAdultConsumed || 0,
           item.portionsBabyConsumed || 0
         );
+      }
+
+      // Remove the linked "por preparar" task from the checklist, now that the meal is confirmed
+      if (item.pendingPrep && item.id) {
+        const linked = prepQueue.find(q => q.linkedEntryId === item.id);
+        if (linked) await removeFromPrepQueue(linked.id);
       }
     }
   };
@@ -218,13 +226,22 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
     if (item && slot?.confirmedAt && item.inventoryItemId) {
       if (item.itemType === 'snack-batch') {
         await restoreUnits(item.inventoryItemId, 1);
-      } else if (item.itemType !== 'manual' && item.itemType !== 'flotante') {
+      } else if (item.itemType === 'flotante') {
+        for (const id of (item.depletedInventoryIds || [])) {
+          await updateItem(id, { isActive: true });
+        }
+      } else if (item.itemType !== 'manual') {
         await restorePortions(
           item.inventoryItemId,
           item.portionsAdultConsumed || 0,
           item.portionsBabyConsumed || 0,
         );
       }
+    }
+
+    if (item?.pendingPrep && item.id) {
+      const linked = prepQueue.find(q => q.linkedEntryId === item.id);
+      if (linked) await removeFromPrepQueue(linked.id);
     }
 
     await removeSlotItem(dateStr, slotId, itemIdx);
@@ -294,6 +311,19 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
     setShowAddPrep(true);
   }
 
+  // Tareas vinculadas a un SlotEntry concreto (creadas al arrastrar desde la nevera
+  // y renombrar/combinar ingredientes): "Lo hice" solo limpia el badge del slot,
+  // no crea una preparación nueva en inventario.
+  async function handlePrepQueueSlotDone(item) {
+    const plan = getPlan(item.linkedDate);
+    const items = plan?.slots?.[item.linkedSlot]?.items || [];
+    const idx = items.findIndex(it => it.id === item.linkedEntryId);
+    if (idx !== -1) {
+      await updateSlotItem(item.linkedDate, item.linkedSlot, idx, { pendingPrep: false });
+    }
+    await removeFromPrepQueue(item.id);
+  }
+
   const handleSavePrep = async (data) => {
     await addItem(data);
     if (prepQueueItemToRemove) {
@@ -357,6 +387,19 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
   function handleDropPrepConfirm(entry) {
     if (!dropTarget) return;
     addSlotItem(dropTarget.dateStr, dropTarget.slotId, entry);
+    if (entry.pendingPrep && entry.id) {
+      addToPrepQueue({
+        label:          entry.label,
+        prepType:       'justo-antes',
+        prepTime:       entry.prepMethod ?? null,
+        tags:           entry.tags ?? [],
+        targetDate:     dropTarget.dateStr,
+        targetSlot:     dropTarget.slotId,
+        linkedEntryId:  entry.id,
+        linkedDate:     dropTarget.dateStr,
+        linkedSlot:     dropTarget.slotId,
+      });
+    }
     setDropTarget(null);
   }
 
@@ -368,6 +411,22 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
   }
 
   // ── End drag handlers ────────────────────────────────────────────────────────
+
+  // ── Repeat meal from a previous day ─────────────────────────────────────────
+
+  function handleRepeatOpen(dateStr, slotId, dayLabel) {
+    setRepeatTarget({ dateStr, slotId, dayLabel });
+  }
+
+  function handleRepeatSelect(entries) {
+    if (!repeatTarget) return;
+    for (const entry of entries) {
+      addSlotItem(repeatTarget.dateStr, repeatTarget.slotId, entry);
+    }
+    setRepeatTarget(null);
+  }
+
+  // ── End repeat meal ──────────────────────────────────────────────────────────
 
   const PROTEIN_TAGS = ['iron', 'fish', 'oily_fish', 'legume', 'egg'];
   const alertableFloating = floatingItems.filter(item =>
@@ -457,7 +516,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
         {/* Cola de preparaciones pendientes */}
         <PrepQueueSection
           items={prepQueue}
-          onDone={handlePrepQueueDone}
+          onDone={(item) => item.linkedEntryId ? handlePrepQueueSlotDone(item) : handlePrepQueueDone(item)}
           onRemove={removeFromPrepQueue}
           onAdd={addToPrepQueue}
         />
@@ -513,6 +572,7 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
                 onSchedulePrep={handleScheduleMealProposal}
                 dragActive={!!draggedItem}
                 onDropItem={handleDropOnSlot}
+                onRepeatItem={handleRepeatOpen}
                 onPrev={isCenter && dayOffset > -5 ? () => setDayOffset(o => o - 1) : undefined}
                 onNext={isCenter && dayOffset < 5  ? () => setDayOffset(o => o + 1) : undefined}
               />
@@ -596,6 +656,18 @@ export default function TodayScreen({ householdId, hasAiAccess, pantryItems = []
           onClose={() => setDropTarget(null)}
           onConfirm={handleDropPrepConfirm}
           onOpenAi={hasAiAccess ? handleDropPrepOpenAi : undefined}
+        />
+      )}
+
+      {/* Repeat meal sheet: reutilizar una comida confirmada de un día anterior */}
+      {repeatTarget && (
+        <RepeatMealSheet
+          plans={plans}
+          targetDate={repeatTarget.dateStr}
+          targetSlot={repeatTarget.slotId}
+          dayLabel={repeatTarget.dayLabel}
+          onClose={() => setRepeatTarget(null)}
+          onSelect={handleRepeatSelect}
         />
       )}
 

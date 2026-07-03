@@ -47,10 +47,15 @@ function dayLabel(dateStr) {
 // slots.{slotId} = { items: SlotEntry[], confirmedAt: string | null }
 //
 // SlotEntry = {
-//   inventoryItemId, label, itemType, tags,
-//   prepTime, accelBase,
+//   id, inventoryItemId, additionalInventoryIds, label, itemType, tags,
+//   prepTime, accelBase, prepMethod, pendingPrep, depletedInventoryIds,
 //   portionsAdultConsumed, portionsBabyConsumed
 // }
+// - id: uuid estable, solo se asigna a entries que pueden generar una tarea
+//   en prepQueue (vincula SlotEntry <-> prepQueue.linkedEntryId)
+// - depletedInventoryIds: subset de [inventoryItemId, ...additionalInventoryIds]
+//   que se desactivan en inventario al confirmar el slot (y se reactivan al
+//   eliminar el item del slot)
 
 // ── hook ──────────────────────────────────────────────────────────────────────
 
@@ -142,11 +147,14 @@ export function useDailyPlan(householdId) {
     await writeSlot(dateStr, slotId, { ...existing, items: newItems });
   }, [plans, writeSlot]);
 
-  const confirmSlot = useCallback(async (dateStr, slotId) => {
+  const confirmSlot = useCallback(async (dateStr, slotId, updatedItems = null) => {
     const plan = plans[dateStr];
     const slot = plan?.slots?.[slotId];
     if (!slot?.items?.length || slot.confirmedAt) return;
-    await writeSlot(dateStr, slotId, { ...slot, confirmedAt: new Date().toISOString() });
+    await writeSlot(dateStr, slotId, {
+      items: updatedItems ?? slot.items,
+      confirmedAt: new Date().toISOString(),
+    });
   }, [plans, writeSlot]);
 
   const clearSlot = useCallback(async (dateStr, slotId) => {

@@ -94,6 +94,10 @@ export async function resolveFloating({ floatingItem, inventoryItems, weeklyKpis
   return result;
 }
 
+export async function inferPrepMethod({ dishName, ingredients = [] }) {
+  return callClaude('infer_prep_method', { dishName, ingredients });
+}
+
 export async function suggestSnack({ recentSnacks, inventoryItems, pantryItems }) {
   const result = await callClaude('suggest_snack', { recentSnacks, inventoryItems, pantryItems });
   track('ai_snack_suggested');
