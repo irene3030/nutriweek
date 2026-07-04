@@ -194,8 +194,6 @@ Todos en `src/components/v2/`. Son la implementacin actual de Features 1 y 2:
 - Worktree: `../<slug-descriptivo>`
 - Rama: `feat/<slug-descriptivo>`
 
->  Esto es una convencin nueva. `scripts/setup-worktree.sh` todava antepone `mealops-` al nombre  pendiente de actualizar (ver BACKLOG.md). Hasta que se actualice el script, al crear un worktree renombra manualmente la carpeta tras el paso 1, o ajusta el comando antes de ejecutarlo.
-
 #### Crear un worktree nuevo
 
 Cuando la usuaria diga **"quiero abrir una rama nueva con worktree para X"** (o similar), ejecutar este flujo completo sin pedir ms confirmacin:

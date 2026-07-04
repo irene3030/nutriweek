@@ -23,4 +23,12 @@ else
   echo "⚠ No .netlify/state.json found — run 'netlify link' if you need Netlify functions"
 fi
 
+if [ -f "$MAIN/PROGRESS.md" ]; then
+  cp "$MAIN/PROGRESS.md" PROGRESS.md && echo "✓ PROGRESS.md"
+fi
+
+if [ -f "$MAIN/BACKLOG.md" ]; then
+  cp "$MAIN/BACKLOG.md" BACKLOG.md && echo "✓ BACKLOG.md"
+fi
+
 echo "Done. Run 'npm install && npm run dev:local' to start."
