@@ -35,6 +35,19 @@ export const PANTRY_CATEGORIES = [
     icon: 'Sparkles',
     defaults: ['Sal', 'Pimienta', 'Pimentón', 'Comino', 'Orégano', 'Canela'],
   },
+  {
+    id: 'congelados',
+    label: 'Congelados',
+    icon: 'Snowflake',
+    defaults: ['Guisantes congelados'],
+  },
 ];
 
 export const DEFAULT_PANTRY_ITEMS = PANTRY_CATEGORIES.flatMap(c => c.defaults);
+
+// Categoría a la que pertenece un item por defecto (case-insensitive), o null si es custom
+export function inferCategoryId(name) {
+  const lower = name.toLowerCase();
+  const cat = PANTRY_CATEGORIES.find(c => c.defaults.some(d => d.toLowerCase() === lower));
+  return cat?.id ?? null;
+}

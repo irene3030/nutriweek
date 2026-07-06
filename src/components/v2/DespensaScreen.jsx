@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Plus, X, Droplets, Flower2, Wheat, Egg, Archive, Sparkles } from 'lucide-react';
+import { Plus, X, Droplets, Flower2, Wheat, Egg, Archive, Sparkles, Snowflake, ShoppingCart } from 'lucide-react';
 
-const CATEGORY_ICONS = { Droplets, Flower2, Wheat, Egg, Archive, Sparkles };
+const CATEGORY_ICONS = { Droplets, Flower2, Wheat, Egg, Archive, Sparkles, Snowflake };
 import { usePantry } from '../../hooks/usePantry';
 import { PANTRY_CATEGORIES, DEFAULT_PANTRY_ITEMS } from '../../lib/pantryData';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
-function ItemChip({ name, active, onToggle, onRemove, isCustom }) {
+function ItemChip({ name, active, onToggle, onRemove, isCustom, outOfStock, onToggleOutOfStock }) {
   return (
     <div className="flex items-center gap-0.5">
       <button
@@ -19,6 +19,17 @@ function ItemChip({ name, active, onToggle, onRemove, isCustom }) {
       >
         {name}
       </button>
+      {active && (
+        <button
+          onClick={onToggleOutOfStock}
+          title={outOfStock ? 'Quitar de agotados' : 'Marcar como agotado'}
+          className={`flex items-center justify-center w-5 h-5 rounded-full transition-colors ${
+            outOfStock ? 'text-amber-600 bg-amber-50' : 'text-gray-300 hover:text-amber-500 hover:bg-amber-50'
+          }`}
+        >
+          <ShoppingCart className="w-3 h-3" />
+        </button>
+      )}
       {isCustom && active && (
         <button
           onClick={onRemove}
@@ -62,7 +73,10 @@ function AddItemInput({ onAdd }) {
 }
 
 export default function DespensaScreen({ householdId }) {
-  const { pantryItems, loading, toggleItem, addItem, removeItem } = usePantry(householdId);
+  const {
+    pantryItems, loading, toggleItem, addItem, removeItem,
+    toggleOutOfStock, isOutOfStock, categoryIdFor,
+  } = usePantry(householdId);
 
   if (loading) {
     return (
@@ -72,11 +86,13 @@ export default function DespensaScreen({ householdId }) {
     );
   }
 
-  // Items that are in pantryItems but not in any default category
+  // Items que están en pantryItems pero no son parte de ningún catálogo por defecto
   const defaultAll = DEFAULT_PANTRY_ITEMS.map(i => i.toLowerCase());
   const customItems = pantryItems.filter(
     i => !defaultAll.includes(i.toLowerCase())
   );
+  const knownCategoryIds = new Set(PANTRY_CATEGORIES.map(c => c.id));
+  const uncategorizedItems = customItems.filter(i => !knownCategoryIds.has(categoryIdFor(i)));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -92,6 +108,7 @@ export default function DespensaScreen({ householdId }) {
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-3 pb-24">
         {PANTRY_CATEGORIES.map(cat => {
           const Icon = CATEGORY_ICONS[cat.icon];
+          const customInCategory = customItems.filter(i => categoryIdFor(i) === cat.id);
           return (
           <div key={cat.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
             <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
@@ -106,28 +123,44 @@ export default function DespensaScreen({ householdId }) {
                   active={pantryItems.includes(item)}
                   onToggle={() => toggleItem(item)}
                   isCustom={false}
+                  outOfStock={isOutOfStock(item)}
+                  onToggleOutOfStock={() => toggleOutOfStock(item)}
                 />
               ))}
-            </div>
-            <AddItemInput onAdd={addItem} />
-          </div>
-        )})}
-
-        {customItems.length > 0 && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
-            <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-              <Plus className="w-3.5 h-3.5 text-gray-400" />
-              Añadidos por ti
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {customItems.map(item => (
+              {customInCategory.map(item => (
                 <ItemChip
                   key={item}
                   name={item}
-                  active={pantryItems.includes(item)}
+                  active
                   onToggle={() => toggleItem(item)}
                   onRemove={() => removeItem(item)}
                   isCustom
+                  outOfStock={isOutOfStock(item)}
+                  onToggleOutOfStock={() => toggleOutOfStock(item)}
+                />
+              ))}
+            </div>
+            <AddItemInput onAdd={(name) => addItem(name, cat.id)} />
+          </div>
+        )})}
+
+        {uncategorizedItems.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
+            <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+              <Plus className="w-3.5 h-3.5 text-gray-400" />
+              Otros
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {uncategorizedItems.map(item => (
+                <ItemChip
+                  key={item}
+                  name={item}
+                  active
+                  onToggle={() => toggleItem(item)}
+                  onRemove={() => removeItem(item)}
+                  isCustom
+                  outOfStock={isOutOfStock(item)}
+                  onToggleOutOfStock={() => toggleOutOfStock(item)}
                 />
               ))}
             </div>
